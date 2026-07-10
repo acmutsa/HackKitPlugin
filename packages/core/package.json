@@ -1,0 +1,32 @@
+{
+  "name": "@hackkit/core",
+  "version": "0.0.0",
+  "description": "Framework-independent HackKit core kernel",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.39.3",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "typescript": "5.5.3",
+    "vitest": "^3.2.4"
+  },
+  "license": "MIT",
+  "private": true
+}

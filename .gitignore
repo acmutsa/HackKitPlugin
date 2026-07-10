@@ -31,6 +31,7 @@ yarn-error.log*
 
 # turbo
 .turbo
+*.tsbuildinfo
 
 # vercel
 .vercel
@@ -41,3 +42,17 @@ yarn-error.log*
 
 #Jetbrians
 .idea
+
+#pi
+sessions/
+
+# web local sqlite
+apps/web/.data/
+
+# cursor
+.cursor/plans/
+.cursor/settings.json
+HANDOFF.md
+
+# build
+**/dist/
