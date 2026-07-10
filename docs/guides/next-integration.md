@@ -7,7 +7,7 @@ HackKit Web Apps integrate with Core and HackKit UI through **`@hackkit/next`**.
 3. Core mutations / server actions
 4. HackKit UI provider wiring
 
-Package README: [`packages/next/README.md`](../../packages/next/README.md). Reference implementation: [`apps/test-web`](../../apps/test-web).
+Package README: [`packages/next/README.md`](../../packages/next/README.md). Reference implementation: [`apps/web`](../../apps/web).
 
 ## Why one path
 
@@ -27,7 +27,7 @@ The simplified path keeps construction inside `@hackkit/next`:
 
 ### Runtime
 
-`apps/test-web/lib/runtime.ts` is the composition root:
+`apps/web/lib/runtime.ts` is the composition root:
 
 -   `createHackkitRuntimeFromConfig({ config, database, auth, afterCurrentUser? })`
 -   `setHackkitRuntime(runtimePromise)` so `"use server"` actions can resolve mutations
@@ -37,7 +37,7 @@ Use `afterCurrentUser` for app-specific work that must run for both `getCurrentU
 
 ### Provider
 
-`apps/test-web/app/providers.tsx`:
+`apps/web/app/providers.tsx`:
 
 ```tsx
 <HackKitUIProvider actions={hackKitUIActions} />
@@ -79,8 +79,8 @@ Compile-time: `hackKitUIActions satisfies HackKitUIActions`.
 ```bash
 pnpm --filter @hackkit/next test
 pnpm --filter @hackkit/next typecheck
-pnpm --filter test-web typecheck
-pnpm --filter test-web build
+pnpm --filter web typecheck
+pnpm --filter web build
 ```
 
 ## Related ADRs

@@ -361,7 +361,7 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 > **Dev:** "If someone swipes twice at lunch, is that one row with count 2?"
 > **Domain expert:** "No. Each swipe is its own **Event Scan**. The scanner warns the volunteer if they've already scanned, but they can still record another scan when seconds opens up."
 
-> **Dev:** "What does test-web need to ship for events?"
+> **Dev:** "What does web need to ship for events?"
 > **Domain expert:** "Public schedule, **Event Pass**, event admin, event scanner, and hackathon check-in — enough to prove Core, UI, and the app wiring together."
 
 ## Flagged ambiguities

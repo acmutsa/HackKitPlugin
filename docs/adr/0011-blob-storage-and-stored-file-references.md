@@ -6,12 +6,12 @@ Files (e.g. resumes on **Hacker Registration**) are stored outside **HackKit Cor
 
 - Legacy **apps/web** used R2 presigned uploads and app routes (`/api/upload/resume/...`) that return app-relative view URLs stored on hacker rows.
 - **HackKit Core** already has optional `resumeUrl` on **Hacker**; there was no adapter boundary, and resume “missing” used a legacy sentinel URL constant.
-- **Competitor Onboarding** this milestone includes resume upload in **HackKit UI** with test-web defaulting to local storage for contributors without cloud credentials.
+- **Competitor Onboarding** this milestone includes resume upload in **HackKit UI** with web defaulting to local storage for contributors without cloud credentials.
 
 ## Decision
 
 - Define **Blob Storage Adapter** in **HackKit Core**; implement `@hackkit/blob-local` and `@hackkit/blob-s3` (or equivalent names) as separate packages.
-- **HackKit Web Apps** select an implementation in `hackkit.config.ts`; test-web defaults to local.
+- **HackKit Web Apps** select an implementation in `hackkit.config.ts`; web defaults to local.
 - After upload, the app passes a **Stored File Reference** (app-relative URL) into Core APIs; Core does not talk to blob backends directly.
 - Resume is optional: omit `resumeUrl` when the user skips upload; no sentinel “no resume provided” string in Core records.
 - **HackKit UI** **Hacker Registration** form accepts upload via app-provided handlers; resulting URL is submitted with `registerHacker`.

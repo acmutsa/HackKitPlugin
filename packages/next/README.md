@@ -2,7 +2,7 @@
 
 Next.js integration for HackKit Web Apps. This package is the single composition root for runtime setup, page guards, Core mutations, and HackKit UI provider actions.
 
-Canonical walkthrough: [`docs/guides/next-integration.md`](../../docs/guides/next-integration.md). Reference app: [`apps/test-web`](../../apps/test-web).
+Canonical walkthrough: [`docs/guides/next-integration.md`](../../docs/guides/next-integration.md). Reference app: [`apps/web`](../../apps/web).
 
 ## Integration path
 
@@ -111,6 +111,6 @@ App-owned bridge files should not need changes. Package tests assert key parity 
 ```bash
 pnpm --filter @hackkit/next test
 pnpm --filter @hackkit/next typecheck
-pnpm --filter test-web typecheck
-pnpm --filter test-web build
+pnpm --filter web typecheck
+pnpm --filter web build
 ```
