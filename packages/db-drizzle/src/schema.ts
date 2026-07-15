@@ -225,38 +225,39 @@ function renderColumnFactory(
 	name: string,
 	dialect: DrizzleDialect,
 ) {
+	const physicalName = JSON.stringify(name);
 	if (dialect === "sqlite") {
 		switch (field.kind) {
 			case "string":
 			case "enum":
-				return `text("${name}")`;
+				return `text(${physicalName})`;
 			case "integer":
-				return `integer("${name}")`;
+				return `integer(${physicalName})`;
 			case "number":
-				return `real("${name}")`;
+				return `real(${physicalName})`;
 			case "boolean":
-				return `integer("${name}", { mode: "boolean" })`;
+				return `integer(${physicalName}, { mode: "boolean" })`;
 			case "date":
-				return `integer("${name}", { mode: "timestamp" })`;
+				return `integer(${physicalName}, { mode: "timestamp" })`;
 			case "json":
-				return `text("${name}", { mode: "json" })`;
+				return `text(${physicalName}, { mode: "json" })`;
 		}
 	}
 
 	switch (field.kind) {
 		case "string":
 		case "enum":
-			return `text("${name}")`;
+			return `text(${physicalName})`;
 		case "integer":
-			return `integer("${name}")`;
+			return `integer(${physicalName})`;
 		case "number":
-			return `doublePrecision("${name}")`;
+			return `doublePrecision(${physicalName})`;
 		case "boolean":
-			return `boolean("${name}")`;
+			return `boolean(${physicalName})`;
 		case "date":
-			return `timestamp("${name}", { withTimezone: true, mode: "date" })`;
+			return `timestamp(${physicalName}, { withTimezone: true, mode: "date" })`;
 		case "json":
-			return `jsonb("${name}")`;
+			return `jsonb(${physicalName})`;
 	}
 }
 
@@ -275,12 +276,12 @@ function renderTable(table: CompiledTable, dialect: DrizzleDialect): string {
 		const indexedColumns = definition.columns
 			.map((column) => renderPropertyAccess("table", column))
 			.join(", ");
-		return `\t${renderPropertyKey(definition.name)}: ${factory}("${definition.name}").on(${indexedColumns})`;
+		return `\t${renderPropertyKey(definition.name)}: ${factory}(${JSON.stringify(definition.name)}).on(${indexedColumns})`;
 	});
 	const extraConfig =
 		indexes.length > 0 ? `, (table) => ({\n${indexes.join(",\n")}\n})` : "";
 	const tableFactory = dialect === "sqlite" ? "sqliteTable" : "pgTable";
-	return `export const ${table.exportName} = ${tableFactory}("${table.tableName}", {\n${columns.join(",\n")}\n}${extraConfig});\n`;
+	return `export const ${table.exportName} = ${tableFactory}(${JSON.stringify(table.tableName)}, {\n${columns.join(",\n")}\n}${extraConfig});\n`;
 }
 
 function importsFor(dialect: DrizzleDialect): string {

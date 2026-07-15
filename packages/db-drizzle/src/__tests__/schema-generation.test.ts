@@ -202,6 +202,24 @@ describe("Drizzle native schema generation", () => {
 		await expectGeneratedSchemaToCompile(file.content);
 	});
 
+	it("escapes physical names as TypeScript string literals", async () => {
+		const quoted = defineModel('quoted".entry\\path', {
+			fields: {
+				id: field.string().primaryKey(),
+				'external"id\\path\nline': field.string(),
+			},
+			indexes: [['external"id\\path\nline']],
+		});
+		const [file] =
+			await createDrizzleSqliteSchemaAdapter().generateSchemaFiles({
+				storage: { models: { quoted } },
+			});
+
+		expect(file.content).toContain('sqliteTable("quoted\\"_entry\\\\path"');
+		expect(file.content).toContain('text("external\\"id\\\\path\\nline")');
+		await expectGeneratedSchemaToCompile(file.content);
+	});
+
 	it("rejects distinct tables that resolve to the same schema export", () => {
 		const first = defineModel("sample.entry.item", {
 			fields: { id: field.string().primaryKey() },

@@ -1,12 +1,15 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createHackkit } from "@hackkit/core";
+import { createDrizzleLibsqlAdapter } from "@hackkit/db-drizzle/libsql";
 import { createClient } from "@libsql/client";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { afterEach, describe, expect, it } from "vitest";
+import { appJob } from "./fixtures/app-schema";
 import { account, session, user, verification } from "../schema/auth";
-import { coreRole } from "../schema/hackkit";
 
 const clients: ReturnType<typeof createClient>[] = [];
 
@@ -22,8 +25,34 @@ describe("committed web database workflow", () => {
 		await migrate(db, {
 			migrationsFolder: join(process.cwd(), "db/migrations"),
 		});
+		await client.executeMultiple(
+			await readFile(
+				join(process.cwd(), "db/__tests__/fixtures/app-migration.sql"),
+				"utf8",
+			),
+		);
 
-		await expect(db.select().from(coreRole)).resolves.toEqual([]);
+		const hackkit = createHackkit({
+			database: createDrizzleLibsqlAdapter(db),
+			clock: () => new Date("2026-07-14T12:00:00.000Z"),
+			seedRoles: [
+				{
+					id: "test.role",
+					name: "Test role",
+					position: 1,
+					permissions: [],
+				},
+			],
+		});
+		await hackkit.init();
+		await expect(hackkit.roles.listRoles()).resolves.toMatchObject([
+			{ id: "test.role", name: "Test role" },
+		]);
+
+		await db.insert(appJob).values({ id: "job-1", status: "ready" });
+		await expect(db.select().from(appJob)).resolves.toEqual([
+			{ id: "job-1", status: "ready" },
+		]);
 
 		const auth = betterAuth({
 			baseURL: "http://localhost:3000",
