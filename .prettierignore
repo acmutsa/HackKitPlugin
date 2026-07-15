@@ -5,3 +5,4 @@ pnpm-workspace.yaml
 *.json
 apps/web/db/schema/**
 apps/web/db/migrations/**
+packages/db-drizzle/test-fixtures/**

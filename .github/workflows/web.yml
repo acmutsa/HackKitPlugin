@@ -84,8 +84,23 @@ jobs:
                   fi
                   pnpm db:migrate
 
+            - name: Test database workflow isolation
+              run: pnpm --filter web test:db-workflow
+
+            - name: Validate PostgreSQL migration fixture
+              run: |
+                  pnpm --filter @hackkit/db-drizzle exec drizzle-kit check --config test-fixtures/postgres/drizzle.config.ts
+                  pnpm --filter @hackkit/db-drizzle exec drizzle-kit generate --config test-fixtures/postgres/drizzle.config.ts
+                  changed="$(git status --porcelain -- packages/db-drizzle/test-fixtures/postgres)"
+                  if [ -n "$changed" ]; then
+                      echo "$changed"
+                      git diff -- packages/db-drizzle/test-fixtures/postgres
+                      exit 1
+                  fi
+
             - name: Package tests
               run: |
+                  pnpm --filter web test
                   pnpm --filter @hackkit/core test
                   POSTGRES_TEST_URL=postgres://postgres:postgres@localhost:5432/hackkit pnpm --filter @hackkit/db-drizzle test
                   pnpm --filter @hackkit/cli test

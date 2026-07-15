@@ -30,10 +30,14 @@ function ensurePluginInConfig(
 	if (source.includes(`${importName}()`)) return;
 
 	if (!source.includes(`from "${packageName}"`)) {
-		source = source.replace(
+		const withImport = source.replace(
 			/(import[^\n]+\n)/,
 			`import { ${importName} } from "${packageName}";\n$1`,
 		);
+		source =
+			withImport === source
+				? `import { ${importName} } from "${packageName}";\n${source}`
+				: withImport;
 	}
 
 	source = source.replace(/plugins:\s*\[\s*\]/, `plugins: [${importName}()]`);

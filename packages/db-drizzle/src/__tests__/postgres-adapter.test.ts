@@ -1,22 +1,20 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { defineModel, field } from "@hackkit/core";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { describe, expect, it } from "vitest";
-import { createDrizzlePostgresAdapter } from "../postgres";
+import {
+	createDrizzlePostgresAdapter,
+	createDrizzlePostgresSchemaAdapter,
+} from "../postgres";
 
 const postgresUrl = process.env.POSTGRES_TEST_URL;
 
 describe.runIf(postgresUrl)("Drizzle PostgreSQL database adapter", () => {
-	it("persists native PostgreSQL values through the public adapter", async () => {
+	it("applies native migrations and supports CRUD", async () => {
 		const client = postgres(postgresUrl!, { max: 1 });
-		await client.unsafe('DROP TABLE IF EXISTS "sample_record"');
-		await client.unsafe(`CREATE TABLE "sample_record" (
-			"id" TEXT PRIMARY KEY NOT NULL,
-			"active" BOOLEAN NOT NULL,
-			"score" DOUBLE PRECISION NOT NULL,
-			"metadata" JSONB NOT NULL,
-			"createdAt" TIMESTAMPTZ NOT NULL
-		)`);
 		const record = defineModel("sample.record", {
 			fields: {
 				id: field.string().primaryKey().defaultId(),
@@ -27,27 +25,72 @@ describe.runIf(postgresUrl)("Drizzle PostgreSQL database adapter", () => {
 			},
 		});
 		const createdAt = new Date("2026-07-14T12:00:00.000Z");
-		const database = createDrizzlePostgresAdapter(drizzle(client)).create({
-			storage: { models: { record } },
-			now: () => createdAt,
-			id: () => "record-1",
-		});
+		let idSequence = 0;
+		const db = drizzle(client);
 
-		await expect(
-			database.insert(record, {
+		try {
+			await client.unsafe('DROP TABLE IF EXISTS "sample_record"');
+			await client.unsafe("DROP SCHEMA IF EXISTS drizzle CASCADE");
+			await migrate(db, {
+				migrationsFolder: join(
+					process.cwd(),
+					"test-fixtures/postgres/migrations",
+				),
+			});
+			const [generatedFile] =
+				await createDrizzlePostgresSchemaAdapter().generateSchemaFiles({
+					storage: { models: { record } },
+				});
+			await expect(
+				readFile(
+					join(process.cwd(), "test-fixtures/postgres/schema.ts"),
+					"utf8",
+				),
+			).resolves.toBe(generatedFile.content);
+
+			const database = createDrizzlePostgresAdapter(db).create({
+				storage: { models: { record } },
+				now: () => createdAt,
+				id: () => `record-${++idSequence}`,
+			});
+
+			await expect(
+				database.insert(record, {
+					active: true,
+					score: 9.5,
+					metadata: { source: "ci" },
+				}),
+			).resolves.toEqual({
+				id: "record-1",
 				active: true,
 				score: 9.5,
 				metadata: { source: "ci" },
-			}),
-		).resolves.toEqual({
-			id: "record-1",
-			active: true,
-			score: 9.5,
-			metadata: { source: "ci" },
-			createdAt,
-		});
+				createdAt,
+			});
+			await database.insert(record, {
+				active: false,
+				score: 2,
+				metadata: { source: "second" },
+			});
 
-		await client.unsafe('DROP TABLE "sample_record"');
-		await client.end();
+			await expect(
+				database.findMany(record, {
+					orderBy: { field: "score", direction: "desc" },
+				}),
+			).resolves.toHaveLength(2);
+			await expect(
+				database.update(record, { id: "record-1" }, { score: 10.25 }),
+			).resolves.toMatchObject([{ id: "record-1", score: 10.25 }]);
+			await expect(
+				database.delete(record, { id: "record-2" }),
+			).resolves.toBe(1);
+			await expect(
+				database.findOne(record, { id: "record-2" }),
+			).resolves.toBeNull();
+		} finally {
+			await client.unsafe('DROP TABLE IF EXISTS "sample_record"');
+			await client.unsafe("DROP SCHEMA IF EXISTS drizzle CASCADE");
+			await client.end();
+		}
 	});
 });

@@ -41,16 +41,31 @@ export function toDrizzleTableName(modelKey: ModelKey): string {
 
 export function toDrizzleTableExportName(modelKey: ModelKey): string {
 	const [namespace = "", ...parts] = modelKey.split(".");
-	return [namespace, ...parts]
+	const candidate = [namespace, ...parts]
 		.map((part, index) =>
 			index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1),
 		)
 		.join("");
+	return toIdentifier(candidate);
 }
 
 function toIdentifier(value: string): string {
 	const sanitized = value.replace(/[^a-zA-Z0-9_$]/g, "_");
 	return /^[a-zA-Z_$]/.test(sanitized) ? sanitized : `_${sanitized}`;
+}
+
+function isIdentifier(value: string): boolean {
+	return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(value);
+}
+
+function renderPropertyKey(value: string): string {
+	return isIdentifier(value) ? value : JSON.stringify(value);
+}
+
+function renderPropertyAccess(object: string, property: string): string {
+	return isIdentifier(property)
+		? `${object}.${property}`
+		: `${object}[${JSON.stringify(property)}]`;
 }
 
 function toIndexName(
@@ -83,10 +98,15 @@ function sortModelsByReferences(storage: StorageRegistry): PersistentModel[] {
 	function visit(model: PersistentModel) {
 		if (visited.has(model.key) || visiting.has(model.key)) return;
 		visiting.add(model.key);
-		for (const field of Object.values(model.schema.fields)) {
-			const referenced = field.reference
-				? byKey.get(field.reference.model)
-				: undefined;
+		const referencedModels = Object.values(model.schema.fields)
+			.flatMap((field) => {
+				const referenced = field.reference
+					? byKey.get(field.reference.model)
+					: undefined;
+				return referenced ? [referenced] : [];
+			})
+			.sort((left, right) => left.key.localeCompare(right.key));
+		for (const referenced of referencedModels) {
 			if (referenced && referenced.key !== model.key) visit(referenced);
 		}
 		visiting.delete(model.key);
@@ -94,15 +114,21 @@ function sortModelsByReferences(storage: StorageRegistry): PersistentModel[] {
 		sorted.push(model);
 	}
 
-	for (const model of Object.values(storage.models)) visit(model);
+	for (const model of [...byKey.values()].sort((left, right) =>
+		left.key.localeCompare(right.key),
+	)) {
+		visit(model);
+	}
 	return sorted;
 }
 
 function compileTables(storage: StorageRegistry): CompiledTable[] {
 	const tableOwners = new Map<string, ModelKey>();
+	const exportOwners = new Map<string, ModelKey>();
 
 	return sortModelsByReferences(storage).map((model) => {
 		const tableName = toDrizzleTableName(model.key);
+		const exportName = toDrizzleTableExportName(model.key);
 		const existingOwner = tableOwners.get(tableName);
 		if (existingOwner) {
 			throw new Error(
@@ -110,6 +136,13 @@ function compileTables(storage: StorageRegistry): CompiledTable[] {
 			);
 		}
 		tableOwners.set(tableName, model.key);
+		const existingExportOwner = exportOwners.get(exportName);
+		if (existingExportOwner) {
+			throw new Error(
+				`Models '${existingExportOwner}' and '${model.key}' resolve to the same schema export '${exportName}'.`,
+			);
+		}
+		exportOwners.set(exportName, model.key);
 
 		const columns = Object.entries(model.schema.fields).map(
 			([name, field]) => {
@@ -156,7 +189,7 @@ function compileTables(storage: StorageRegistry): CompiledTable[] {
 
 		return {
 			tableName,
-			exportName: toDrizzleTableExportName(model.key),
+			exportName,
 			columns,
 			indexes,
 		};
@@ -165,7 +198,12 @@ function compileTables(storage: StorageRegistry): CompiledTable[] {
 
 function renderDefault(field: AnyField): string | undefined {
 	if (field.defaultValue?.kind !== "static") return undefined;
-	return `.default(${JSON.stringify(field.defaultValue.value)})`;
+	const value = field.defaultValue.value;
+	const source =
+		field.kind === "date" && value instanceof Date
+			? `new Date(${JSON.stringify(value.toISOString())})`
+			: JSON.stringify(value);
+	return `.default(${source})`;
 }
 
 function renderReference(reference: CompiledReference): string {
@@ -179,7 +217,7 @@ function renderReference(reference: CompiledReference): string {
 	].filter(Boolean);
 	const optionsSource =
 		options.length > 0 ? `, { ${options.join(", ")} }` : "";
-	return `.references(() => ${reference.tableExportName}.${reference.field}${optionsSource})`;
+	return `.references(() => ${renderPropertyAccess(reference.tableExportName, reference.field)}${optionsSource})`;
 }
 
 function renderColumnFactory(
@@ -230,14 +268,14 @@ function renderTable(table: CompiledTable, dialect: DrizzleDialect): string {
 		if (column.field.isUnique) source += ".unique()";
 		if (column.reference) source += renderReference(column.reference);
 		source += renderDefault(column.field) ?? "";
-		return `\t${column.name}: ${source}`;
+		return `\t${renderPropertyKey(column.name)}: ${source}`;
 	});
 	const indexes = table.indexes.map((definition) => {
 		const factory = definition.unique ? "uniqueIndex" : "index";
 		const indexedColumns = definition.columns
-			.map((column) => `table.${column}`)
+			.map((column) => renderPropertyAccess("table", column))
 			.join(", ");
-		return `\t${toIdentifier(definition.name)}: ${factory}("${definition.name}").on(${indexedColumns})`;
+		return `\t${renderPropertyKey(definition.name)}: ${factory}("${definition.name}").on(${indexedColumns})`;
 	});
 	const extraConfig =
 		indexes.length > 0 ? `, (table) => ({\n${indexes.join(",\n")}\n})` : "";

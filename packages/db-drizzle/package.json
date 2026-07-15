@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@libsql/client": "^0.14.0",
+    "drizzle-kit": "^0.31.4",
     "postgres": "^3.4.7",
     "typescript": "5.5.3",
     "vitest": "^3.2.4"

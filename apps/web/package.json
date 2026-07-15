@@ -10,6 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:reset": "bash scripts/db-reset.sh",
+    "test": "vitest run db/__tests__/database-workflow.test.ts",
+    "test:db-workflow": "bash scripts/test-db-workflow.sh",
     "sync": "pnpm plugin:sync",
     "predev": "turbo run build --filter=web^...",
     "dev": "next dev -p 3000",
@@ -51,6 +53,7 @@
     "drizzle-kit": "^0.31.4",
     "postcss": "8.4.39",
     "tailwindcss": "3.4.6",
-    "tailwindcss-animate": "1.0.7"
+    "tailwindcss-animate": "1.0.7",
+    "vitest": "^3.2.4"
   }
 }

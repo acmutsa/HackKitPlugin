@@ -168,6 +168,8 @@ pnpm --filter web schema:generate
 pnpm --filter web auth:schema
 pnpm --filter web db:generate
 pnpm --filter web db:migrate
+pnpm --filter web test
+pnpm --filter web test:db-workflow
 pnpm --filter @hackkit/core test
 pnpm --filter @hackkit/db-drizzle test
 pnpm --filter @hackkit/cli test
@@ -180,7 +182,7 @@ pnpm --filter web typecheck
 pnpm --filter web build
 ```
 
-CI regenerates committed schema, validates and applies migrations, runs PostgreSQL adapter integration tests, and builds the full web dependency graph.
+CI regenerates committed schema, validates and applies the web migration chain, runs a Better Auth flow against the generated auth schema, verifies database-command isolation, applies the committed PostgreSQL adapter migration fixture, and builds the full web dependency graph.
 
 ## Server Actions
 

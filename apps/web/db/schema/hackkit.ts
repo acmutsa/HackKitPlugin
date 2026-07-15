@@ -1,5 +1,23 @@
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const coreEvent = sqliteTable("core_event", {
+	id: text("id").primaryKey().notNull(),
+	title: text("title").notNull(),
+	startTime: integer("startTime", { mode: "timestamp" }).notNull(),
+	endTime: integer("endTime", { mode: "timestamp" }).notNull(),
+	location: text("location").notNull().default("TBD"),
+	description: text("description").notNull(),
+	type: text("type").notNull(),
+	host: text("host"),
+	hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
+	createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull()
+}, (table) => ({
+	core_event_startTime_idx: index("core_event_startTime_idx").on(table.startTime),
+	core_event_type_idx: index("core_event_type_idx").on(table.type),
+	core_event_hidden_idx: index("core_event_hidden_idx").on(table.hidden)
+}));
+
 export const coreRole = sqliteTable("core_role", {
 	id: text("id").primaryKey().notNull(),
 	name: text("name").notNull().unique(),
@@ -36,23 +54,18 @@ export const coreUser = sqliteTable("core_user", {
 	core_user_createdAt_idx: index("core_user_createdAt_idx").on(table.createdAt)
 }));
 
-export const coreUserData = sqliteTable("core_userData", {
-	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
-	age: integer("age").notNull(),
-	gender: text("gender").notNull(),
-	race: text("race").notNull(),
-	ethnicity: text("ethnicity").notNull(),
-	shirtSize: text("shirtSize").notNull(),
-	dietaryRestrictions: text("dietaryRestrictions", { mode: "json" }).notNull().default([]),
-	accommodationNote: text("accommodationNote"),
-	phoneNumber: text("phoneNumber"),
-	countryOfResidence: text("countryOfResidence"),
-	hasAcceptedMLHCodeOfConduct: integer("hasAcceptedMLHCodeOfConduct", { mode: "boolean" }).notNull(),
-	hasSharedDataWithMLH: integer("hasSharedDataWithMLH", { mode: "boolean" }).notNull(),
-	isEmailable: integer("isEmailable", { mode: "boolean" }).notNull(),
-	completedAt: integer("completedAt", { mode: "timestamp" }).notNull(),
-	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull()
-});
+export const coreEventScan = sqliteTable("core_eventScan", {
+	id: text("id").primaryKey().notNull(),
+	eventId: text("eventId").notNull().references(() => coreEvent.id, { onDelete: "cascade" }),
+	authId: text("authId").notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
+	scannedByAuthId: text("scannedByAuthId").notNull().references(() => coreUser.authId),
+	scannedAt: integer("scannedAt", { mode: "timestamp" }).notNull()
+}, (table) => ({
+	core_eventScan_eventId_idx: index("core_eventScan_eventId_idx").on(table.eventId),
+	core_eventScan_authId_idx: index("core_eventScan_authId_idx").on(table.authId),
+	core_eventScan_eventId_authId_idx: index("core_eventScan_eventId_authId_idx").on(table.eventId, table.authId),
+	core_eventScan_scannedAt_idx: index("core_eventScan_scannedAt_idx").on(table.scannedAt)
+}));
 
 export const coreHacker = sqliteTable("core_hacker", {
 	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
@@ -72,75 +85,6 @@ export const coreHacker = sqliteTable("core_hacker", {
 	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull()
 }, (table) => ({
 	core_hacker_registeredAt_idx: index("core_hacker_registeredAt_idx").on(table.registeredAt)
-}));
-
-export const coreRsvp = sqliteTable("core_rsvp", {
-	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
-	status: text("status").notNull(),
-	waitlistPosition: integer("waitlistPosition"),
-	createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
-	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
-	confirmedAt: integer("confirmedAt", { mode: "timestamp" }),
-	waitlistedAt: integer("waitlistedAt", { mode: "timestamp" }),
-	cancelledAt: integer("cancelledAt", { mode: "timestamp" }),
-	cancelledByAuthId: text("cancelledByAuthId").references(() => coreUser.authId, { onDelete: "set null" }),
-	promotedAt: integer("promotedAt", { mode: "timestamp" }),
-	promotedByAuthId: text("promotedByAuthId").references(() => coreUser.authId, { onDelete: "set null" })
-}, (table) => ({
-	core_rsvp_status_idx: index("core_rsvp_status_idx").on(table.status),
-	core_rsvp_waitlistPosition_idx: index("core_rsvp_waitlistPosition_idx").on(table.waitlistPosition),
-	core_rsvp_createdAt_idx: index("core_rsvp_createdAt_idx").on(table.createdAt),
-	core_rsvp_updatedAt_idx: index("core_rsvp_updatedAt_idx").on(table.updatedAt)
-}));
-
-export const coreUserBan = sqliteTable("core_userBan", {
-	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
-	reason: text("reason"),
-	bannedByAuthId: text("bannedByAuthId").notNull().references(() => coreUser.authId),
-	createdAt: integer("createdAt", { mode: "timestamp" }).notNull()
-});
-
-export const coreEvent = sqliteTable("core_event", {
-	id: text("id").primaryKey().notNull(),
-	title: text("title").notNull(),
-	startTime: integer("startTime", { mode: "timestamp" }).notNull(),
-	endTime: integer("endTime", { mode: "timestamp" }).notNull(),
-	location: text("location").notNull().default("TBD"),
-	description: text("description").notNull(),
-	type: text("type").notNull(),
-	host: text("host"),
-	hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
-	createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
-	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull()
-}, (table) => ({
-	core_event_startTime_idx: index("core_event_startTime_idx").on(table.startTime),
-	core_event_type_idx: index("core_event_type_idx").on(table.type),
-	core_event_hidden_idx: index("core_event_hidden_idx").on(table.hidden)
-}));
-
-export const coreSetting = sqliteTable("core_setting", {
-	key: text("key").primaryKey().notNull(),
-	value: text("value", { mode: "json" }).notNull(),
-	createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
-	createdByAuthId: text("createdByAuthId").references(() => coreUser.authId, { onDelete: "set null" }),
-	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
-	updatedByAuthId: text("updatedByAuthId").references(() => coreUser.authId, { onDelete: "set null" })
-}, (table) => ({
-	core_setting_updatedAt_idx: index("core_setting_updatedAt_idx").on(table.updatedAt),
-	core_setting_updatedByAuthId_idx: index("core_setting_updatedByAuthId_idx").on(table.updatedByAuthId)
-}));
-
-export const coreEventScan = sqliteTable("core_eventScan", {
-	id: text("id").primaryKey().notNull(),
-	eventId: text("eventId").notNull().references(() => coreEvent.id, { onDelete: "cascade" }),
-	authId: text("authId").notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
-	scannedByAuthId: text("scannedByAuthId").notNull().references(() => coreUser.authId),
-	scannedAt: integer("scannedAt", { mode: "timestamp" }).notNull()
-}, (table) => ({
-	core_eventScan_eventId_idx: index("core_eventScan_eventId_idx").on(table.eventId),
-	core_eventScan_authId_idx: index("core_eventScan_authId_idx").on(table.authId),
-	core_eventScan_eventId_authId_idx: index("core_eventScan_eventId_authId_idx").on(table.eventId, table.authId),
-	core_eventScan_scannedAt_idx: index("core_eventScan_scannedAt_idx").on(table.scannedAt)
 }));
 
 export const coreNotificationIntent = sqliteTable("core_notificationIntent", {
@@ -177,57 +121,61 @@ export const coreNotificationDeliveryAttempt = sqliteTable("core_notificationDel
 	core_notificationDeliveryAttempt_attemptedAt_idx: index("core_notificationDeliveryAttempt_attemptedAt_idx").on(table.attemptedAt)
 }));
 
-export const teamsTeam = sqliteTable("teams_team", {
-	id: text("id").primaryKey().notNull(),
-	name: text("name").notNull(),
-	tag: text("tag").notNull().unique(),
-	ownerAuthId: text("ownerAuthId").notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
-	createdAt: integer("createdAt", { mode: "timestamp" }).notNull()
-}, (table) => ({
-	teams_team_tag_idx: index("teams_team_tag_idx").on(table.tag),
-	teams_team_ownerAuthId_idx: index("teams_team_ownerAuthId_idx").on(table.ownerAuthId)
-}));
-
-export const teamsMember = sqliteTable("teams_member", {
-	id: text("id").primaryKey().notNull(),
-	teamId: text("teamId").notNull().references(() => teamsTeam.id, { onDelete: "cascade" }),
-	authId: text("authId").notNull().unique().references(() => coreUser.authId, { onDelete: "cascade" }),
-	joinedAt: integer("joinedAt", { mode: "timestamp" }).notNull()
-}, (table) => ({
-	teams_member_teamId_idx: index("teams_member_teamId_idx").on(table.teamId),
-	teams_member_authId_idx: index("teams_member_authId_idx").on(table.authId)
-}));
-
-export const teamsInvite = sqliteTable("teams_invite", {
-	id: text("id").primaryKey().notNull(),
-	teamId: text("teamId").notNull().references(() => teamsTeam.id, { onDelete: "cascade" }),
-	inviteeAuthId: text("inviteeAuthId").notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
-	status: text("status").notNull().default("pending"),
-	createdAt: integer("createdAt", { mode: "timestamp" }).notNull()
-}, (table) => ({
-	teams_invite_teamId_idx: index("teams_invite_teamId_idx").on(table.teamId),
-	teams_invite_inviteeAuthId_idx: index("teams_invite_inviteeAuthId_idx").on(table.inviteeAuthId),
-	teams_invite_teamId_inviteeAuthId_idx: index("teams_invite_teamId_inviteeAuthId_idx").on(table.teamId, table.inviteeAuthId)
-}));
-
-export const discordVerification = sqliteTable("discord_verification", {
-	code: text("code").primaryKey().notNull(),
-	discordUserId: text("discordUserId").notNull(),
-	guildId: text("guildId").notNull(),
-	username: text("username").notNull(),
-	avatarHash: text("avatarHash"),
-	authId: text("authId").references(() => coreUser.authId, { onDelete: "set null" }),
-	status: text("status").notNull().default("pending"),
-	expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
+export const coreRsvp = sqliteTable("core_rsvp", {
+	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
+	status: text("status").notNull(),
+	waitlistPosition: integer("waitlistPosition"),
 	createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
-	acceptedAt: integer("acceptedAt", { mode: "timestamp" })
+	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+	confirmedAt: integer("confirmedAt", { mode: "timestamp" }),
+	waitlistedAt: integer("waitlistedAt", { mode: "timestamp" }),
+	cancelledAt: integer("cancelledAt", { mode: "timestamp" }),
+	cancelledByAuthId: text("cancelledByAuthId").references(() => coreUser.authId, { onDelete: "set null" }),
+	promotedAt: integer("promotedAt", { mode: "timestamp" }),
+	promotedByAuthId: text("promotedByAuthId").references(() => coreUser.authId, { onDelete: "set null" })
 }, (table) => ({
-	discord_verification_discordUserId_idx: index("discord_verification_discordUserId_idx").on(table.discordUserId),
-	discord_verification_guildId_idx: index("discord_verification_guildId_idx").on(table.guildId),
-	discord_verification_authId_idx: index("discord_verification_authId_idx").on(table.authId),
-	discord_verification_status_idx: index("discord_verification_status_idx").on(table.status),
-	discord_verification_createdAt_idx: index("discord_verification_createdAt_idx").on(table.createdAt)
+	core_rsvp_status_idx: index("core_rsvp_status_idx").on(table.status),
+	core_rsvp_waitlistPosition_idx: index("core_rsvp_waitlistPosition_idx").on(table.waitlistPosition),
+	core_rsvp_createdAt_idx: index("core_rsvp_createdAt_idx").on(table.createdAt),
+	core_rsvp_updatedAt_idx: index("core_rsvp_updatedAt_idx").on(table.updatedAt)
 }));
+
+export const coreSetting = sqliteTable("core_setting", {
+	key: text("key").primaryKey().notNull(),
+	value: text("value", { mode: "json" }).notNull(),
+	createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+	createdByAuthId: text("createdByAuthId").references(() => coreUser.authId, { onDelete: "set null" }),
+	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+	updatedByAuthId: text("updatedByAuthId").references(() => coreUser.authId, { onDelete: "set null" })
+}, (table) => ({
+	core_setting_updatedAt_idx: index("core_setting_updatedAt_idx").on(table.updatedAt),
+	core_setting_updatedByAuthId_idx: index("core_setting_updatedByAuthId_idx").on(table.updatedByAuthId)
+}));
+
+export const coreUserBan = sqliteTable("core_userBan", {
+	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
+	reason: text("reason"),
+	bannedByAuthId: text("bannedByAuthId").notNull().references(() => coreUser.authId),
+	createdAt: integer("createdAt", { mode: "timestamp" }).notNull()
+});
+
+export const coreUserData = sqliteTable("core_userData", {
+	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
+	age: integer("age").notNull(),
+	gender: text("gender").notNull(),
+	race: text("race").notNull(),
+	ethnicity: text("ethnicity").notNull(),
+	shirtSize: text("shirtSize").notNull(),
+	dietaryRestrictions: text("dietaryRestrictions", { mode: "json" }).notNull().default([]),
+	accommodationNote: text("accommodationNote"),
+	phoneNumber: text("phoneNumber"),
+	countryOfResidence: text("countryOfResidence"),
+	hasAcceptedMLHCodeOfConduct: integer("hasAcceptedMLHCodeOfConduct", { mode: "boolean" }).notNull(),
+	hasSharedDataWithMLH: integer("hasSharedDataWithMLH", { mode: "boolean" }).notNull(),
+	isEmailable: integer("isEmailable", { mode: "boolean" }).notNull(),
+	completedAt: integer("completedAt", { mode: "timestamp" }).notNull(),
+	updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull()
+});
 
 export const discordMember = sqliteTable("discord_member", {
 	authId: text("authId").primaryKey().notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
@@ -259,4 +207,56 @@ export const discordRoleSyncAttempt = sqliteTable("discord_roleSyncAttempt", {
 	discord_roleSyncAttempt_discordUserId_idx: index("discord_roleSyncAttempt_discordUserId_idx").on(table.discordUserId),
 	discord_roleSyncAttempt_status_idx: index("discord_roleSyncAttempt_status_idx").on(table.status),
 	discord_roleSyncAttempt_createdAt_idx: index("discord_roleSyncAttempt_createdAt_idx").on(table.createdAt)
+}));
+
+export const discordVerification = sqliteTable("discord_verification", {
+	code: text("code").primaryKey().notNull(),
+	discordUserId: text("discordUserId").notNull(),
+	guildId: text("guildId").notNull(),
+	username: text("username").notNull(),
+	avatarHash: text("avatarHash"),
+	authId: text("authId").references(() => coreUser.authId, { onDelete: "set null" }),
+	status: text("status").notNull().default("pending"),
+	expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
+	createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+	acceptedAt: integer("acceptedAt", { mode: "timestamp" })
+}, (table) => ({
+	discord_verification_discordUserId_idx: index("discord_verification_discordUserId_idx").on(table.discordUserId),
+	discord_verification_guildId_idx: index("discord_verification_guildId_idx").on(table.guildId),
+	discord_verification_authId_idx: index("discord_verification_authId_idx").on(table.authId),
+	discord_verification_status_idx: index("discord_verification_status_idx").on(table.status),
+	discord_verification_createdAt_idx: index("discord_verification_createdAt_idx").on(table.createdAt)
+}));
+
+export const teamsTeam = sqliteTable("teams_team", {
+	id: text("id").primaryKey().notNull(),
+	name: text("name").notNull(),
+	tag: text("tag").notNull().unique(),
+	ownerAuthId: text("ownerAuthId").notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
+	createdAt: integer("createdAt", { mode: "timestamp" }).notNull()
+}, (table) => ({
+	teams_team_tag_idx: index("teams_team_tag_idx").on(table.tag),
+	teams_team_ownerAuthId_idx: index("teams_team_ownerAuthId_idx").on(table.ownerAuthId)
+}));
+
+export const teamsInvite = sqliteTable("teams_invite", {
+	id: text("id").primaryKey().notNull(),
+	teamId: text("teamId").notNull().references(() => teamsTeam.id, { onDelete: "cascade" }),
+	inviteeAuthId: text("inviteeAuthId").notNull().references(() => coreUser.authId, { onDelete: "cascade" }),
+	status: text("status").notNull().default("pending"),
+	createdAt: integer("createdAt", { mode: "timestamp" }).notNull()
+}, (table) => ({
+	teams_invite_teamId_idx: index("teams_invite_teamId_idx").on(table.teamId),
+	teams_invite_inviteeAuthId_idx: index("teams_invite_inviteeAuthId_idx").on(table.inviteeAuthId),
+	teams_invite_teamId_inviteeAuthId_idx: index("teams_invite_teamId_inviteeAuthId_idx").on(table.teamId, table.inviteeAuthId)
+}));
+
+export const teamsMember = sqliteTable("teams_member", {
+	id: text("id").primaryKey().notNull(),
+	teamId: text("teamId").notNull().references(() => teamsTeam.id, { onDelete: "cascade" }),
+	authId: text("authId").notNull().unique().references(() => coreUser.authId, { onDelete: "cascade" }),
+	joinedAt: integer("joinedAt", { mode: "timestamp" }).notNull()
+}, (table) => ({
+	teams_member_teamId_idx: index("teams_member_teamId_idx").on(table.teamId),
+	teams_member_authId_idx: index("teams_member_authId_idx").on(table.authId)
 }));
