@@ -2,29 +2,24 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DATA_DIR="$ROOT/.data"
-UPLOADS_DIR="$DATA_DIR/uploads"
+DATABASE_URL="${DATABASE_URL:-file:.data/web.db}"
 
-rm -f \
-	"$DATA_DIR/web.db" \
-	"$DATA_DIR/ci.db" \
-	"$DATA_DIR/web.db-wal" \
-	"$DATA_DIR/web.db-shm" \
-	"$DATA_DIR/ci.db-wal" \
-	"$DATA_DIR/ci.db-shm"
+if [[ "$DATABASE_URL" != file:* ]]; then
+	echo "Refusing to reset non-local database: $DATABASE_URL" >&2
+	exit 1
+fi
 
-rm -rf "$UPLOADS_DIR"
-mkdir -p "$UPLOADS_DIR"
+DATABASE_PATH="${DATABASE_URL#file:}"
+DATABASE_PATH="${DATABASE_PATH%%\?*}"
+if [[ "$DATABASE_PATH" != /* ]]; then
+	DATABASE_PATH="$ROOT/$DATABASE_PATH"
+fi
+
+rm -f "$DATABASE_PATH" "$DATABASE_PATH-wal" "$DATABASE_PATH-shm"
+mkdir -p "$(dirname "$DATABASE_PATH")"
 
 cd "$ROOT"
 
-pnpm db:sync
+pnpm db:migrate
 
-DATABASE_URL="file:.data/ci.db" \
-	NEXT_PUBLIC_APP_URL="http://localhost:3000" \
-	BETTER_AUTH_URL="http://localhost:3000" \
-	BETTER_AUTH_SECRET="ci-web-secret-at-least-32-chars" \
-	HACKKIT_BLOB_ADAPTER="local" \
-	pnpm db:sync
-
-echo "Reset complete: web.db, ci.db, and local uploads."
+echo "Reset complete: $DATABASE_PATH"

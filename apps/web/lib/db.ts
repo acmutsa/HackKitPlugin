@@ -2,9 +2,14 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { env } from "../env";
 
-const client = createClient({
-	url: env.databaseUrl,
-	authToken: env.tursoAuthToken,
-});
+let database: ReturnType<typeof drizzle> | undefined;
 
-export const db = drizzle(client);
+export function getDb() {
+	if (database) return database;
+	const client = createClient({
+		url: env.databaseUrl,
+		authToken: env.tursoAuthToken,
+	});
+	database = drizzle(client);
+	return database;
+}

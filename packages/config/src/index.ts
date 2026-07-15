@@ -1,5 +1,5 @@
 import type {
-	AuthAdapter,
+	DatabaseAdapterFactory,
 	EventTypesInput,
 	HackKitLoggerOptions,
 	GroupsInput,
@@ -53,12 +53,11 @@ export type HackerRegistrationOptions = {
 
 export type HackkitConfig = {
 	plugins?: readonly HackKitPlugin[];
-	databaseUrl: string;
+	database: DatabaseAdapterFactory;
 	userDataOptions?: UserDataOptionsInput;
 	hackerRegistrationOptions?: HackerRegistrationOptions;
 	eventTypes?: EventTypesInput;
 	groups?: GroupsInput;
-	auth?: Pick<AuthAdapter, "syncStorage">;
 	logger?: HackKitLoggerOptions;
 	defaultCompetitorRoleId?: string;
 	seedRoles?: readonly HackkitSeedRole[];
@@ -82,8 +81,8 @@ export function defineHackkitConfig<const TConfig extends HackkitConfig>(
 export function resolveHackkitConfig(
 	config: HackkitConfig,
 ): NormalizedHackkitConfig {
-	if (!config?.databaseUrl) {
-		throw new Error("HackKit config must include databaseUrl.");
+	if (!config?.database) {
+		throw new Error("HackKit config must include a database adapter.");
 	}
 	return {
 		...config,

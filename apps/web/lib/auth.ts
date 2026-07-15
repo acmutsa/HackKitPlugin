@@ -3,17 +3,12 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import {
-	account,
-	session,
-	toBetterAuthLogger,
-	user,
-	verification,
-} from "@hackkit/auth-better-auth";
+import { toBetterAuthLogger } from "@hackkit/auth-better-auth";
 import { getAuthSession as getAuthSessionFromAuth } from "@hackkit/auth-better-auth/session";
-import { db } from "./db";
+import { getDb } from "./db";
 import { getAppLogger } from "./logger";
 import { env } from "../env";
+import { account, session, user, verification } from "../db/schema/auth";
 
 const socialProviders = {
 	...(env.githubClientId && env.githubClientSecret
@@ -38,7 +33,7 @@ export const auth = betterAuth({
 	baseURL: env.betterAuthUrl,
 	secret: env.betterAuthSecret,
 	trustedOrigins: env.betterAuthTrustedOrigins,
-	database: drizzleAdapter(db, {
+	database: drizzleAdapter(getDb(), {
 		provider: "sqlite",
 		schema: { user, session, account, verification },
 		camelCase: true,

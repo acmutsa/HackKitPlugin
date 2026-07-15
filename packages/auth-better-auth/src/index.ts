@@ -1,12 +1,10 @@
-import type { AuthAdapter, AuthSession, HackKitLogger, LogLevel } from "@hackkit/core";
+import type {
+	AuthAdapter,
+	AuthSession,
+	HackKitLogger,
+	LogLevel,
+} from "@hackkit/core";
 import { headers } from "next/headers";
-import {
-	account,
-	session,
-	syncBetterAuthStorage,
-	user,
-	verification,
-} from "./auth-schema";
 
 type BetterAuthInstance = {
 	api: {
@@ -48,9 +46,8 @@ export function betterAuthAdapter(
 		},
 
 		getIdentity(session) {
-			const [firstName = session.user.name, ...lastNameParts] = session.user.name
-				.trim()
-				.split(/\s+/);
+			const [firstName = session.user.name, ...lastNameParts] =
+				session.user.name.trim().split(/\s+/);
 
 			return {
 				email: session.user.email,
@@ -59,19 +56,5 @@ export function betterAuthAdapter(
 				profilePhotoUrl: session.user.image ?? undefined,
 			};
 		},
-
-		syncStorage(database) {
-			return syncBetterAuthStorage(
-				database as Parameters<typeof syncBetterAuthStorage>[0],
-			);
-		},
 	};
 }
-
-export {
-	account,
-	session,
-	syncBetterAuthStorage,
-	user,
-	verification,
-};

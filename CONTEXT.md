@@ -246,6 +246,7 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   **HackKit CLI** merges plugin-owned Next.js routes into a **HackKit Web App** using generated re-export stubs and records ownership in **hackkit.lock**.
 -   **HackKit CLI** runs from a **HackKit Web App** project directory (not a monorepo root) and reads that app’s `hackkit.config.ts` for plugins and database settings.
 -   **HackKit CLI** uses the same **HackKit Logger** from `hackkit.config.ts` when run from a **HackKit Web App** directory, falling back to the environment-based default **Log Level** when `logger` is omitted.
+-   **HackKit CLI** may generate a concrete adapter-native schema file from merged **Storage Schema**, but it does not generate, apply, inspect, baseline, or roll back database migrations.
 -   A **HackKit Plugin** may add capabilities to a **HackKit Web App** without changing **HackKit Core** source.
 -   **HackKit Core** accepts an optional **HackKit Logger** at creation time; when omitted, a default console **HackKit Logger** applies with a configurable **Log Level** defaulting to `info` in development and `warn` in production unless overridden.
 -   **HackKit Web Apps** may replace the default **HackKit Logger** with a custom implementation (for example forwarding to a hosted logging service) without changing **HackKit Core** source.
@@ -284,9 +285,10 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   A **User Data** onboarding flow may display the authenticated **User** while collecting **User Data**.
 -   **HackKit UI** treats authenticated **User** information passed to forms as display context, not as authorization input.
 -   A **Database Adapter** persists **HackKit Core** models using HackKit-owned canonical storage shapes.
--   The **Drizzle Database Adapter** targets SQLite/libSQL first while preserving room for future dialect support.
+-   The **Drizzle Database Adapter** supports SQLite/libSQL and PostgreSQL through dialect-specific entrypoints.
 -   The **Drizzle Database Adapter** exposes dialect-specific entrypoints so each dialect can use native Drizzle schema definitions.
--   The **Drizzle Database Adapter** can generate concrete Drizzle schema from merged **Storage Schema** before full HackKit CLI migration tooling exists.
+-   The **Drizzle Database Adapter** generates concrete Drizzle schema from merged **Storage Schema** while Drizzle Kit remains the application's migration tool.
+-   The **HackKit Web App** commits separately generated HackKit and Better Auth schema files and delegates migration generation and application entirely to Drizzle Kit.
 -   A **Blob Storage Adapter** stores files outside **HackKit Core**; **HackKit Core** stores only **Stored File References** supplied by the **HackKit Web App**.
 -   **HackKit Web Apps** choose a **Blob Storage Adapter** implementation via configuration; local filesystem adapters suit development, S3-compatible adapters suit production.
 -   A **User** is identified by exactly one **Auth ID** in a HackKit application.

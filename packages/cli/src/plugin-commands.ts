@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import type { HackkitConfig } from "./config";
-import { runDbSync } from "./db-sync";
+import { runDbSchemaGenerate } from "./db-schema";
 import { createConfigLogger } from "./logger";
 import { PLUGIN_PACKAGE_BY_ID, loadPluginFactory } from "./plugin-manifest";
 import { runPluginSync } from "./plugin-sync";
@@ -36,16 +36,15 @@ function ensurePluginInConfig(
 		);
 	}
 
-	source = source.replace(
-		/plugins:\s*\[\s*\]/,
-		`plugins: [${importName}()]`,
-	);
+	source = source.replace(/plugins:\s*\[\s*\]/, `plugins: [${importName}()]`);
 	source = source.replace(
 		/plugins:\s*\[([^\]]*)\]/,
 		(match, current: string) => {
 			if (current.includes(`${importName}()`)) return match;
 			const trimmed = current.trim();
-			const next = trimmed ? `${trimmed}, ${importName}()` : `${importName}()`;
+			const next = trimmed
+				? `${trimmed}, ${importName}()`
+				: `${importName}()`;
 			return `plugins: [${next}]`;
 		},
 	);
@@ -62,9 +61,15 @@ function removePluginFromConfig(
 	source = source.replace(new RegExp(`${importName}\\(\\),\\s*`, "g"), "");
 	source = source.replace(new RegExp(`,\\s*${importName}\\(\\)`, "g"), "");
 	source = source.replace(new RegExp(`${importName}\\(\\)`, "g"), "");
-	source = source.replace(new RegExp(`plugins:\\s*\\[\\s*\\]`), "plugins: []");
 	source = source.replace(
-		new RegExp(`import \\{ ${importName} \\} from "${packageName}";\\n`, "g"),
+		new RegExp(`plugins:\\s*\\[\\s*\\]`),
+		"plugins: []",
+	);
+	source = source.replace(
+		new RegExp(
+			`import \\{ ${importName} \\} from "${packageName}";\\n`,
+			"g",
+		),
 		"",
 	);
 	writeFileSync(configPath, source, "utf8");
@@ -109,6 +114,9 @@ export async function runPluginAdd(
 		projectRoot: context.projectRoot,
 		config: refreshedConfig,
 	});
+	await runDbSchemaGenerate(refreshedConfig, {
+		projectRoot: context.projectRoot,
+	});
 }
 
 export async function runPluginRemove(
@@ -145,7 +153,9 @@ export async function runPluginRemove(
 		projectRoot: context.projectRoot,
 		plugins: nextConfig.plugins ?? [],
 	});
-	await runDbSync(nextConfig);
+	await runDbSchemaGenerate(nextConfig, {
+		projectRoot: context.projectRoot,
+	});
 }
 
 export async function runPluginSyncAll(
@@ -156,7 +166,6 @@ export async function runPluginSyncAll(
 		projectRoot: context.projectRoot,
 		plugins: context.config.plugins ?? [],
 	});
-	await runDbSync(context.config);
 	logger.log(
 		"info",
 		`HackKit plugin sync completed (${result.routesWritten} routes, ${result.actionsWritten} actions, ${result.stubsRemoved} removed).`,

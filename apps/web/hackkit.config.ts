@@ -1,6 +1,6 @@
 import { defineHackkitConfig } from "@hackkit/config";
 import { CorePermission, type PermissionKey } from "@hackkit/core";
-import { syncBetterAuthStorage } from "@hackkit/auth-better-auth";
+import { createDrizzleLibsqlAdapter } from "@hackkit/db-drizzle/libsql";
 import {
 	createResendEmailProvider,
 	createSmtpEmailProvider,
@@ -13,6 +13,7 @@ import {
 } from "@hackkit/plugin-discord";
 import { teamsPlugin, TeamsPermission } from "@hackkit/plugin-teams";
 import { env } from "./env";
+import { getDb } from "./lib/db";
 
 const participantPermissions = [] as PermissionKey[];
 
@@ -139,7 +140,7 @@ function createDiscordRoleSyncProvider() {
 }
 
 export default defineHackkitConfig({
-	databaseUrl: env.databaseUrl,
+	database: createDrizzleLibsqlAdapter(getDb),
 	defaultCompetitorRoleId: "core.participant",
 	groups,
 	seedRoles: [
@@ -210,7 +211,4 @@ export default defineHackkitConfig({
 		{ value: "social", label: "Social", color: "#2196F3" },
 		{ value: "other", label: "Other", color: "#795548" },
 	],
-	auth: {
-		syncStorage: syncBetterAuthStorage,
-	},
 });

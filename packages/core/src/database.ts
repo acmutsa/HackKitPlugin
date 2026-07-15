@@ -267,10 +267,7 @@ export type DatabaseSchemaAdapter = {
 	id: string;
 	generateSchemaFiles(input: {
 		storage: StorageRegistry;
-		outDir?: string;
 	}): GeneratedSchemaFile[] | Promise<GeneratedSchemaFile[]>;
-	getSyncStatements?(input: { storage: StorageRegistry }): readonly string[];
-	sync?(input: { storage: StorageRegistry; database?: unknown }): Promise<void>;
 };
 
 export type DatabaseAdapter = {

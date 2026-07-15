@@ -13,6 +13,21 @@ jobs:
     build:
         runs-on: ubuntu-latest
 
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: hackkit
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U postgres -d hackkit"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -31,43 +46,54 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Build web dependency graph
+              run: pnpm exec turbo run build --filter=web^...
+
             - name: Sync plugin files
               working-directory: apps/web
               run: pnpm plugin:sync
 
-            - name: Sync local schema
+            - name: Regenerate native schema files
               working-directory: apps/web
-              env:
-                  DATABASE_URL: file:.data/ci.db
-                  NEXT_PUBLIC_APP_URL: http://localhost:3000
-                  BETTER_AUTH_URL: http://localhost:3000
-                  BETTER_AUTH_SECRET: ci-web-secret-at-least-32-chars
-                  HACKKIT_BLOB_ADAPTER: local
-              run: pnpm db:sync
+              run: |
+                  pnpm schema:generate
+                  pnpm auth:schema
 
             - name: Verify generated files are current
               run: |
-                  changed="$(git status --porcelain -- apps/web/app/discord apps/web/app/invites/page.tsx apps/web/app/teams/page.tsx apps/web/app/hackkit-plugin-actions.ts apps/web/drizzle.schema.ts apps/web/hackkit.lock)"
+                  changed="$(git status --porcelain -- apps/web/app/discord apps/web/app/invites/page.tsx apps/web/app/teams/page.tsx apps/web/app/hackkit-plugin-actions.ts apps/web/db/schema apps/web/hackkit.lock)"
                   if [ -n "$changed" ]; then
                       echo "$changed"
-                      git diff -- apps/web/app/discord apps/web/app/invites/page.tsx apps/web/app/teams/page.tsx apps/web/app/hackkit-plugin-actions.ts apps/web/drizzle.schema.ts apps/web/hackkit.lock
+                      git diff -- apps/web/app/discord apps/web/app/invites/page.tsx apps/web/app/teams/page.tsx apps/web/app/hackkit-plugin-actions.ts apps/web/db/schema apps/web/hackkit.lock
                       exit 1
                   fi
 
-            - name: Test local database bootstrap
-              run: pnpm --filter web test:db-bootstrap
+            - name: Validate and apply migrations
+              working-directory: apps/web
+              env:
+                  DATABASE_URL: file:.data/ci.db
+              run: |
+                  mkdir -p .data
+                  pnpm drizzle-kit check
+                  pnpm db:generate
+                  changed="$(git status --porcelain -- db/migrations)"
+                  if [ -n "$changed" ]; then
+                      echo "$changed"
+                      git diff -- db/migrations
+                      exit 1
+                  fi
+                  pnpm db:migrate
 
             - name: Package tests
               run: |
                   pnpm --filter @hackkit/core test
+                  POSTGRES_TEST_URL=postgres://postgres:postgres@localhost:5432/hackkit pnpm --filter @hackkit/db-drizzle test
+                  pnpm --filter @hackkit/cli test
                   pnpm --filter @hackkit/config test
                   pnpm --filter @hackkit/next test
                   pnpm --filter @hackkit/plugin-teams test
                   pnpm --filter @hackkit/plugin-discord test
                   pnpm --filter @hackkit/plugin-notifications-email test
-
-            - name: Build web dependency graph
-              run: pnpm exec turbo run build --filter=web^...
 
             - name: Typecheck
               run: pnpm --filter web typecheck
@@ -78,7 +104,7 @@ jobs:
                   TURSO_AUTH_TOKEN: ci-token
                   NEXT_PUBLIC_APP_URL: https://web-ci.example.com
                   BETTER_AUTH_URL: https://web-ci.example.com
-                  BETTER_AUTH_SECRET: ci-web-secret-at-least-32-chars
+                  BETTER_AUTH_SECRET: ci-web-secret-that-is-at-least-32-characters
                   HACKKIT_BLOB_ADAPTER: s3
                   HACKKIT_S3_BUCKET: ci-bucket
                   HACKKIT_S3_REGION: auto

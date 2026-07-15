@@ -15,16 +15,22 @@ const db = program
 	.command("db")
 	.description("Manage HackKit database resources");
 
-db.command("sync")
-	.description("Synchronize registered HackKit storage models")
+db.command("schema")
+	.description("Manage the native HackKit database schema")
+	.command("generate")
+	.description("Generate the configured adapter's native HackKit schema")
 	.option("-c, --config <path>", "path to HackKit config")
-	.action(async (commandOptions: { config?: string }) => {
+	.option("-o, --output <path>", "schema output path")
+	.action(async (commandOptions: { config?: string; output?: string }) => {
 		const globalOptions = program.opts<{ config: string }>();
 		const config = await loadConfig(
 			commandOptions.config ?? globalOptions.config,
 		);
-		const { runDbSync } = await import("./db-sync");
-		await runDbSync(config);
+		const { runDbSchemaGenerate } = await import("./db-schema");
+		await runDbSchemaGenerate(config, {
+			projectRoot: process.cwd(),
+			output: commandOptions.output,
+		});
 	});
 
 const plugins = program
@@ -33,7 +39,7 @@ const plugins = program
 
 plugins
 	.command("sync")
-	.description("Sync plugin routes, actions, lockfile, and database schema")
+	.description("Sync plugin routes, actions, and lockfile")
 	.option("-c, --config <path>", "path to HackKit config")
 	.action(async (commandOptions: { config?: string }) => {
 		const globalOptions = program.opts<{ config: string }>();

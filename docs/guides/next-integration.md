@@ -29,7 +29,8 @@ The simplified path keeps construction inside `@hackkit/next`:
 
 `apps/web/lib/runtime.ts` is the composition root:
 
--   `createHackkitRuntimeFromConfig({ config, database, auth, afterCurrentUser? })`
+-   `createHackkitRuntimeFromConfig({ config, auth, afterCurrentUser? })`
+-   `config.database` is an explicit `DatabaseAdapterFactory` (for example `createDrizzleLibsqlAdapter(getDb)`)
 -   `setHackkitRuntime(runtimePromise)` so `"use server"` actions can resolve mutations
 -   Thin accessors: `getRuntime`, `getCurrentUser`, `getHackkit`, `getPageGuards`
 

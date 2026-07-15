@@ -1,0 +1,46 @@
+{
+  "name": "@hackkit/db-drizzle",
+  "version": "0.0.0",
+  "description": "Drizzle database adapters and native schema generation for HackKit",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sqlite": {
+      "types": "./dist/sqlite.d.ts",
+      "import": "./dist/sqlite.js"
+    },
+    "./libsql": {
+      "types": "./dist/libsql.d.ts",
+      "import": "./dist/libsql.js"
+    },
+    "./postgres": {
+      "types": "./dist/postgres.d.ts",
+      "import": "./dist/postgres.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hackkit/core": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@libsql/client": "^0.14.0",
+    "postgres": "^3.4.7",
+    "typescript": "5.5.3",
+    "vitest": "^3.2.4"
+  },
+  "license": "MIT",
+  "private": true
+}

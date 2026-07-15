@@ -20,5 +20,4 @@ export type AuthAdapter = {
 	getSession(): Promise<AuthSession | null>;
 	toAuthId(session: AuthSession): AuthId;
 	getIdentity(session: AuthSession): AuthIdentity;
-	syncStorage?(database: unknown): Promise<void>;
 };

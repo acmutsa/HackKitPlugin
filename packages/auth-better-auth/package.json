@@ -23,8 +23,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@hackkit/core": "workspace:*",
-    "drizzle-orm": "^0.39.3"
+    "@hackkit/core": "workspace:*"
   },
   "peerDependencies": {
     "better-auth": ">=1.6",

@@ -20,7 +20,6 @@ import {
 
 const runtimePromise = createHackkitRuntimeFromConfig({
 	config: appConfig,
-	database: db,
 	auth: authAdapter,
 	afterCurrentUser: async (user, hackkit) => {
 		// optional app-specific work (e.g. owner allowlist)
@@ -37,6 +36,8 @@ export async function getPageGuards() {
 	return (await getRuntime()).pageGuards;
 }
 ```
+
+`appConfig.database` contains the explicit `DatabaseAdapterFactory`; the Next integration does not assume or wrap a database dialect.
 
 `createHackkitRuntime` / `createHackkitRuntimeFromConfig` owns:
 

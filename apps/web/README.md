@@ -25,7 +25,7 @@ Build the packages that `web` imports before running commands that use the `hack
 pnpm exec turbo run build --filter=web^...
 ```
 
-This builds the CLI and the workspace packages it depends on. `dev` repeats this build, but its `predev` script runs plugin sync first, so the initial build is still required on a fresh clone.
+This builds the CLI, database adapter, and other workspace packages that the app imports. `dev` repeats this dependency build.
 
 ### 3. Configure local access (optional)
 
@@ -46,28 +46,24 @@ EOF
 
 Alternatively, set `HACKKIT_OWNER_AUTH_ID_ALLOWLIST` to a Better Auth user ID. OAuth, email delivery, S3 storage, Turso, and Discord bot role sync are optional locally; configure them only when testing those integrations.
 
-### 4. Generate app-owned files and sync the database
+### 4. Generate app-owned files and apply migrations
 
-Create the generated plugin files and local libSQL database:
+Sync plugin-owned project files, then apply the committed migration chain to the local libSQL database:
 
 ```bash
 pnpm --filter web sync
+pnpm --filter web db:migrate
 ```
 
-`sync` runs both:
+`sync` only updates plugin routes, actions, and `hackkit.lock`. It does not generate database schema or connect to a database.
 
-```bash
-pnpm --filter web plugin:sync
-pnpm --filter web db:sync
-```
-
-Use `db:reset` when you want a clean local database and upload directory:
+Use `db:reset` when you want to discard and recreate the configured local file database:
 
 ```bash
 pnpm --filter web db:reset
 ```
 
-`db:reset` removes `apps/web/.data/web.db`, `apps/web/.data/ci.db`, their WAL/SHM files, and `apps/web/.data/uploads`, then re-runs database sync for both local and CI database files.
+`db:reset` refuses remote URLs, removes the selected local database and its WAL/SHM files, then applies committed migrations.
 
 ### 5. Start the app
 
@@ -95,23 +91,23 @@ pnpm build
 
 From the repo root, those map to the filtered `web` scripts. `typecheck` also builds `@hackkit/cli` first because the `hackkit` binary is needed by app scripts.
 
-## After schema changes
+## Schema and migration workflow
 
-When **HackKit Core**, plugins, or auth tables change, re-sync before dev and before release:
+HackKit, Better Auth, and application schemas are separate files under `db/schema`. Regenerate only the owner that changed:
 
 ```bash
-pnpm --filter web sync
+pnpm --filter web schema:generate # Core or plugin storage changed
+pnpm --filter web auth:schema     # Better Auth config/plugins changed
 ```
 
-`sync` updates plugin routes/actions and the local Drizzle schema. CI verifies those generated files are committed.
+Both generated files are committed. After reviewing their diffs, let Drizzle generate and apply the migration:
 
-## Automatic local database initialization
+```bash
+pnpm --filter web db:generate --name=describe-change
+pnpm --filter web db:migrate
+```
 
-`pnpm --filter web dev` safely initializes the default missing local
-database before Next starts. First-run initialization runs both plugin sync and
-database sync, including the configured plugin and Better Auth storage. If the
-database already exists, it is left untouched; use `db:reset` only when you
-explicitly want to discard local data.
+Review and commit the generated SQL and metadata. HackKit never generates or applies these migrations. `dev` does not inspect or initialize the database; a missing migration surfaces through the first database operation.
 
 ## Build dependency graph
 
@@ -153,6 +149,8 @@ DISCORD_PARTICIPANT_ROLE_ID=...
 
 Use `DISCORD_PARTICIPANT_ROLE_NAME` instead of `DISCORD_PARTICIPANT_ROLE_ID` only when role IDs are not available. Optional email delivery is configured with `HACKKIT_EMAIL_PROVIDER=resend` plus `RESEND_API_KEY`, or `HACKKIT_EMAIL_PROVIDER=smtp` plus `SMTP_HOST` and SMTP credentials.
 
+Run `pnpm --filter web db:migrate` as a release step before starting the new production version. Do not run migrations during the Next.js build or application startup.
+
 ## Next integration path
 
 This app follows the single `@hackkit/next` integration path for runtime setup, page guards, Core mutations, and HackKit UI provider actions. See:
@@ -166,7 +164,13 @@ Run the same app checks locally before deploying:
 
 ```bash
 pnpm --filter web sync
+pnpm --filter web schema:generate
+pnpm --filter web auth:schema
+pnpm --filter web db:generate
+pnpm --filter web db:migrate
 pnpm --filter @hackkit/core test
+pnpm --filter @hackkit/db-drizzle test
+pnpm --filter @hackkit/cli test
 pnpm --filter @hackkit/config test
 pnpm --filter @hackkit/next test
 pnpm --filter @hackkit/plugin-teams test
@@ -176,7 +180,7 @@ pnpm --filter web typecheck
 pnpm --filter web build
 ```
 
-CI also runs package typechecks and builds for `@hackkit/core`, `@hackkit/config`, `@hackkit/next`, `@hackkit/ui`, `@hackkit/plugin-teams`, `@hackkit/plugin-discord`, and `@hackkit/plugin-notifications-email`.
+CI regenerates committed schema, validates and applies migrations, runs PostgreSQL adapter integration tests, and builds the full web dependency graph.
 
 ## Server Actions
 
@@ -184,5 +188,7 @@ UI mutations live on the Next runtime (`runtime.mutations` from `createHackKitMu
 
 ## Configuration
 
--   [`hackkit.config.ts`](hackkit.config.ts) — plugins, User Data options, Event Types, database URL
+-   [`hackkit.config.ts`](hackkit.config.ts) — plugins, User Data options, Event Types, and the explicit database adapter
 -   [`lib/runtime.ts`](lib/runtime.ts) — `createHackkitRuntimeFromConfig` composition root; use `getPageGuards()` for layouts
+-   [`db/schema`](db/schema) — separately generated HackKit and Better Auth schema files
+-   [`db/migrations`](db/migrations) — app-owned Drizzle migrations

@@ -9,15 +9,16 @@ import {
 
 describe("HackKit config", () => {
 	it("normalizes optional collection fields", () => {
+		const database = { create: () => ({}) as never };
 		const config = resolveHackkitConfig(
 			defineHackkitConfig({
-				databaseUrl: "file:test.db",
+				database,
 			}),
 		);
 
 		expect(config.plugins).toEqual([]);
 		expect(config.seedRoles).toEqual([]);
-		expect(config.databaseUrl).toBe("file:test.db");
+		expect(config.database).toBe(database);
 	});
 
 	it("loads the web HackKit config through the shared loader", async () => {
@@ -25,16 +26,11 @@ describe("HackKit config", () => {
 			dirname(fileURLToPath(import.meta.url)),
 			"../../../..",
 		);
-		const config = await loadHackkitConfig(
-			"apps/web/hackkit.config.ts",
-			{
-				cwd: repoRoot,
-			},
-		);
+		const config = await loadHackkitConfig("apps/web/hackkit.config.ts", {
+			cwd: repoRoot,
+		});
 
-		expect(config.databaseUrl).toBe(
-			process.env.DATABASE_URL ?? "file:.data/web.db",
-		);
+		expect(config.database).toBeDefined();
 		expect(config.plugins.map((plugin) => plugin.id)).toEqual([
 			"teams",
 			"discord",

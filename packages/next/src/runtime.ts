@@ -1,7 +1,7 @@
 import {
-	createDrizzleDatabaseAdapter,
 	createHackkit,
 	type AuthAdapter,
+	type DatabaseAdapterInput,
 	type HackKit,
 	type HackKitPlugin,
 	type SettingKey,
@@ -18,7 +18,7 @@ import { createHackKitMutations } from "./mutations";
 import { createPageGuards, type PageGuards } from "./page-guards";
 
 export type CreateHackkitRuntimeOptions = {
-	database: unknown;
+	database: DatabaseAdapterInput;
 	auth: AuthAdapter;
 	plugins?: readonly HackKitPlugin[];
 	userDataOptions?: UserDataOptionsInput;
@@ -42,7 +42,6 @@ export type CreateHackkitRuntimeOptions = {
 
 export type CreateHackkitRuntimeFromConfigOptions = {
 	config: HackkitConfig;
-	database: unknown;
 	auth: AuthAdapter;
 	afterCurrentUser?: CreateHackkitRuntimeOptions["afterCurrentUser"];
 };
@@ -61,7 +60,7 @@ export async function createHackkitRuntime(
 	options: CreateHackkitRuntimeOptions,
 ): Promise<HackkitRuntime> {
 	const hackkit = createHackkit({
-		database: createDrizzleDatabaseAdapter(options.database as any),
+		database: options.database,
 		plugins: options.plugins,
 		userDataOptions: options.userDataOptions,
 		eventTypes: options.eventTypes,
@@ -135,7 +134,7 @@ export function createHackkitRuntimeFromConfig(
 ): Promise<HackkitRuntime> {
 	const config = resolveHackkitConfig(options.config);
 	return createHackkitRuntime({
-		database: options.database,
+		database: config.database,
 		auth: options.auth,
 		plugins: config.plugins,
 		userDataOptions: config.userDataOptions,

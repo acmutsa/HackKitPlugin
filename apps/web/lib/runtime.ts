@@ -6,14 +6,12 @@ import {
 	setHackkitRuntime,
 } from "@hackkit/next";
 import { auth } from "./auth";
-import { db } from "./db";
 import { getAppLogger } from "./logger";
 import { appConfig } from "./app-config";
 import { provisionOwnerFromAllowlist } from "./owner-provisioning";
 
 const runtimePromise = createHackkitRuntimeFromConfig({
 	config: appConfig,
-	database: db,
 	auth: betterAuthAdapter({ auth, logger: getAppLogger() }),
 	afterCurrentUser: async (user, hackkit) => {
 		await provisionOwnerFromAllowlist(hackkit, user);

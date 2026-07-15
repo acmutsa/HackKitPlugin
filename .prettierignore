@@ -3,3 +3,5 @@ pnpm-lock.yaml
 pnpm-workspace.yaml
 **/package.json
 *.json
+apps/web/db/schema/**
+apps/web/db/migrations/**

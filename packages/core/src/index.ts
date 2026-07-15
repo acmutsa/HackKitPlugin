@@ -1,12 +1,3 @@
-export {
-	compileDrizzleStorage,
-	createDrizzleDatabaseAdapter,
-	createDrizzleSchemaAdapter,
-	syncDrizzleStorage,
-	toDrizzleTableName,
-	toDrizzleTableExportName,
-} from "./adapters/db/drizzle";
-export type { CompiledDrizzleStorage, DrizzleLibsqlDatabase } from "./adapters/db/drizzle";
 export type { AuthAdapter, AuthIdentity, AuthSession } from "./adapters/auth";
 export type {
 	BlobStorageAdapter,
@@ -46,10 +37,7 @@ export {
 	eventTypeValueSchema,
 	resolveEventTypes,
 } from "./event-types";
-export {
-	getEnabledGroups,
-	resolveGroups,
-} from "./groups";
+export { getEnabledGroups, resolveGroups } from "./groups";
 export {
 	CoreSetting,
 	coreSettings,
@@ -93,6 +81,7 @@ export type {
 } from "./event-types";
 export type { GroupsInput, HackkitGroup, HackkitGroupInput } from "./groups";
 export type {
+	AnyField,
 	DatabaseAdapter,
 	DatabaseAdapterFactory,
 	DatabaseAdapterFactoryContext,
