@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createHackkit } from "@hackkit/core";
+import { runDbSeed } from "@hackkit/cli";
+import { CorePermission, createHackkit } from "@hackkit/core";
 import { createDrizzleLibsqlAdapter } from "@hackkit/db-drizzle/libsql";
 import { createClient } from "@libsql/client";
 import { betterAuth } from "better-auth";
@@ -32,21 +33,28 @@ describe("committed web database workflow", () => {
 			),
 		);
 
-		const hackkit = createHackkit({
-			database: createDrizzleLibsqlAdapter(db),
-			clock: () => new Date("2026-07-14T12:00:00.000Z"),
+		const database = createDrizzleLibsqlAdapter(db);
+		await runDbSeed({
+			database,
 			seedRoles: [
 				{
-					id: "test.role",
-					name: "Test role",
-					position: 1,
+					id: "core.participant",
+					name: "Participant",
+					position: 10,
 					permissions: [],
+				},
+				{
+					id: "core.owner",
+					name: "Owner",
+					position: 0,
+					permissions: [CorePermission.SuperAdmin],
 				},
 			],
 		});
-		await hackkit.init();
+		const hackkit = createHackkit({ database });
 		await expect(hackkit.roles.listRoles()).resolves.toMatchObject([
-			{ id: "test.role", name: "Test role" },
+			{ id: "core.owner", name: "Owner" },
+			{ id: "core.participant", name: "Participant" },
 		]);
 
 		await db.insert(appJob).values({ id: "job-1", status: "ready" });

@@ -4,7 +4,7 @@ import type {
 	HackKitLoggerOptions,
 	GroupsInput,
 	HackKitPlugin,
-	PermissionKey,
+	SeedRoleInput,
 	UserDataOptionsInput,
 } from "@hackkit/core";
 import { createJiti } from "jiti";
@@ -30,13 +30,7 @@ export type HackkitBlobS3Config = {
 
 export type HackkitBlobConfig = HackkitBlobLocalConfig | HackkitBlobS3Config;
 
-export type HackkitSeedRole = {
-	id: string;
-	name: string;
-	position: number;
-	permissions: PermissionKey[];
-	color?: string;
-};
+export type HackkitSeedRole = SeedRoleInput;
 
 export type RegistrationOption = {
 	value: string;

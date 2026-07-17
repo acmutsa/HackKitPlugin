@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	CorePermission,
 	CoreSetting,
+	coreModels,
 	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
+	seedRoles,
 	type HackKit,
 } from "@hackkit/core";
 
@@ -39,17 +42,34 @@ function createTestHackkit() {
 		now,
 		id,
 	);
-	return createHackkit({ database: db, clock: now, id });
+	return Object.assign(createHackkit({ database: db, clock: now, id }), {
+		database: db,
+	});
 }
 
-async function seedOwner(hackkit: HackKit) {
+async function seedOwner(hackkit: ReturnType<typeof createTestHackkit>) {
+	await seedRoles({
+		database: hackkit.database,
+		roles: [
+			{
+				id: "core.owner",
+				name: "Owner",
+				position: 0,
+				permissions: [CorePermission.SuperAdmin],
+			},
+		],
+	});
 	await hackkit.users.ensureUser({
 		authId: "admin-auth",
 		email: "admin@example.com",
 		firstName: "Ad",
 		lastName: "Min",
 	});
-	await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+	await hackkit.database.update(
+		coreModels.user,
+		{ authId: "admin-auth" },
+		{ roleId: "core.owner", updatedAt: new Date() },
+	);
 }
 
 async function setSetting(hackkit: HackKit, key: CoreSetting, value: boolean) {
@@ -134,7 +154,6 @@ describe("createPageGuards", () => {
 		redirectMock.mockClear();
 		notFoundMock.mockClear();
 		hackkit = createTestHackkit();
-		await hackkit.init();
 		await seedOwner(hackkit);
 	});
 

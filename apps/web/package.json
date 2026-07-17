@@ -9,6 +9,7 @@
     "schema:generate": "hackkit db schema generate --output db/schema/hackkit.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:seed": "hackkit db seed",
     "db:reset": "bash scripts/db-reset.sh",
     "test": "vitest run db/__tests__/database-workflow.test.ts",
     "test:db-workflow": "bash scripts/test-db-workflow.sh",

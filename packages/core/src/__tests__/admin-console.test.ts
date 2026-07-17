@@ -3,6 +3,7 @@ import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory"
 import { createHackkit } from "../hackkit";
 import { CorePermission } from "../permissions";
 import { createPluginRegistry } from "../plugins";
+import { seedTestOwner } from "./seed-test-owner";
 
 function createTestHackkit() {
 	const registry = createPluginRegistry();
@@ -14,27 +15,20 @@ function createTestHackkit() {
 		now,
 		id,
 	);
-	return createHackkit({
-		database: db,
-		clock: now,
-		id,
-	});
-}
-
-async function seedOwner(hackkit: ReturnType<typeof createHackkit>) {
-	await hackkit.users.ensureUser({
-		authId: "owner-auth",
-		email: "owner@example.com",
-		firstName: "Olive",
-		lastName: "Owner",
-	});
-	return hackkit.roles.bootstrapOwner({ authId: "owner-auth" });
+	return Object.assign(
+		createHackkit({
+			database: db,
+			clock: now,
+			id,
+		}),
+		{ database: db },
+	);
 }
 
 describe("admin console reads", () => {
 	it("hydrates admin user records and exports flattened rows", async () => {
 		const hackkit = createTestHackkit();
-		const ownerRole = await seedOwner(hackkit);
+		const ownerRole = await seedTestOwner(hackkit);
 		const hackerRole = await hackkit.roles.createRole({
 			actorAuthId: "owner-auth",
 			id: "hacker",

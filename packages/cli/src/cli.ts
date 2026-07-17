@@ -15,6 +15,18 @@ const db = program
 	.command("db")
 	.description("Manage HackKit database resources");
 
+db.command("seed")
+	.description("Add configured seed roles to the database")
+	.option("-c, --config <path>", "path to HackKit config")
+	.action(async (commandOptions: { config?: string }) => {
+		const globalOptions = program.opts<{ config: string }>();
+		const config = await loadConfig(
+			commandOptions.config ?? globalOptions.config,
+		);
+		const { runDbSeed } = await import("./db-seed");
+		await runDbSeed(config);
+	});
+
 db.command("schema")
 	.description("Manage the native HackKit database schema")
 	.command("generate")

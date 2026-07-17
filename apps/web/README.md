@@ -27,7 +27,7 @@ pnpm exec turbo run build --filter=web^...
 
 This builds the CLI, database adapter, and other workspace packages that the app imports. `dev` repeats this dependency build.
 
-### 3. Configure local access (optional)
+### 3. Configure local integrations (optional)
 
 No environment file is required for a basic local run. Development defaults use:
 
@@ -36,26 +36,21 @@ No environment file is required for a basic local run. Development defaults use:
 -   local storage in `.data/uploads`
 -   no email provider and no Discord bot role-sync provider
 
-To make your account an owner, create `apps/web/.env.local` before you sign up. Replace the example email with the one you will use:
-
-```bash
-cat > apps/web/.env.local <<'EOF'
-HACKKIT_OWNER_EMAIL_ALLOWLIST=you@example.com
-EOF
-```
-
-Alternatively, set `HACKKIT_OWNER_AUTH_ID_ALLOWLIST` to a Better Auth user ID. OAuth, email delivery, S3 storage, Turso, and Discord bot role sync are optional locally; configure them only when testing those integrations.
+OAuth, email delivery, S3 storage, Turso, and Discord bot role sync are optional locally; configure them only when testing those integrations.
 
 ### 4. Generate app-owned files and apply migrations
 
-Sync plugin-owned project files, then apply the committed migration chain to the local libSQL database:
+Sync plugin-owned project files, apply the committed migration chain, then add the roles declared in `hackkit.config.ts`:
 
 ```bash
 pnpm --filter web sync
 pnpm --filter web db:migrate
+pnpm --filter web db:seed
 ```
 
 `sync` only updates plugin routes, actions, and `hackkit.lock`. It does not generate database schema or connect to a database.
+
+`db:seed` is idempotent: it inserts configured roles that do not already exist and skips existing role IDs. The application runtime never seeds roles during startup or page requests.
 
 Use `db:reset` when you want to discard and recreate the configured local file database:
 
@@ -63,7 +58,7 @@ Use `db:reset` when you want to discard and recreate the configured local file d
 pnpm --filter web db:reset
 ```
 
-`db:reset` refuses remote URLs, removes the selected local database and its WAL/SHM files, then applies committed migrations.
+`db:reset` refuses remote URLs, removes the selected local database and its WAL/SHM files, applies committed migrations, and runs `db:seed`.
 
 ### 5. Start the app
 
@@ -71,7 +66,15 @@ pnpm --filter web db:reset
 pnpm --filter web dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign up. If your email or auth ID is allowlisted, the app provisions your Owner role when it resolves your signed-in user. You can then use the registration, pass, check-in, and scanner routes.
+Open [http://localhost:3000](http://localhost:3000) and sign up. To bootstrap the first owner for now, edit that user's `roleId` directly in `core_user`:
+
+```sql
+UPDATE core_user
+SET roleId = 'core.owner'
+WHERE authId = '<better-auth-user-id>';
+```
+
+The runtime does not infer ownership from an email address or auth ID.
 
 ### 6. Optional local checks
 
@@ -125,7 +128,7 @@ before its production-configured web build.
 
 ## Production setup
 
-Production requires remote persistence and explicit auth, storage, owner, and Discord configuration:
+Production requires remote persistence and explicit auth, storage, and Discord configuration:
 
 ```bash
 DATABASE_URL=libsql://...
@@ -140,7 +143,6 @@ HACKKIT_S3_REGION=...
 HACKKIT_S3_ENDPOINT=...
 HACKKIT_S3_ACCESS_KEY_ID=...
 HACKKIT_S3_SECRET_ACCESS_KEY=...
-HACKKIT_OWNER_EMAIL_ALLOWLIST=owner@example.com
 DISCORD_GUILD_ID=...
 DISCORD_BOT_API_URL=https://your-discord-bot.example.com
 DISCORD_INTERNAL_AUTH_KEY=...
@@ -149,7 +151,7 @@ DISCORD_PARTICIPANT_ROLE_ID=...
 
 Use `DISCORD_PARTICIPANT_ROLE_NAME` instead of `DISCORD_PARTICIPANT_ROLE_ID` only when role IDs are not available. Optional email delivery is configured with `HACKKIT_EMAIL_PROVIDER=resend` plus `RESEND_API_KEY`, or `HACKKIT_EMAIL_PROVIDER=smtp` plus `SMTP_HOST` and SMTP credentials.
 
-Run `pnpm --filter web db:migrate` as a release step before starting the new production version. Do not run migrations during the Next.js build or application startup.
+Run `pnpm --filter web db:migrate` and `pnpm --filter web db:seed` as release steps before starting the new production version. Do not run migrations or seed roles during the Next.js build or application startup.
 
 ## Next integration path
 
@@ -168,6 +170,7 @@ pnpm --filter web schema:generate
 pnpm --filter web auth:schema
 pnpm --filter web db:generate
 pnpm --filter web db:migrate
+pnpm --filter web db:seed
 pnpm --filter web test
 pnpm --filter web test:db-workflow
 pnpm --filter @hackkit/core test

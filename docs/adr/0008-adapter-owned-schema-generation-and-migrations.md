@@ -28,13 +28,16 @@ export type DatabaseSchemaAdapter = {
 };
 ```
 
-The HackKit CLI exposes only native schema generation:
+The HackKit CLI exposes native schema generation and explicit configured-data seeding:
 
 ```bash
 hackkit db schema generate --output db/schema/hackkit.ts
+hackkit db seed
 ```
 
-It does not connect to the database, diff schemas, create migration files, apply migrations, inspect migration state, baseline existing databases, or provide rollback behavior. If the configured adapter does not expose `schema`, generation fails with a clear unsupported-capability error.
+`hackkit db seed` connects through the configured database adapter and idempotently inserts the roles declared in `seedRoles`. It does not update or delete existing roles, assign roles to users, or run during application startup.
+
+The CLI does not diff schemas, create migration files, apply migrations, inspect migration state, baseline existing databases, or provide rollback behavior. If the configured adapter does not expose `schema`, generation fails with a clear unsupported-capability error.
 
 For Drizzle applications, `@hackkit/db-drizzle` provides SQLite/libSQL and PostgreSQL entrypoints. Drizzle Kit reads the generated HackKit file alongside separately owned schema files, such as Better Auth's CLI-generated schema and developer-authored application tables. Drizzle Kit then owns migration generation and application.
 
@@ -48,4 +51,4 @@ db/schema/app/*.ts    # application developers
 
 Schema generation is explicit and is not part of general plugin file sync. Plugin add/remove commands regenerate the HackKit schema because those operations directly change registered storage. Other storage changes require the developer to run the schema command. Generated native schema and native migration artifacts are committed and checked for drift in CI.
 
-Applications apply migrations explicitly in local setup and deployment release steps. HackKit and application startup do not automatically create, inspect, or migrate database objects; an unprepared database fails through its first ordinary database operation.
+Applications apply migrations and configured seed data explicitly in local setup and deployment release steps. HackKit and application startup do not automatically create, inspect, migrate, or seed database objects; an unprepared database fails through its first ordinary database operation.

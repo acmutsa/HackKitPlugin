@@ -3,6 +3,7 @@ import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory"
 import { createHackkit } from "../hackkit";
 import { createPluginRegistry } from "../plugins";
 import { CoreSetting } from "../settings";
+import { seedTestOwner } from "./seed-test-owner";
 
 function createTestHackkit() {
 	const registry = createPluginRegistry();
@@ -14,25 +15,18 @@ function createTestHackkit() {
 		now,
 		id,
 	);
-	return createHackkit({
-		database: db,
-		clock: now,
-		id,
-		groups: [
-			{ id: "alpha", label: "Alpha", discordRoleName: "Alpha Role" },
-			{ id: "beta", label: "Beta", discordRoleName: "Beta Role" },
-		],
-	});
-}
-
-async function seedOwner(hackkit: ReturnType<typeof createHackkit>) {
-	await hackkit.users.ensureUser({
-		authId: "owner-auth",
-		email: "owner@example.com",
-		firstName: "Olive",
-		lastName: "Owner",
-	});
-	await hackkit.roles.bootstrapOwner({ authId: "owner-auth" });
+	return Object.assign(
+		createHackkit({
+			database: db,
+			clock: now,
+			id,
+			groups: [
+				{ id: "alpha", label: "Alpha", discordRoleName: "Alpha Role" },
+				{ id: "beta", label: "Beta", discordRoleName: "Beta Role" },
+			],
+		}),
+		{ database: db },
+	);
 }
 
 async function seedHacker(
@@ -72,7 +66,7 @@ async function seedHacker(
 describe("groups", () => {
 	it("assigns approved hackers across enabled groups without overwriting existing groups", async () => {
 		const hackkit = createTestHackkit();
-		await seedOwner(hackkit);
+		await seedTestOwner(hackkit);
 		await hackkit.settings.setMany({
 			actorAuthId: "owner-auth",
 			values: [{ key: CoreSetting.RequireApproval, value: true }],
@@ -97,13 +91,19 @@ describe("groups", () => {
 			approved: true,
 		});
 
-		await expect(hackkit.hackers.getHacker("hacker-1")).resolves.toMatchObject({
+		await expect(
+			hackkit.hackers.getHacker("hacker-1"),
+		).resolves.toMatchObject({
 			group: "alpha",
 		});
-		await expect(hackkit.hackers.getHacker("hacker-2")).resolves.toMatchObject({
+		await expect(
+			hackkit.hackers.getHacker("hacker-2"),
+		).resolves.toMatchObject({
 			group: "alpha",
 		});
-		await expect(hackkit.hackers.getHacker("hacker-3")).resolves.toMatchObject({
+		await expect(
+			hackkit.hackers.getHacker("hacker-3"),
+		).resolves.toMatchObject({
 			group: "beta",
 		});
 		expect(hackkit.groups.listGroups()).toHaveLength(2);

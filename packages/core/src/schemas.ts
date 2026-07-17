@@ -29,7 +29,14 @@ export const updateUserProfileSchema = z.object({
 	firstName: z.string().min(1).max(100).optional(),
 	lastName: z.string().min(1).max(100).optional(),
 	profilePhotoUrl: z
-		.union([z.string().url(), z.string().min(1).regex(/^\/\S+$/), z.literal("")])
+		.union([
+			z.string().url(),
+			z
+				.string()
+				.min(1)
+				.regex(/^\/\S+$/),
+			z.literal(""),
+		])
 		.optional()
 		.transform((value) => (value === "" ? undefined : value)),
 	hackTag: hackTagSchema.optional(),
@@ -98,7 +105,6 @@ export const assignRoleSchema = actorSchema.extend({
 	targetAuthId: authIdSchema,
 	roleId: roleIdSchema,
 });
-export const bootstrapOwnerSchema = z.object({ authId: authIdSchema });
 export const approveUserSchema = actorSchema.extend({
 	targetAuthId: authIdSchema,
 	approved: z.boolean(),

@@ -37,8 +37,16 @@ node --input-type=module -e '
 		sql: "SELECT name FROM sqlite_master WHERE type = ? AND name IN (?, ?)",
 		args: ["table", "core_user", "user"],
 	});
+	const roles = await client.execute({
+		sql: "SELECT id FROM core_role ORDER BY id",
+		args: [],
+	});
 	client.close();
 	if (result.rows.length !== 2) process.exit(1);
+	if (
+		JSON.stringify(roles.rows.map((row) => row.id)) !==
+		JSON.stringify(["core.owner", "core.participant"])
+	) process.exit(1);
 ' "file:$TEST_DIR/selected.db"
 
 echo "Database workflow isolation checks passed."

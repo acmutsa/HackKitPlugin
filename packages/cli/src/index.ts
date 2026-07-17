@@ -6,6 +6,8 @@ export type {
 	HackkitBlobS3Config,
 	HackkitSeedRole,
 } from "./config";
+export { runDbSeed } from "./db-seed";
+export type { DbSeedResult } from "./db-seed";
 export { runDbSchemaGenerate } from "./db-schema";
 export type {
 	DbSchemaGenerateOptions,

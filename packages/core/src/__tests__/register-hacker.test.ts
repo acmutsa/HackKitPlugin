@@ -4,6 +4,7 @@ import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory"
 import { createHackkit } from "../hackkit";
 import { CorePermission } from "../permissions";
 import { CoreSetting } from "../settings";
+import { seedTestOwner } from "./seed-test-owner";
 
 function createTestHackkit(
 	options: {
@@ -19,12 +20,15 @@ function createTestHackkit(
 		now,
 		id,
 	);
-	return createHackkit({
-		database: db,
-		clock: now,
-		id,
-		defaultCompetitorRoleId: options.defaultCompetitorRoleId,
-	});
+	return Object.assign(
+		createHackkit({
+			database: db,
+			clock: now,
+			id,
+			defaultCompetitorRoleId: options.defaultCompetitorRoleId,
+		}),
+		{ database: db },
+	);
 }
 
 async function seedParticipantRole(
@@ -107,13 +111,7 @@ describe("registerHacker onboarding side effects", () => {
 		const hackkit = createTestHackkit({
 			defaultCompetitorRoleId: "core.participant",
 		});
-		await hackkit.users.ensureUser({
-			authId: "admin-auth",
-			email: "admin@example.com",
-			firstName: "Ad",
-			lastName: "Min",
-		});
-		await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+		await seedTestOwner(hackkit, "admin-auth");
 		await seedParticipantRole(hackkit);
 		await seedUserWithData(hackkit);
 
@@ -135,13 +133,7 @@ describe("registerHacker onboarding side effects", () => {
 		const hackkit = createTestHackkit({
 			defaultCompetitorRoleId: "core.participant",
 		});
-		await hackkit.users.ensureUser({
-			authId: "admin-auth",
-			email: "admin@example.com",
-			firstName: "Ad",
-			lastName: "Min",
-		});
-		await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+		await seedTestOwner(hackkit, "admin-auth");
 		await seedParticipantRole(hackkit);
 		await seedUserWithData(hackkit);
 
@@ -164,13 +156,7 @@ describe("registerHacker onboarding side effects", () => {
 		const hackkit = createTestHackkit({
 			defaultCompetitorRoleId: "core.participant",
 		});
-		await hackkit.users.ensureUser({
-			authId: "admin-auth",
-			email: "admin@example.com",
-			firstName: "Ad",
-			lastName: "Min",
-		});
-		await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+		await seedTestOwner(hackkit, "admin-auth");
 		await setRequireApproval(hackkit, true);
 		await seedParticipantRole(hackkit);
 		await seedUserWithData(hackkit);
@@ -191,13 +177,7 @@ describe("registerHacker onboarding side effects", () => {
 
 	it("blocks first-time Hacker Registration when registration is closed but allows updates", async () => {
 		const hackkit = createTestHackkit();
-		await hackkit.users.ensureUser({
-			authId: "admin-auth",
-			email: "admin@example.com",
-			firstName: "Ad",
-			lastName: "Min",
-		});
-		await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+		await seedTestOwner(hackkit, "admin-auth");
 		await seedUserWithData(hackkit);
 
 		await setSetting(hackkit, CoreSetting.RegistrationOpen, false);
@@ -223,51 +203,37 @@ describe("registerHacker onboarding side effects", () => {
 
 	it("blocks new Hacker Registration after maximum registrations is reached", async () => {
 		const hackkit = createTestHackkit();
-		await hackkit.users.ensureUser({
-			authId: "admin-auth",
-			email: "admin@example.com",
-			firstName: "Ad",
-			lastName: "Min",
-		});
-		await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+		await seedTestOwner(hackkit, "admin-auth");
 		await setSetting(hackkit, CoreSetting.MaximumRegistrations, 1);
 		await seedUserWithData(hackkit, "first-auth", "first");
 		await seedUserWithData(hackkit, "second-auth", "second");
 
 		await registerHacker(hackkit, "first-auth");
-		await expect(registerHacker(hackkit, "second-auth")).rejects.toMatchObject({
+		await expect(
+			registerHacker(hackkit, "second-auth"),
+		).rejects.toMatchObject({
 			code: "INVALID_OPERATION",
 		});
 	});
 
 	it("blocks auto-approval when Hackathon Capacity is reached", async () => {
 		const hackkit = createTestHackkit();
-		await hackkit.users.ensureUser({
-			authId: "admin-auth",
-			email: "admin@example.com",
-			firstName: "Ad",
-			lastName: "Min",
-		});
-		await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+		await seedTestOwner(hackkit, "admin-auth");
 		await setSetting(hackkit, CoreSetting.HackathonCapacity, 1);
 		await seedUserWithData(hackkit, "first-auth", "first");
 		await seedUserWithData(hackkit, "second-auth", "second");
 
 		await registerHacker(hackkit, "first-auth");
-		await expect(registerHacker(hackkit, "second-auth")).rejects.toMatchObject({
+		await expect(
+			registerHacker(hackkit, "second-auth"),
+		).rejects.toMatchObject({
 			code: "INVALID_OPERATION",
 		});
 	});
 
 	it("blocks manual Organiser Approval when Hackathon Capacity is reached", async () => {
 		const hackkit = createTestHackkit();
-		await hackkit.users.ensureUser({
-			authId: "admin-auth",
-			email: "admin@example.com",
-			firstName: "Ad",
-			lastName: "Min",
-		});
-		await hackkit.roles.bootstrapOwner({ authId: "admin-auth" });
+		await seedTestOwner(hackkit, "admin-auth");
 		await setRequireApproval(hackkit, true);
 		await setSetting(hackkit, CoreSetting.HackathonCapacity, 1);
 		await seedUserWithData(hackkit, "first-auth", "first");

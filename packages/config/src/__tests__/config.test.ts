@@ -36,8 +36,9 @@ describe("HackKit config", () => {
 			"discord",
 			"notificationsEmail",
 		]);
-		expect(config.seedRoles.map((role) => role.id)).toContain(
+		expect(config.seedRoles.map((role) => role.id)).toEqual([
 			"core.participant",
-		);
+			"core.owner",
+		]);
 	});
 });

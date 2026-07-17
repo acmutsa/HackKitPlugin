@@ -17,7 +17,7 @@ A replaceable component package that renders HackKit interfaces by consuming Hac
 _Avoid_: Web app, core
 
 **HackKit CLI**:
-A command-line tool for creating HackKit projects and managing plugin-provided project files.
+A command-line tool for creating HackKit projects, managing plugin-provided project files, generating adapter-native schema, and explicitly seeding configured role data.
 _Avoid_: Runtime, core
 
 **HackKit Plugin**:
@@ -246,6 +246,7 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   **HackKit CLI** merges plugin-owned Next.js routes into a **HackKit Web App** using generated re-export stubs and records ownership in **hackkit.lock**.
 -   **HackKit CLI** runs from a **HackKit Web App** project directory (not a monorepo root) and reads that app’s `hackkit.config.ts` for plugins and database settings.
 -   **HackKit CLI** uses the same **HackKit Logger** from `hackkit.config.ts` when run from a **HackKit Web App** directory, falling back to the environment-based default **Log Level** when `logger` is omitted.
+-   **HackKit CLI** may explicitly seed configured roles into the app database, but it does not assign those roles to users.
 -   **HackKit CLI** may generate a concrete adapter-native schema file from merged **Storage Schema**, but it does not generate, apply, inspect, baseline, or roll back database migrations.
 -   A **HackKit Plugin** may add capabilities to a **HackKit Web App** without changing **HackKit Core** source.
 -   **HackKit Core** accepts an optional **HackKit Logger** at creation time; when omitted, a default console **HackKit Logger** applies with a configurable **Log Level** defaulting to `info` in development and `warn` in production unless overridden.

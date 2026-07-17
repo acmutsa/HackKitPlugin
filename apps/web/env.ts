@@ -16,8 +16,6 @@ type TestWebEnv = {
 	s3Endpoint?: string;
 	s3AccessKeyId?: string;
 	s3SecretAccessKey?: string;
-	ownerEmailAllowlist: string[];
-	ownerAuthIdAllowlist: string[];
 	githubClientId?: string;
 	githubClientSecret?: string;
 	googleClientId?: string;
@@ -92,9 +90,7 @@ function readBoolean(name: string, defaultValue: boolean): boolean {
 function assertProductionEnv(env: TestWebEnv): void {
 	if (env.nodeEnv !== "production") return;
 
-	if (
-		env.betterAuthSecret === "web-development-secret-change-me-please"
-	) {
+	if (env.betterAuthSecret === "web-development-secret-change-me-please") {
 		throw new Error("BETTER_AUTH_SECRET must be set in production.");
 	}
 	if (env.betterAuthSecret.length < 32) {
@@ -191,10 +187,6 @@ export function resolveTestWebEnv(): TestWebEnv {
 		s3SecretAccessKey:
 			read("HACKKIT_S3_SECRET_ACCESS_KEY") ??
 			read("S3_SECRET_ACCESS_KEY"),
-		ownerEmailAllowlist: readList("HACKKIT_OWNER_EMAIL_ALLOWLIST").map(
-			(email) => email.toLowerCase(),
-		),
-		ownerAuthIdAllowlist: readList("HACKKIT_OWNER_AUTH_ID_ALLOWLIST"),
 		githubClientId: read("GITHUB_CLIENT_ID"),
 		githubClientSecret: read("GITHUB_CLIENT_SECRET"),
 		googleClientId: read("GOOGLE_CLIENT_ID"),

@@ -15,7 +15,6 @@ import {
 } from "./plugins";
 import {
 	assignRoleSchema,
-	bootstrapOwnerSchema,
 	createRoleSchema,
 	deleteRoleSchema,
 	registerHackerSchema,
@@ -40,30 +39,13 @@ import {
 	resolveUserDataOptions,
 	type UserDataOptionsInput,
 } from "./user-data-options";
-import {
-	resolveEventTypes,
-	type EventTypesInput,
-} from "./event-types";
-import {
-	resolveGroups,
-	type GroupsInput,
-} from "./groups";
-import {
-	createLogger,
-	type HackKitLoggerOptions,
-} from "./adapters/logger";
+import { resolveEventTypes, type EventTypesInput } from "./event-types";
+import { resolveGroups, type GroupsInput } from "./groups";
+import { createLogger, type HackKitLoggerOptions } from "./adapters/logger";
 import { withDomainLog } from "./domain-log";
 import { createNotificationsApi } from "./notifications";
 import { createRsvpApi } from "./functions/rsvp";
 import { createGroupsApi } from "./functions/groups";
-
-type SeedRoleInput = {
-	id: string;
-	name: string;
-	position: number;
-	permissions: PermissionKey[];
-	color?: string;
-};
 
 type CreateHackkitOptions<
 	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
@@ -77,7 +59,6 @@ type CreateHackkitOptions<
 	groups?: GroupsInput;
 	logger?: HackKitLoggerOptions;
 	defaultCompetitorRoleId?: string;
-	seedRoles?: readonly SeedRoleInput[];
 };
 
 const defaultId = () =>
@@ -100,21 +81,7 @@ export function createHackkit<
 		createCompleteUserDataSchema(userDataOptions);
 	const logger = createLogger(options.logger);
 	const defaultCompetitorRoleId = options.defaultCompetitorRoleId;
-	const seedRoles = options.seedRoles ?? [];
 	const notificationsApi = createNotificationsApi({ db, now });
-
-	async function seedConfiguredRoles(): Promise<void> {
-		const timestamp = now();
-		for (const role of seedRoles) {
-			const existing = await db.findOne(coreModels.role, { id: role.id });
-			if (existing) continue;
-			await db.insert(coreModels.role, {
-				...role,
-				createdAt: timestamp,
-				updatedAt: timestamp,
-			});
-		}
-	}
 
 	async function getUserOrThrow(authId: AuthId): Promise<User> {
 		const user = await db.findOne(coreModels.user, { authId });
@@ -128,7 +95,10 @@ export function createHackkit<
 		return role;
 	}
 
-	const accessControl = createAccessControl({ getUserOrThrow, getRoleOrThrow });
+	const accessControl = createAccessControl({
+		getUserOrThrow,
+		getRoleOrThrow,
+	});
 	const settingsApi = createSettingsApi({
 		db,
 		now,
@@ -162,7 +132,8 @@ export function createHackkit<
 		notifications: notificationsApi,
 	};
 
-	const registrationPolicy = createCompetitorRegistrationPolicy(runtimeContext);
+	const registrationPolicy =
+		createCompetitorRegistrationPolicy(runtimeContext);
 	const rsvpApi = createRsvpApi(runtimeContext);
 	const groupsApi = createGroupsApi(runtimeContext);
 
@@ -248,9 +219,6 @@ export function createHackkit<
 		groups: groupsApi,
 		events: createEventsApi(runtimeContext),
 		admin: createAdminApi(runtimeContext),
-		async init(): Promise<void> {
-			await seedConfiguredRoles();
-		},
 
 		userData: {
 			options: userDataOptions,
@@ -303,42 +271,6 @@ export function createHackkit<
 
 			async getRole(roleId: RoleId): Promise<Role | null> {
 				return db.findOne(coreModels.role, { id: roleId });
-			},
-
-			async bootstrapOwner(input: unknown): Promise<Role> {
-				const parsed = parseInput(bootstrapOwnerSchema, input);
-				await getUserOrThrow(parsed.authId);
-				const superRoles = (await db.findMany(coreModels.role)).filter(
-					(role) =>
-						role.permissions.includes(CorePermission.SuperAdmin),
-				);
-				if (superRoles.length > 0) {
-					throw new HackKitError(
-						"INVALID_OPERATION",
-						"A super admin role already exists.",
-					);
-				}
-				const timestamp = now();
-				const role: Role = {
-					id: "core.owner",
-					name: "Owner",
-					position: 0,
-					permissions: [CorePermission.SuperAdmin],
-					createdAt: timestamp,
-					updatedAt: timestamp,
-				};
-				const existingOwnerRole = await db.findOne(coreModels.role, {
-					id: role.id,
-				});
-				const ownerRole =
-					existingOwnerRole ??
-					(await db.insert(coreModels.role, role));
-				await db.update(
-					coreModels.user,
-					{ authId: parsed.authId },
-					{ roleId: ownerRole.id, updatedAt: timestamp },
-				);
-				return ownerRole;
 			},
 
 			async createRole(input: unknown): Promise<Role> {

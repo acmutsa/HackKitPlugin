@@ -3,6 +3,7 @@ import { createPluginRegistry } from "../plugins";
 import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory";
 import { createHackkit } from "../hackkit";
 import { CorePermission } from "../permissions";
+import { seedTestOwner } from "./seed-test-owner";
 
 function createTestHackkit() {
 	const registry = createPluginRegistry();
@@ -14,35 +15,20 @@ function createTestHackkit() {
 		now,
 		id,
 	);
-	return createHackkit({
-		database: db,
-		clock: now,
-		id,
-	});
-}
-
-async function seedVolunteer(hackkit: ReturnType<typeof createHackkit>) {
-	await hackkit.users.ensureUser({
-		authId: "volunteer-auth",
-		email: "volunteer@example.com",
-		firstName: "Vol",
-		lastName: "Unteer",
-	});
-	const ownerRole = await hackkit.roles.bootstrapOwner({
-		authId: "volunteer-auth",
-	});
-	await hackkit.roles.assignRoleToUser({
-		actorAuthId: "volunteer-auth",
-		targetAuthId: "volunteer-auth",
-		roleId: ownerRole.id,
-	});
-	return ownerRole;
+	return Object.assign(
+		createHackkit({
+			database: db,
+			clock: now,
+			id,
+		}),
+		{ database: db },
+	);
 }
 
 describe("hackkit access control and check-in", () => {
 	it("records hackathon check-in once", async () => {
 		const hackkit = createTestHackkit();
-		await seedVolunteer(hackkit);
+		await seedTestOwner(hackkit, "volunteer-auth");
 		await hackkit.users.ensureUser({
 			authId: "participant-auth",
 			email: "p@example.com",
@@ -66,7 +52,7 @@ describe("hackkit access control and check-in", () => {
 
 	it("records event scans as separate rows", async () => {
 		const hackkit = createTestHackkit();
-		await seedVolunteer(hackkit);
+		await seedTestOwner(hackkit, "volunteer-auth");
 		await hackkit.users.ensureUser({
 			authId: "participant-auth",
 			email: "p@example.com",

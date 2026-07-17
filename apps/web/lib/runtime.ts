@@ -8,14 +8,10 @@ import {
 import { auth } from "./auth";
 import { getAppLogger } from "./logger";
 import { appConfig } from "./app-config";
-import { provisionOwnerFromAllowlist } from "./owner-provisioning";
 
 const runtimePromise = createHackkitRuntimeFromConfig({
 	config: appConfig,
 	auth: betterAuthAdapter({ auth, logger: getAppLogger() }),
-	afterCurrentUser: async (user, hackkit) => {
-		await provisionOwnerFromAllowlist(hackkit, user);
-	},
 });
 
 setHackkitRuntime(runtimePromise);

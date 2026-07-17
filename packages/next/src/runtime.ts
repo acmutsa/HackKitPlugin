@@ -11,7 +11,7 @@ import {
 import { resolveHackkitConfig, type HackkitConfig } from "@hackkit/config";
 import type { EventTypesInput, UserDataOptionsInput } from "@hackkit/core";
 import type { GroupsInput } from "@hackkit/core";
-import type { HackKitLoggerOptions, PermissionKey } from "@hackkit/core";
+import type { HackKitLoggerOptions } from "@hackkit/core";
 import type { HackKitUIActions } from "@hackkit/ui";
 import { redirect } from "next/navigation";
 import { createHackKitMutations } from "./mutations";
@@ -26,13 +26,6 @@ export type CreateHackkitRuntimeOptions = {
 	groups?: GroupsInput;
 	logger?: HackKitLoggerOptions;
 	defaultCompetitorRoleId?: string;
-	seedRoles?: readonly {
-		id: string;
-		name: string;
-		position: number;
-		permissions: PermissionKey[];
-		color?: string;
-	}[];
 	/**
 	 * App-specific work after the runtime resolves the current user.
 	 * Runs for both `runtime.getCurrentUser` and the runtime-owned page guards.
@@ -67,9 +60,7 @@ export async function createHackkitRuntime(
 		groups: options.groups,
 		logger: options.logger,
 		defaultCompetitorRoleId: options.defaultCompetitorRoleId,
-		seedRoles: options.seedRoles,
 	});
-	await hackkit.init();
 
 	async function requireSession() {
 		const session = await options.auth.getSession();
@@ -142,7 +133,6 @@ export function createHackkitRuntimeFromConfig(
 		groups: config.groups,
 		logger: config.logger,
 		defaultCompetitorRoleId: config.defaultCompetitorRoleId,
-		seedRoles: config.seedRoles,
 		afterCurrentUser: options.afterCurrentUser,
 	});
 }
