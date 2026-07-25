@@ -1,4 +1,3 @@
-export type { AuthAdapter, AuthIdentity, AuthSession } from "./adapters/auth";
 export type {
 	BlobStorageAdapter,
 	BlobStorageAdapterWithView,
@@ -19,7 +18,6 @@ export type {
 	HackKitLoggerOptions,
 	LogLevel,
 } from "./adapters/logger";
-export { createHackkit } from "./hackkit";
 export type { HackKit } from "./hackkit";
 export { seedRoles } from "./seed";
 export type { SeedRoleInput, SeedRolesOptions, SeedRolesResult } from "./seed";

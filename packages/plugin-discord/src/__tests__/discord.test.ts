@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
 	type HackKitPlugin,
 } from "@hackkit/core";
+import { createHackkit } from "@hackkit/core/internal";
 import {
 	discordPlugin,
 	type DiscordApi,

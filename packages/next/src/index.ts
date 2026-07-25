@@ -1,11 +1,10 @@
 export {
-	createHackkitRuntimeFromConfig,
 	createHackkitRuntime,
 	getHackkitRuntime,
 	setHackkitRuntime,
 } from "./runtime";
 export type {
-	CreateHackkitRuntimeFromConfigOptions,
+	BetterAuthWithHackkit,
 	CreateHackkitRuntimeOptions,
 	HackkitRuntime,
 } from "./runtime";

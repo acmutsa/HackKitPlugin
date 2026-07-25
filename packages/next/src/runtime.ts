@@ -1,42 +1,44 @@
-import {
-	createHackkit,
-	type AuthAdapter,
-	type DatabaseAdapterInput,
-	type HackKit,
-	type HackKitPlugin,
-	type SettingKey,
-	type SettingValue,
-	type User,
-} from "@hackkit/core";
-import { resolveHackkitConfig, type HackkitConfig } from "@hackkit/config";
-import type { EventTypesInput, UserDataOptionsInput } from "@hackkit/core";
-import type { GroupsInput } from "@hackkit/core";
-import type { HackKitLoggerOptions } from "@hackkit/core";
+import type {
+	BetterAuthUser,
+	HackkitBetterAuthContext,
+	HackkitCallResult,
+} from "@hackkit/auth-better-auth";
+import { isPublicHackkitPath } from "@hackkit/auth-better-auth";
+import type { HackKit, SettingKey, SettingValue, User } from "@hackkit/core";
 import type { HackKitUIActions } from "@hackkit/ui";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHackKitMutations } from "./mutations";
 import { createPageGuards, type PageGuards } from "./page-guards";
 
-export type CreateHackkitRuntimeOptions = {
-	database: DatabaseAdapterInput;
-	auth: AuthAdapter;
-	plugins?: readonly HackKitPlugin[];
-	userDataOptions?: UserDataOptionsInput;
-	eventTypes?: EventTypesInput;
-	groups?: GroupsInput;
-	logger?: HackKitLoggerOptions;
-	defaultCompetitorRoleId?: string;
-	/**
-	 * App-specific work after the runtime resolves the current user.
-	 * Runs for both `runtime.getCurrentUser` and the runtime-owned page guards.
-	 */
-	afterCurrentUser?: (user: User, hackkit: HackKit) => Promise<void>;
+type BetterAuthSession = {
+	user: BetterAuthUser;
 };
 
-export type CreateHackkitRuntimeFromConfigOptions = {
-	config: HackkitConfig;
-	auth: AuthAdapter;
-	afterCurrentUser?: CreateHackkitRuntimeOptions["afterCurrentUser"];
+export type BetterAuthWithHackkit = {
+	$context: PromiseLike<{ hackkit: HackkitBetterAuthContext }>;
+	api: {
+		getSession(input: {
+			headers: Headers;
+		}): Promise<BetterAuthSession | null>;
+		getHackkitCurrentUser(input: { headers: Headers }): Promise<User>;
+		callHackkit(input: {
+			headers: Headers;
+			body: { path: string; args: unknown[] };
+		}): Promise<HackkitCallResult>;
+		callPublicHackkit(input: {
+			body: { path: string; args: unknown[] };
+		}): Promise<HackkitCallResult>;
+	};
+};
+
+export type CreateHackkitRuntimeOptions = {
+	auth: BetterAuthWithHackkit;
+	/**
+	 * App-specific work after the Better Auth plugin resolves the current user.
+	 * Runs for both `runtime.getCurrentUser` and runtime-owned page guards.
+	 */
+	afterCurrentUser?: (user: User, hackkit: HackKit) => Promise<void>;
 };
 
 export type HackkitRuntime = {
@@ -49,35 +51,70 @@ export type HackkitRuntime = {
 	invalidateSettingsCache: () => void;
 };
 
+function isObject(value: unknown): value is Record<PropertyKey, unknown> {
+	return Boolean(value) && typeof value === "object";
+}
+
+function createHackkitApiProxy(
+	template: HackKit,
+	invoke: (path: string, args: unknown[]) => Promise<unknown>,
+): HackKit {
+	function wrap(value: unknown, path: string): unknown {
+		if (!isObject(value) || Array.isArray(value) || value instanceof Date) {
+			return value;
+		}
+		return new Proxy(value, {
+			get(target, property, receiver) {
+				const member = Reflect.get(target, property, receiver);
+				if (typeof property !== "string") return member;
+				const memberPath = path ? `${path}.${property}` : property;
+				if (typeof member === "function") {
+					return (...args: unknown[]) => invoke(memberPath, args);
+				}
+				return wrap(member, memberPath);
+			},
+		});
+	}
+
+	return wrap(template, "") as HackKit;
+}
+
+/** Build Next.js guards and server actions around HackKit's Better Auth plugin. */
 export async function createHackkitRuntime(
 	options: CreateHackkitRuntimeOptions,
 ): Promise<HackkitRuntime> {
-	const hackkit = createHackkit({
-		database: options.database,
-		plugins: options.plugins,
-		userDataOptions: options.userDataOptions,
-		eventTypes: options.eventTypes,
-		groups: options.groups,
-		logger: options.logger,
-		defaultCompetitorRoleId: options.defaultCompetitorRoleId,
-	});
+	const hackkitContext = (await options.auth.$context).hackkit;
+	const hackkit = createHackkitApiProxy(
+		hackkitContext.api,
+		async (path, args) => {
+			const result = isPublicHackkitPath(path)
+				? await options.auth.api.callPublicHackkit({
+						body: { path, args },
+					})
+				: await options.auth.api.callHackkit({
+						headers: await headers(),
+						body: { path, args },
+					});
+			return result.data;
+		},
+	);
 
 	async function requireSession() {
-		const session = await options.auth.getSession();
+		const session = await options.auth.api.getSession({
+			headers: await headers(),
+		});
 		if (!session) redirect("/sign-in");
 		return session;
 	}
 
 	async function getAuthId(): Promise<string> {
-		return options.auth.toAuthId(await requireSession());
+		return (await requireSession()).user.id;
 	}
 
 	async function getCurrentUser(): Promise<User> {
-		const session = await requireSession();
-		const identity = options.auth.getIdentity(session);
-		const user = await hackkit.users.ensureUser({
-			authId: options.auth.toAuthId(session),
-			...identity,
+		await requireSession();
+		const user = await options.auth.api.getHackkitCurrentUser({
+			headers: await headers(),
 		});
 		if (options.afterCurrentUser) {
 			await options.afterCurrentUser(user, hackkit);
@@ -120,23 +157,6 @@ export async function createHackkitRuntime(
 	};
 }
 
-export function createHackkitRuntimeFromConfig(
-	options: CreateHackkitRuntimeFromConfigOptions,
-): Promise<HackkitRuntime> {
-	const config = resolveHackkitConfig(options.config);
-	return createHackkitRuntime({
-		database: config.database,
-		auth: options.auth,
-		plugins: config.plugins,
-		userDataOptions: config.userDataOptions,
-		eventTypes: config.eventTypes,
-		groups: config.groups,
-		logger: config.logger,
-		defaultCompetitorRoleId: config.defaultCompetitorRoleId,
-		afterCurrentUser: options.afterCurrentUser,
-	});
-}
-
 let runtimePromise: Promise<HackkitRuntime> | null = null;
 
 export function setHackkitRuntime(promise: Promise<HackkitRuntime>): void {
@@ -146,7 +166,7 @@ export function setHackkitRuntime(promise: Promise<HackkitRuntime>): void {
 export async function getHackkitRuntime(): Promise<HackkitRuntime> {
 	if (!runtimePromise) {
 		throw new Error(
-			"HackKit runtime is not initialized. Call setHackkitRuntime() from your app runtime module.",
+			"HackKit runtime is not initialized. Call setHackkitRuntime() with the Better Auth plugin runtime.",
 		);
 	}
 	return runtimePromise;

@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runDbSeed } from "@hackkit/cli";
-import { CorePermission, createHackkit } from "@hackkit/core";
+import { CorePermission } from "@hackkit/core";
+import { createHackkit } from "@hackkit/core/internal";
 import { createDrizzleLibsqlAdapter } from "@hackkit/db-drizzle/libsql";
 import { createClient } from "@libsql/client";
 import { betterAuth } from "better-auth";

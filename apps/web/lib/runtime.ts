@@ -1,18 +1,9 @@
 import "server-only";
 
-import { betterAuthAdapter } from "@hackkit/auth-better-auth";
-import {
-	createHackkitRuntimeFromConfig,
-	setHackkitRuntime,
-} from "@hackkit/next";
+import { createHackkitRuntime, setHackkitRuntime } from "@hackkit/next";
 import { auth } from "./auth";
-import { getAppLogger } from "./logger";
-import { appConfig } from "./app-config";
 
-const runtimePromise = createHackkitRuntimeFromConfig({
-	config: appConfig,
-	auth: betterAuthAdapter({ auth, logger: getAppLogger() }),
-});
+const runtimePromise = createHackkitRuntime({ auth });
 
 setHackkitRuntime(runtimePromise);
 

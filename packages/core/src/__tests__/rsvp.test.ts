@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
 	CoreNotificationKind,
 	CoreSetting,
-	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
 } from "../index";
+import { createHackkit } from "../hackkit";
 import { seedTestOwner } from "./seed-test-owner";
 
 function createTestHackkit() {

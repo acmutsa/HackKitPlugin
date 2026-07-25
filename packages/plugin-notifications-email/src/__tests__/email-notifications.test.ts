@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	CoreNotificationKind,
-	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
 	type HackKitPlugin,
 } from "@hackkit/core";
+import { createHackkit } from "@hackkit/core/internal";
 import {
 	emailNotificationsPlugin,
 	type EmailMessage,
@@ -43,8 +43,8 @@ function createTestHackkit() {
 	});
 	return {
 		hackkit,
-		notificationsEmail:
-			hackkit.plugins.notificationsEmail as unknown as EmailNotificationsApi,
+		notificationsEmail: hackkit.plugins
+			.notificationsEmail as unknown as EmailNotificationsApi,
 		sent,
 	};
 }

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
 	type HackKitPlugin,
 } from "@hackkit/core";
+import { createHackkit } from "@hackkit/core/internal";
 import type { TeamsApi } from "../api";
 import { teamsPlugin } from "../index";
 
@@ -176,7 +176,8 @@ describe("teams plugin", () => {
 				accept: true,
 			}),
 		).rejects.toMatchObject({
-			message: "Complete hacker registration before accepting a team invite.",
+			message:
+				"Complete hacker registration before accepting a team invite.",
 		});
 
 		await seedHacker(hackkit, "pending-auth");

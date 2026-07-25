@@ -1,10 +1,10 @@
 import {
 	CorePermission,
-	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
 	type DatabaseAdapterFactory,
 } from "@hackkit/core";
+import { createHackkit } from "@hackkit/core/internal";
 import { describe, expect, it } from "vitest";
 import { runDbSeed } from "../db-seed";
 

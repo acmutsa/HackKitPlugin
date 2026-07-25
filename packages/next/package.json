@@ -20,7 +20,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hackkit/config": "workspace:*",
+    "@hackkit/auth-better-auth": "workspace:*",
     "@hackkit/core": "workspace:*",
     "@hackkit/ui": "workspace:*"
   },

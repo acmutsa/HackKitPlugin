@@ -3,12 +3,12 @@ import {
 	CorePermission,
 	CoreSetting,
 	coreModels,
-	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
 	seedRoles,
 	type HackKit,
 } from "@hackkit/core";
+import { createHackkit } from "@hackkit/core/internal";
 
 const redirectMock = vi.hoisted(() =>
 	vi.fn((url: string): never => {

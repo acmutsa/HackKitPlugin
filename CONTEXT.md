@@ -28,9 +28,9 @@ _Avoid_: App fork, core patch
 The provider-issued identifier for the authenticated person using a HackKit application.
 _Avoid_: Clerk ID, internal user ID, auth subject
 
-**Auth Adapter**:
-An integration boundary that translates an authentication provider's session and profile into HackKit's Auth ID and User identity fields.
-_Avoid_: HackKit Core auth system, session store
+**HackKit Better Auth Plugin**:
+The Better Auth server/client plugin that installs **HackKit Core** into Better Auth's runtime context, derives **Auth IDs** and **User** identity from Better Auth sessions, and exposes the complete HackKit API through authenticated and explicitly public Better Auth endpoints.
+_Avoid_: Auth adapter, parallel HackKit runtime, HackKit-owned session store
 
 **Database Adapter**:
 An integration boundary that persists HackKit's canonical data models using a concrete database technology.
@@ -46,7 +46,7 @@ _Avoid_: Existing app database package, app schema mapper
 
 **HackKit Logger**:
 A replaceable logging boundary for HackKit runtime diagnostics and operational messages, configured when creating **HackKit Core** (similar in spirit to Better Auth’s built-in logger: levels, disable switch, optional custom `log` implementation).
-_Avoid_: Legacy `error_log` tables, **Audit Log**, **Auth Adapter** session storage
+_Avoid_: Legacy `error_log` tables, **Audit Log**, Better Auth session storage
 
 **Log Level**:
 The minimum severity a **HackKit Logger** emits: `debug`, `info`, `warn`, or `error`.
@@ -254,7 +254,8 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   **HackKit Core** emits operational messages for significant domain APIs (such as **Hacker Registration**, **Organiser Approval**, **Hackathon Check-in**) through the **HackKit Logger** at **Log Level**s such as `info` or `debug`; this is not a separate persisted **Audit Log** model in v1.
 -   **Log Context** for those messages includes action name, outcome, **Auth ID**s, relevant record ids, and error codes on failure; it excludes PII and form payloads.
 -   **Hackathon Setting** changes are emitted through the **HackKit Logger** with **Log Context** including the actor **Auth ID** and setting key, but v1 stores only the latest setting value rather than a persisted change history.
--   **HackKit Core** receives **HackKit Plugins** through `createHackkit`.
+-   The **HackKit Better Auth Plugin** is the only runtime composition root for **HackKit Core** in a **HackKit Web App**.
+-   **HackKit Core** receives **HackKit Plugins** from the **HackKit Better Auth Plugin** through `createHackkit`.
 -   **HackKit Plugins** should be configured in one place so package-specific integration details stay contained inside plugin packages.
 -   **HackKit Plugins** expose storage schema contributions using **Storage Schema** without requiring every plugin to implement every database dialect.
 -   **Storage Schema** can express field-level single-column references between plugin models and **HackKit Core** models.
@@ -281,8 +282,10 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   Public Core record types such as **User**, **Role**, and **Hacker** are inferred aliases from Core model descriptors.
 -   **HackKit Core** merges its base **Storage Schema** with **HackKit Plugin** storage schemas before initializing adapter factories.
 -   **HackKit Core** initializes adapter factories with plugin contributions so applications do not pass plugin config to each adapter separately.
--   An **Auth Adapter** supplies **Auth IDs** and User identity fields to a **HackKit Web App** before it calls **HackKit Core**.
--   The **Better Auth** integration may forward **HackKit Logger** messages through Better Auth’s own `logger` configuration so a single custom `log` implementation in `hackkit.config.ts` covers auth and **HackKit Core** output.
+-   The **HackKit Better Auth Plugin** derives **Auth IDs** and **User** identity fields from Better Auth sessions; **HackKit Core** does not own sessions or accept a separate auth adapter.
+-   Authenticated HackKit endpoint calls bind actor and self identity to the Better Auth session; caller-supplied **Auth IDs** are not authorization input.
+-   Public HackKit endpoint calls are allowlisted and strip caller-supplied identity fields.
+-   The **HackKit Better Auth Plugin** may forward **HackKit Logger** messages through Better Auth’s own `logger` configuration so a single custom `log` implementation in `hackkit.config.ts` covers auth and **HackKit Core** output.
 -   A **User Data** onboarding flow may display the authenticated **User** while collecting **User Data**.
 -   **HackKit UI** treats authenticated **User** information passed to forms as display context, not as authorization input.
 -   A **Database Adapter** persists **HackKit Core** models using HackKit-owned canonical storage shapes.

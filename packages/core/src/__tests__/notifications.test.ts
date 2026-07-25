@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	CoreNotificationKind,
-	createHackkit,
 	createInMemoryDatabaseAdapterFromStorage,
 	createPluginRegistry,
 	type NotificationChannel,
 } from "../index";
+import { createHackkit } from "../hackkit";
 
 function createTestHackkit() {
 	const registry = createPluginRegistry();
@@ -80,7 +80,9 @@ describe("notifications", () => {
 			status: "delivered",
 			externalId: "message-1",
 		});
-		await expect(hackkit.notifications.getIntent(intent.id)).resolves.toMatchObject({
+		await expect(
+			hackkit.notifications.getIntent(intent.id),
+		).resolves.toMatchObject({
 			status: "delivered",
 		});
 		await expect(

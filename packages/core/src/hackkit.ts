@@ -47,7 +47,7 @@ import { createNotificationsApi } from "./notifications";
 import { createRsvpApi } from "./functions/rsvp";
 import { createGroupsApi } from "./functions/groups";
 
-type CreateHackkitOptions<
+export type CreateHackkitOptions<
 	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
 > = {
 	database: DatabaseAdapterInput;

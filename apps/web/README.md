@@ -194,6 +194,7 @@ UI mutations live on the Next runtime (`runtime.mutations` from `createHackKitMu
 ## Configuration
 
 -   [`hackkit.config.ts`](hackkit.config.ts) — plugins, User Data options, Event Types, and the explicit database adapter
--   [`lib/runtime.ts`](lib/runtime.ts) — `createHackkitRuntimeFromConfig` composition root; use `getPageGuards()` for layouts
+-   [`lib/auth.ts`](lib/auth.ts) — Better Auth composition root that loads `hackkit(appConfig)`
+-   [`lib/runtime.ts`](lib/runtime.ts) — Next adapter over `auth.$context.hackkit`; use `getPageGuards()` for layouts
 -   [`db/schema`](db/schema) — separately generated HackKit and Better Auth schema files
 -   [`db/migrations`](db/migrations) — app-owned Drizzle migrations
