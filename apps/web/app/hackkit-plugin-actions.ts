@@ -1,50 +1,91 @@
 "use server";
 
-// @hackkit-generated — do not edit
+import type {
+	CreateTeamInput,
+	InviteToTeamInput,
+	RemoveMemberInput,
+	RespondToInviteInput,
+} from "@hackkit/plugin-teams";
+import type { ConfirmDiscordVerificationInput } from "@hackkit/plugin-discord";
+import { actionFailure, actionSuccess } from "@hackkit/ui/actions";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders } from "@/lib/hackkit-server";
 
-import { getRuntime } from "@/lib/runtime";
-import { createTeamsActions } from "@hackkit/plugin-teams";
-import { createDiscordActions } from "@hackkit/plugin-discord";
-
-const teamsActionsPromise = getRuntime().then((runtime) =>
-	createTeamsActions(runtime),
-);
-
-export async function createTeam(...args: Parameters<Awaited<ReturnType<typeof createTeamsActions>>["createTeam"]>) {
-	const actions = await teamsActionsPromise;
-	return actions.createTeam(...args);
+async function perform<T>(operation: () => Promise<T>, fallback: string) {
+	try {
+		return actionSuccess(await operation());
+	} catch (error) {
+		return actionFailure(error, fallback);
+	}
 }
 
-export async function inviteToTeam(...args: Parameters<Awaited<ReturnType<typeof createTeamsActions>>["inviteToTeam"]>) {
-	const actions = await teamsActionsPromise;
-	return actions.inviteToTeam(...args);
+export async function createTeam(values: CreateTeamInput) {
+	return perform(
+		async () =>
+			auth.api.createHackkitTeam({
+				headers: await hackkitHeaders(),
+				body: values,
+			}),
+		"Could not create team.",
+	);
 }
 
-export async function respondToInvite(...args: Parameters<Awaited<ReturnType<typeof createTeamsActions>>["respondToInvite"]>) {
-	const actions = await teamsActionsPromise;
-	return actions.respondToInvite(...args);
+export async function inviteToTeam(values: InviteToTeamInput) {
+	return perform(
+		async () =>
+			auth.api.inviteToHackkitTeam({
+				headers: await hackkitHeaders(),
+				body: values,
+			}),
+		"Could not send invite.",
+	);
 }
 
-export async function leaveTeam(...args: Parameters<Awaited<ReturnType<typeof createTeamsActions>>["leaveTeam"]>) {
-	const actions = await teamsActionsPromise;
-	return actions.leaveTeam(...args);
+export async function respondToInvite(values: RespondToInviteInput) {
+	return perform(
+		async () =>
+			auth.api.respondToHackkitTeamInvite({
+				headers: await hackkitHeaders(),
+				body: values,
+			}),
+		"Could not respond to invite.",
+	);
 }
 
-export async function removeMember(...args: Parameters<Awaited<ReturnType<typeof createTeamsActions>>["removeMember"]>) {
-	const actions = await teamsActionsPromise;
-	return actions.removeMember(...args);
+export async function leaveTeam() {
+	return perform(async () => {
+		await auth.api.leaveHackkitTeam({ headers: await hackkitHeaders() });
+	}, "Could not leave team.");
 }
 
-const discordActionsPromise = getRuntime().then((runtime) =>
-	createDiscordActions(runtime),
-);
-
-export async function confirmDiscordVerification(...args: Parameters<Awaited<ReturnType<typeof createDiscordActions>>["confirmDiscordVerification"]>) {
-	const actions = await discordActionsPromise;
-	return actions.confirmDiscordVerification(...args);
+export async function removeMember(values: RemoveMemberInput) {
+	return perform(async () => {
+		await auth.api.removeHackkitTeamMember({
+			headers: await hackkitHeaders(),
+			body: values,
+		});
+	}, "Could not remove team member.");
 }
 
-export async function syncDiscordMemberRoles(...args: Parameters<Awaited<ReturnType<typeof createDiscordActions>>["syncDiscordMemberRoles"]>) {
-	const actions = await discordActionsPromise;
-	return actions.syncDiscordMemberRoles(...args);
+export async function confirmDiscordVerification(
+	values: ConfirmDiscordVerificationInput,
+) {
+	return perform(
+		async () =>
+			auth.api.confirmHackkitDiscordVerification({
+				headers: await hackkitHeaders(),
+				body: values,
+			}),
+		"Could not link Discord account.",
+	);
+}
+
+export async function syncDiscordMemberRoles() {
+	return perform(
+		async () =>
+			auth.api.syncHackkitDiscordRoles({
+				headers: await hackkitHeaders(),
+			}),
+		"Could not sync Discord roles.",
+	);
 }

@@ -1,7 +1,7 @@
 import type * as React from "react";
 import { CorePermission } from "@hackkit/core";
 import Link from "next/link";
-import { getPageGuards } from "@/lib/runtime";
+import { requireHackkitAdmin } from "@/lib/hackkit-server";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +10,7 @@ export default async function AdminLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const guards = await getPageGuards();
-	await guards.requireNotBanned();
-	await guards.requirePermission(CorePermission.Admin);
+	await requireHackkitAdmin();
 
 	const navItems = [
 		{ href: "/admin", label: "Overview" },

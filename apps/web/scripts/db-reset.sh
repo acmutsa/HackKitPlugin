@@ -21,6 +21,5 @@ mkdir -p "$(dirname "$DATABASE_PATH")"
 cd "$ROOT"
 
 pnpm db:migrate
-pnpm db:seed
 
 echo "Reset complete: $DATABASE_PATH"

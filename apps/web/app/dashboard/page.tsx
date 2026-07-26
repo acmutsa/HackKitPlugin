@@ -3,7 +3,7 @@ import {
 	ParticipantDashboard,
 } from "@hackkit/ui";
 import { publicSiteConfig } from "@/lib/public-site-config";
-import { getHackkit } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
 import {
 	getCompetitorOnboardingState,
 	getRequireApproval,
@@ -19,15 +19,16 @@ export default async function DashboardPage() {
 		userData,
 		hacker,
 	} = await getCompetitorOnboardingState("/dashboard");
-	const [hackkit, requireApproval] = await Promise.all([
-		getHackkit(),
+	const [role, requireApproval] = await Promise.all([
+		currentUser.roleId
+			? auth.api.getHackkitRole({ body: { roleId: currentUser.roleId } })
+			: null,
 		getRequireApproval(),
 	]);
-	const role = currentUser.roleId
-		? await hackkit.roles.getRole(currentUser.roleId)
-		: null;
 	const participantName =
-		[currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") ||
+		[currentUser.firstName, currentUser.lastName]
+			.filter(Boolean)
+			.join(" ") ||
 		currentUser.hackTag ||
 		"participant";
 
@@ -42,7 +43,10 @@ export default async function DashboardPage() {
 			primaryActions={publicSiteConfig.dashboard.primaryActions}
 			resourceLinks={publicSiteConfig.dashboard.resourceLinks}
 			statusItems={[
-				{ label: "HackTag", value: currentUser.hackTag ?? "Not claimed" },
+				{
+					label: "HackTag",
+					value: currentUser.hackTag ?? "Not claimed",
+				},
 				{
 					label: "Profile",
 					value: userData ? "Complete" : "Needs information",
@@ -56,7 +60,9 @@ export default async function DashboardPage() {
 				nextHref
 					? {
 							nextHref,
-							progress: <CompetitorOnboardingProgress steps={steps} />,
+							progress: (
+								<CompetitorOnboardingProgress steps={steps} />
+							),
 						}
 					: undefined
 			}

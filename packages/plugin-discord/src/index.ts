@@ -1,8 +1,5 @@
 import type { HackKitPlugin } from "@hackkit/core";
-import {
-	createDiscordApi,
-	type DiscordPluginOptions,
-} from "./api";
+import { createDiscordApi, type DiscordPluginOptions } from "./api";
 import { discordModels } from "./models";
 
 export function discordPlugin(
@@ -11,14 +8,11 @@ export function discordPlugin(
 	return {
 		id: "discord",
 		packageName: "@hackkit/plugin-discord",
-		actionFactory: "createDiscordActions",
-		actionNames: ["confirmDiscordVerification", "syncDiscordMemberRoles"],
 		models: discordModels,
 		setup: (context) => createDiscordApi(context, options),
 	};
 }
 
-export { createDiscordActions } from "./actions";
 export { createDiscordApi } from "./api";
 export { discordModels } from "./models";
 export { createDiscordHttpRoleSyncProvider } from "./providers";

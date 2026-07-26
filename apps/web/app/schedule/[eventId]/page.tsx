@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ScheduleDetail } from "@hackkit/ui";
-import { getHackkit } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +13,14 @@ type ScheduleEventPageProps = {
 export default async function ScheduleEventPage({
 	params,
 }: ScheduleEventPageProps) {
-	const hackkit = await getHackkit();
-	const event = await hackkit.events.getEvent({ eventId: params.eventId });
+	const [event, options] = await Promise.all([
+		auth.api.getHackkitEvent({ body: { eventId: params.eventId } }),
+		auth.api.getHackkitOptions(),
+	]);
 
 	if (!event) notFound();
 
-	const eventType = hackkit.events.options.find(
+	const eventType = options.eventTypes.find(
 		(option) => option.value === event.type,
 	);
 

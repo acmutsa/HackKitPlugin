@@ -203,3 +203,14 @@ export function updateEventSchemaFactory(eventTypeValues: z.ZodType<string>) {
 			},
 		);
 }
+
+export type UpdateUserProfileInput = z.input<typeof updateUserProfileSchema>;
+export type RegisterHackerInput = z.input<typeof registerHackerSchema>;
+export type CreateRoleInput = z.input<typeof createRoleSchema>;
+export type UpdateRoleInput = z.input<typeof updateRoleSchema>;
+export type CreateEventInput = z.input<
+	ReturnType<typeof createEventSchemaFactory>
+>;
+export type UpdateEventInput = z.input<
+	ReturnType<typeof updateEventSchemaFactory>
+>;

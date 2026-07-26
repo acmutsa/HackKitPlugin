@@ -9,7 +9,6 @@
     "schema:generate": "pnpm --filter=web schema:generate",
     "db:generate": "pnpm --filter=web db:generate",
     "db:migrate": "pnpm --filter=web db:migrate",
-    "db:seed": "pnpm --filter=web db:seed",
     "db:reset": "pnpm --filter=web db:reset",
     "db:studio": "pnpm --filter=web db:studio",
     "deploy-discord:dev": "pnpm --filter=bot deploy:dev",

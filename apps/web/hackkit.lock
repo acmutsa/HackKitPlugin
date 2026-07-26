@@ -14,13 +14,6 @@
           "host": "app/teams/page.tsx",
           "source": "@hackkit/plugin-teams/app/teams/page"
         }
-      ],
-      "actions": [
-        "createTeam",
-        "inviteToTeam",
-        "respondToInvite",
-        "leaveTeam",
-        "removeMember"
       ]
     },
     {
@@ -36,18 +29,13 @@
           "host": "app/discord/verify/page.tsx",
           "source": "@hackkit/plugin-discord/app/discord/verify/page"
         }
-      ],
-      "actions": [
-        "confirmDiscordVerification",
-        "syncDiscordMemberRoles"
       ]
     },
     {
       "id": "notificationsEmail",
       "package": "@hackkit/plugin-notifications-email",
       "version": "0.0.0",
-      "routes": [],
-      "actions": []
+      "routes": []
     }
   ]
 }

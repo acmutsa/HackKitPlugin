@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import type { HackkitConfig } from "./config";
-import { runDbSchemaGenerate } from "./db-schema";
 import { createConfigLogger } from "./logger";
 import { PLUGIN_PACKAGE_BY_ID, loadPluginFactory } from "./plugin-manifest";
 import { runPluginSync } from "./plugin-sync";
@@ -118,9 +117,6 @@ export async function runPluginAdd(
 		projectRoot: context.projectRoot,
 		config: refreshedConfig,
 	});
-	await runDbSchemaGenerate(refreshedConfig, {
-		projectRoot: context.projectRoot,
-	});
 }
 
 export async function runPluginRemove(
@@ -157,9 +153,6 @@ export async function runPluginRemove(
 		projectRoot: context.projectRoot,
 		plugins: nextConfig.plugins ?? [],
 	});
-	await runDbSchemaGenerate(nextConfig, {
-		projectRoot: context.projectRoot,
-	});
 }
 
 export async function runPluginSyncAll(
@@ -172,6 +165,6 @@ export async function runPluginSyncAll(
 	});
 	logger.log(
 		"info",
-		`HackKit plugin sync completed (${result.routesWritten} routes, ${result.actionsWritten} actions, ${result.stubsRemoved} removed).`,
+		`HackKit plugin sync completed (${result.routesWritten} routes, ${result.stubsRemoved} removed).`,
 	);
 }

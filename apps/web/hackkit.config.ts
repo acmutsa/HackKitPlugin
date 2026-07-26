@@ -1,6 +1,4 @@
 import { defineHackkitConfig } from "@hackkit/config";
-import { CorePermission, type PermissionKey } from "@hackkit/core";
-import { createDrizzleLibsqlAdapter } from "@hackkit/db-drizzle/libsql";
 import {
 	createResendEmailProvider,
 	createSmtpEmailProvider,
@@ -11,16 +9,8 @@ import {
 	createDiscordHttpRoleSyncProvider,
 	discordPlugin,
 } from "@hackkit/plugin-discord";
-import { teamsPlugin, TeamsPermission } from "@hackkit/plugin-teams";
+import { teamsPlugin } from "@hackkit/plugin-teams";
 import { env } from "./env";
-import { getDb } from "./lib/db";
-
-const participantPermissions = [] as PermissionKey[];
-
-const adminPermissions = [
-	...Object.values(CorePermission),
-	...Object.values(TeamsPermission),
-] satisfies PermissionKey[];
 
 const shirtSizeOptions = [
 	{ value: "s", label: "Small" },
@@ -140,23 +130,8 @@ function createDiscordRoleSyncProvider() {
 }
 
 export default defineHackkitConfig({
-	database: createDrizzleLibsqlAdapter(getDb),
 	defaultCompetitorRoleId: "core.participant",
 	groups,
-	seedRoles: [
-		{
-			id: "core.participant",
-			name: "Participant",
-			position: 10,
-			permissions: participantPermissions,
-		},
-		{
-			id: "core.owner",
-			name: "Owner",
-			position: 0,
-			permissions: adminPermissions,
-		},
-	],
 	blob:
 		env.blobAdapter === "s3"
 			? {

@@ -6,13 +6,10 @@
   "scripts": {
     "plugin:sync": "hackkit plugin sync",
     "auth:schema": "auth generate --config better-auth.config.ts --output db/schema/auth.ts --yes",
-    "schema:generate": "hackkit db schema generate --output db/schema/hackkit.ts",
+    "schema:generate": "pnpm auth:schema",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "hackkit db seed",
     "db:reset": "bash scripts/db-reset.sh",
-    "test": "vitest run db/__tests__/database-workflow.test.ts",
-    "test:db-workflow": "bash scripts/test-db-workflow.sh",
     "sync": "pnpm plugin:sync",
     "predev": "turbo run build --filter=web^...",
     "dev": "next dev -p 3000",
@@ -21,7 +18,7 @@
     "start": "next start",
     "db:studio": "drizzle-kit studio",
     "studio": "pnpm db:studio",
-    "typecheck": "turbo run build --filter=@hackkit/cli && tsc -p tsconfig.json --noEmit"
+		"typecheck": "pnpm --filter @hackkit/cli build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@hackkit/auth-better-auth": "workspace:*",
@@ -30,8 +27,6 @@
     "@hackkit/cli": "workspace:*",
     "@hackkit/config": "workspace:*",
     "@hackkit/core": "workspace:*",
-    "@hackkit/db-drizzle": "workspace:*",
-    "@hackkit/next": "workspace:*",
     "@hackkit/plugin-discord": "workspace:*",
     "@hackkit/plugin-notifications-email": "workspace:*",
     "@hackkit/plugin-teams": "workspace:*",

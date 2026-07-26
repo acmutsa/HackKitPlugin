@@ -1,14 +1,13 @@
-import { getHackkitRuntime } from "@hackkit/next";
-import type { DiscordApi } from "../../src/api";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders } from "@/lib/hackkit-server";
 import { syncDiscordMemberRoles } from "@/app/hackkit-plugin-actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function DiscordPage() {
-	const runtime = await getHackkitRuntime();
-	const currentUser = await runtime.getCurrentUser();
-	const discord = runtime.hackkit.plugins.discord as DiscordApi;
-	const member = await discord.getMember(currentUser.authId);
+	const member = await auth.api.getHackkitDiscordMember({
+		headers: await hackkitHeaders(),
+	});
 
 	return (
 		<main className="min-h-screen bg-muted/30 px-6 py-10">
@@ -19,8 +18,8 @@ export default async function DiscordPage() {
 						Discord account
 					</h1>
 					<p className="text-muted-foreground">
-						Link Discord to receive participant and Group roles in the event
-						server.
+						Link Discord to receive participant and Group roles in
+						the event server.
 					</p>
 				</div>
 
@@ -28,20 +27,26 @@ export default async function DiscordPage() {
 					{member ? (
 						<div className="space-y-4">
 							<div>
-								<h2 className="text-xl font-semibold">Linked</h2>
+								<h2 className="text-xl font-semibold">
+									Linked
+								</h2>
 								<p className="mt-1 text-sm text-muted-foreground">
-									@{member.username} is linked to this HackKit account.
+									@{member.username} is linked to this HackKit
+									account.
 								</p>
 								{member.lastRoleSyncAt ? (
 									<p className="mt-1 text-xs text-muted-foreground">
-										Last role sync: {member.lastRoleSyncAt.toLocaleString()}
+										Last role sync:{" "}
+										{member.lastRoleSyncAt.toLocaleString()}
 									</p>
 								) : null}
 							</div>
-							<form action={async () => {
-								"use server";
-								await syncDiscordMemberRoles();
-							}}>
+							<form
+								action={async () => {
+									"use server";
+									await syncDiscordMemberRoles();
+								}}
+							>
 								<button
 									type="submit"
 									className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
@@ -52,9 +57,12 @@ export default async function DiscordPage() {
 						</div>
 					) : (
 						<div>
-							<h2 className="text-xl font-semibold">Not linked</h2>
+							<h2 className="text-xl font-semibold">
+								Not linked
+							</h2>
 							<p className="mt-1 text-sm text-muted-foreground">
-								Use the verification button in Discord to generate a secure link.
+								Use the verification button in Discord to
+								generate a secure link.
 							</p>
 						</div>
 					)}

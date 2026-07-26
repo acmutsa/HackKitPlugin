@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { getPageGuards } from "@/lib/runtime";
+import { requireOnboardingAccess } from "@/lib/hackkit-server";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,6 @@ export default async function OnboardingLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const guards = await getPageGuards();
-	await guards.requireOnboardingAccess();
+	await requireOnboardingAccess();
 	return children;
 }

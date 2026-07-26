@@ -1,173 +1,301 @@
 "use server";
 
-import type { HackKitUIActions } from "@hackkit/ui";
-import { getRuntime } from "@/lib/runtime";
+import { CoreSetting } from "@hackkit/core";
+import { actionFailure, actionSuccess } from "@hackkit/ui/actions";
+import {
+	type HackKitUIActions,
+	resolveEventPassTargetAuthId,
+} from "@hackkit/ui";
+import { auth } from "@/lib/auth";
+import { getHackkitSetting, hackkitHeaders } from "@/lib/hackkit-server";
 
-/**
- * App-owned Server Action boundary.
- *
- * A Server Action request can execute without evaluating a page or layout
- * module first, so each action resolves the app runtime explicitly before
- * delegating to the canonical mutations from @hackkit/next.
- */
-async function callMutation<K extends keyof HackKitUIActions>(
-	name: K,
-	...args: Parameters<HackKitUIActions[K]>
-): Promise<Awaited<ReturnType<HackKitUIActions[K]>>> {
-	const mutations = (await getRuntime()).mutations;
-	return (
-		mutations[name] as (
-			...actionArgs: typeof args
-		) => ReturnType<HackKitUIActions[K]>
-	)(...args) as Awaited<ReturnType<HackKitUIActions[K]>>;
+type ActionName = keyof HackKitUIActions;
+type Args<K extends ActionName> = Parameters<HackKitUIActions[K]>;
+
+async function perform<T>(operation: () => Promise<T>, fallback: string) {
+	try {
+		return actionSuccess(await operation());
+	} catch (error) {
+		return actionFailure(error, fallback);
+	}
 }
 
-export async function completeUserData(
-	...args: Parameters<HackKitUIActions["completeUserData"]>
-) {
-	return callMutation("completeUserData", ...args);
+function eventBody(values: Args<"createEvent">[0]) {
+	return {
+		title: values.title,
+		description: values.description,
+		startTime: new Date(values.startTime),
+		endTime: new Date(values.endTime),
+		location: values.location,
+		type: values.type,
+		host: values.host.trim() || undefined,
+		hidden: values.hidden,
+	};
 }
 
-export async function claimHackTag(
-	...args: Parameters<HackKitUIActions["claimHackTag"]>
-) {
-	return callMutation("claimHackTag", ...args);
+async function scanTarget(rawQr: string) {
+	const ttl = Number(await getHackkitSetting(CoreSetting.EventPassQrTtlMs));
+	return resolveEventPassTargetAuthId(rawQr, new Date(), ttl);
+}
+
+export async function completeUserData(...[values]: Args<"completeUserData">) {
+	return perform(async () => {
+		await auth.api.completeHackkitUserData({
+			headers: await hackkitHeaders(),
+			body: values,
+		});
+	}, "Could not save user data.");
+}
+
+export async function claimHackTag(...[values]: Args<"claimHackTag">) {
+	return perform(async () => {
+		await auth.api.claimHackkitTag({
+			headers: await hackkitHeaders(),
+			body: values,
+		});
+	}, "Could not claim HackTag.");
 }
 
 export async function updateUserProfile(
-	...args: Parameters<HackKitUIActions["updateUserProfile"]>
+	...[values]: Args<"updateUserProfile">
 ) {
-	return callMutation("updateUserProfile", ...args);
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.updateHackkitProfile({ headers, body: values }),
+			),
+		"Could not update profile.",
+	);
 }
 
-export async function registerHacker(
-	...args: Parameters<HackKitUIActions["registerHacker"]>
-) {
-	return callMutation("registerHacker", ...args);
+async function withHeaders<T>(operation: (headers: Headers) => Promise<T>) {
+	return operation(await hackkitHeaders());
 }
 
-export async function createEvent(
-	...args: Parameters<HackKitUIActions["createEvent"]>
-) {
-	return callMutation("createEvent", ...args);
+export async function registerHacker(...[values]: Args<"registerHacker">) {
+	return perform(async () => {
+		await auth.api.registerHackkitHacker({
+			headers: await hackkitHeaders(),
+			body: values,
+		});
+	}, "Could not complete hacker registration.");
 }
 
-export async function updateEvent(
-	...args: Parameters<HackKitUIActions["updateEvent"]>
-) {
-	return callMutation("updateEvent", ...args);
+export async function createEvent(...[values]: Args<"createEvent">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.createHackkitEvent({
+					headers,
+					body: eventBody(values),
+				}),
+			),
+		"Could not create event.",
+	);
 }
 
-export async function deleteEvent(
-	...args: Parameters<HackKitUIActions["deleteEvent"]>
-) {
-	return callMutation("deleteEvent", ...args);
+export async function updateEvent(...[eventId, values]: Args<"updateEvent">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.updateHackkitEvent({
+					headers,
+					body: { eventId, ...eventBody(values) },
+				}),
+			),
+		"Could not update event.",
+	);
+}
+
+export async function deleteEvent(...[eventId]: Args<"deleteEvent">) {
+	return perform(async () => {
+		await auth.api.deleteHackkitEvent({
+			headers: await hackkitHeaders(),
+			body: { eventId },
+		});
+	}, "Could not delete event.");
 }
 
 export async function previewEventPassQr(
-	...args: Parameters<HackKitUIActions["previewEventPassQr"]>
+	...[input]: Args<"previewEventPassQr">
 ) {
-	return callMutation("previewEventPassQr", ...args);
+	return perform(async () => {
+		const targetAuthId = await scanTarget(input.rawQr);
+		return auth.api.previewHackkitScan({
+			headers: await hackkitHeaders(),
+			body: { eventId: input.eventId, targetAuthId },
+		});
+	}, "Could not read Event Pass QR code.");
 }
 
-export async function recordEventScan(
-	...args: Parameters<HackKitUIActions["recordEventScan"]>
-) {
-	return callMutation("recordEventScan", ...args);
+export async function recordEventScan(...[input]: Args<"recordEventScan">) {
+	return perform(async () => {
+		const targetAuthId = await scanTarget(input.rawQr);
+		return auth.api.recordHackkitEventScan({
+			headers: await hackkitHeaders(),
+			body: { eventId: input.eventId, targetAuthId },
+		});
+	}, "Could not record scan.");
 }
 
-export async function checkInUser(
-	...args: Parameters<HackKitUIActions["checkInUser"]>
-) {
-	return callMutation("checkInUser", ...args);
+export async function checkInUser(...[input]: Args<"checkInUser">) {
+	return perform(async () => {
+		const targetAuthId = await scanTarget(input.rawQr);
+		return auth.api.checkInHackkitUser({
+			headers: await hackkitHeaders(),
+			body: { targetAuthId },
+		});
+	}, "Could not check in participant.");
 }
 
-export async function clearCheckIn(
-	...args: Parameters<HackKitUIActions["clearCheckIn"]>
-) {
-	return callMutation("clearCheckIn", ...args);
+export async function clearCheckIn(...[targetAuthId]: Args<"clearCheckIn">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.clearHackkitUserCheckIn({
+					headers,
+					body: { targetAuthId },
+				}),
+			),
+		"Could not clear check-in.",
+	);
 }
 
-export async function confirmRsvp(
-	...args: Parameters<HackKitUIActions["confirmRsvp"]>
-) {
-	return callMutation("confirmRsvp", ...args);
+export async function confirmRsvp(..._args: Args<"confirmRsvp">) {
+	return perform(
+		() =>
+			withHeaders((headers) => auth.api.confirmHackkitRsvp({ headers })),
+		"Could not confirm RSVP.",
+	);
 }
 
-export async function cancelRsvp(
-	...args: Parameters<HackKitUIActions["cancelRsvp"]>
-) {
-	return callMutation("cancelRsvp", ...args);
+export async function cancelRsvp(...[targetAuthId]: Args<"cancelRsvp">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.cancelHackkitRsvp({ headers, body: { targetAuthId } }),
+			),
+		"Could not cancel RSVP.",
+	);
 }
 
-export async function setRsvpStatus(
-	...args: Parameters<HackKitUIActions["setRsvpStatus"]>
-) {
-	return callMutation("setRsvpStatus", ...args);
+export async function setRsvpStatus(...[input]: Args<"setRsvpStatus">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.setHackkitRsvpStatus({ headers, body: input }),
+			),
+		"Could not update RSVP.",
+	);
 }
 
-export async function promoteRsvp(
-	...args: Parameters<HackKitUIActions["promoteRsvp"]>
-) {
-	return callMutation("promoteRsvp", ...args);
+export async function promoteRsvp(...[targetAuthId]: Args<"promoteRsvp">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.promoteHackkitRsvp({
+					headers,
+					body: { targetAuthId },
+				}),
+			),
+		"Could not promote RSVP.",
+	);
 }
 
-export async function approveUser(
-	...args: Parameters<HackKitUIActions["approveUser"]>
-) {
-	return callMutation("approveUser", ...args);
+export async function approveUser(...[input]: Args<"approveUser">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.approveHackkitUser({ headers, body: input }),
+			),
+		"Could not update approval.",
+	);
 }
 
-export async function banUser(
-	...args: Parameters<HackKitUIActions["banUser"]>
-) {
-	return callMutation("banUser", ...args);
+export async function banUser(...[input]: Args<"banUser">) {
+	return perform(async () => {
+		await auth.api.banHackkitUser({
+			headers: await hackkitHeaders(),
+			body: input,
+		});
+	}, "Could not suspend user.");
 }
 
-export async function unbanUser(
-	...args: Parameters<HackKitUIActions["unbanUser"]>
-) {
-	return callMutation("unbanUser", ...args);
+export async function unbanUser(...[targetAuthId]: Args<"unbanUser">) {
+	return perform(async () => {
+		await auth.api.unbanHackkitUser({
+			headers: await hackkitHeaders(),
+			body: { targetAuthId },
+		});
+	}, "Could not reinstate user.");
 }
 
-export async function assignRoleToUser(
-	...args: Parameters<HackKitUIActions["assignRoleToUser"]>
-) {
-	return callMutation("assignRoleToUser", ...args);
+export async function assignRoleToUser(...[input]: Args<"assignRoleToUser">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.assignHackkitRole({ headers, body: input }),
+			),
+		"Could not assign role.",
+	);
 }
 
-export async function createRole(
-	...args: Parameters<HackKitUIActions["createRole"]>
-) {
-	return callMutation("createRole", ...args);
+export async function createRole(...[input]: Args<"createRole">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.createHackkitRole({ headers, body: input }),
+			),
+		"Could not create role.",
+	);
 }
 
-export async function updateRole(
-	...args: Parameters<HackKitUIActions["updateRole"]>
-) {
-	return callMutation("updateRole", ...args);
+export async function updateRole(...[input]: Args<"updateRole">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.updateHackkitRole({ headers, body: input }),
+			),
+		"Could not update role.",
+	);
 }
 
-export async function deleteRole(
-	...args: Parameters<HackKitUIActions["deleteRole"]>
-) {
-	return callMutation("deleteRole", ...args);
+export async function deleteRole(...[roleId]: Args<"deleteRole">) {
+	return perform(async () => {
+		await auth.api.deleteHackkitRole({
+			headers: await hackkitHeaders(),
+			body: { roleId },
+		});
+	}, "Could not delete role.");
 }
 
-export async function listSettings(
-	...args: Parameters<HackKitUIActions["listSettings"]>
-) {
-	return callMutation("listSettings", ...args);
+export async function listSettings(..._args: Args<"listSettings">) {
+	return perform(
+		() =>
+			withHeaders((headers) => auth.api.listHackkitSettings({ headers })),
+		"Could not load settings.",
+	);
 }
 
-export async function setSettings(
-	...args: Parameters<HackKitUIActions["setSettings"]>
-) {
-	return callMutation("setSettings", ...args);
+export async function setSettings(...[values]: Args<"setSettings">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.setManyHackkitSettings({
+					headers,
+					body: { values: [...values] },
+				}),
+			),
+		"Could not save settings.",
+	);
 }
 
-export async function resetSetting(
-	...args: Parameters<HackKitUIActions["resetSetting"]>
-) {
-	return callMutation("resetSetting", ...args);
+export async function resetSetting(...[key]: Args<"resetSetting">) {
+	return perform(
+		() =>
+			withHeaders((headers) =>
+				auth.api.resetHackkitSetting({ headers, body: { key } }),
+			),
+		"Could not reset setting.",
+	);
 }

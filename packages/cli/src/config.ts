@@ -8,6 +8,5 @@ export type {
 	HackkitBlobLocalConfig,
 	HackkitBlobS3Config,
 	HackkitConfig,
-	HackkitSeedRole,
 	NormalizedHackkitConfig,
 } from "@hackkit/config";

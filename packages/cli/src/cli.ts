@@ -11,47 +11,13 @@ const program = new Command()
 		"hackkit.config.ts",
 	);
 
-const db = program
-	.command("db")
-	.description("Manage HackKit database resources");
-
-db.command("seed")
-	.description("Add configured seed roles to the database")
-	.option("-c, --config <path>", "path to HackKit config")
-	.action(async (commandOptions: { config?: string }) => {
-		const globalOptions = program.opts<{ config: string }>();
-		const config = await loadConfig(
-			commandOptions.config ?? globalOptions.config,
-		);
-		const { runDbSeed } = await import("./db-seed");
-		await runDbSeed(config);
-	});
-
-db.command("schema")
-	.description("Manage the native HackKit database schema")
-	.command("generate")
-	.description("Generate the configured adapter's native HackKit schema")
-	.option("-c, --config <path>", "path to HackKit config")
-	.option("-o, --output <path>", "schema output path")
-	.action(async (commandOptions: { config?: string; output?: string }) => {
-		const globalOptions = program.opts<{ config: string }>();
-		const config = await loadConfig(
-			commandOptions.config ?? globalOptions.config,
-		);
-		const { runDbSchemaGenerate } = await import("./db-schema");
-		await runDbSchemaGenerate(config, {
-			projectRoot: process.cwd(),
-			output: commandOptions.output,
-		});
-	});
-
 const plugins = program
 	.command("plugin")
 	.description("Manage HackKit plugins in this web app");
 
 plugins
 	.command("sync")
-	.description("Sync plugin routes, actions, and lockfile")
+	.description("Sync plugin routes and lockfile")
 	.option("-c, --config <path>", "path to HackKit config")
 	.action(async (commandOptions: { config?: string }) => {
 		const globalOptions = program.opts<{ config: string }>();

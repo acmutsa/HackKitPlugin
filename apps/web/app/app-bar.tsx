@@ -1,22 +1,24 @@
 import Link from "next/link";
 import { CorePermission } from "@hackkit/core";
 import { getAuthSession } from "@/lib/auth";
-import { getCurrentUser, getRuntime } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
+import { getCurrentHackkitUser, hackkitHeaders } from "@/lib/hackkit-server";
 import { publicSiteConfig } from "@/lib/public-site-config";
 import { ProfileMenu } from "./profile-menu";
 
-async function getIsAdmin(authId: string) {
-	const runtime = await getRuntime();
-	return runtime.hackkit.accessControl.hasPermission(
-		authId,
-		CorePermission.Admin,
-	);
+async function getIsAdmin() {
+	return (
+		await auth.api.checkHackkitPermission({
+			headers: await hackkitHeaders(),
+			body: { permission: CorePermission.Admin },
+		})
+	).allowed;
 }
 
 export async function AppBar() {
 	const session = await getAuthSession();
-	const currentUser = session ? await getCurrentUser() : null;
-	const isAdmin = currentUser ? await getIsAdmin(currentUser.authId) : false;
+	const currentUser = session ? await getCurrentHackkitUser() : null;
+	const isAdmin = currentUser ? await getIsAdmin() : false;
 
 	return (
 		<header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -41,7 +43,10 @@ export async function AppBar() {
 						<ProfileMenu
 							name={session.user.name}
 							email={session.user.email}
-							image={currentUser?.profilePhotoUrl ?? session.user.image}
+							image={
+								currentUser?.profilePhotoUrl ??
+								session.user.image
+							}
 							isAdmin={isAdmin}
 						/>
 					</nav>
@@ -56,7 +61,10 @@ export async function AppBar() {
 								{item.label}
 							</Link>
 						))}
-						<Link href="/sign-in" className="text-muted-foreground hover:text-foreground">
+						<Link
+							href="/sign-in"
+							className="text-muted-foreground hover:text-foreground"
+						>
 							Sign in
 						</Link>
 						<Link

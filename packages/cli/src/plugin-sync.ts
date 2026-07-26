@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import type { HackKitPlugin } from "@hackkit/core";
 import {
@@ -50,7 +56,6 @@ export type PluginSyncOptions = {
 export type PluginSyncResult = {
 	lockfile: HackkitLockfile;
 	routesWritten: number;
-	actionsWritten: number;
 	stubsRemoved: number;
 };
 
@@ -67,54 +72,6 @@ function renderRouteStub(
 		lines.push(`export { default } from "${route.source}";`);
 	}
 	lines.push("");
-	return lines.join("\n");
-}
-
-function renderPluginActionsFile(
-	plugins: readonly {
-		id: string;
-		packageName: string;
-		actionFactory?: string;
-		actionNames?: readonly string[];
-	}[],
-): string {
-	const lines = [
-		'"use server";',
-		"",
-		GENERATED_HEADER,
-		"",
-		'import { getRuntime } from "@/lib/runtime";',
-	];
-
-	for (const plugin of plugins) {
-		if (!plugin.actionFactory || !plugin.actionNames?.length) continue;
-		lines.push(
-			`import { ${plugin.actionFactory} } from "${plugin.packageName}";`,
-		);
-	}
-
-	lines.push("");
-
-	for (const plugin of plugins) {
-		if (!plugin.actionFactory || !plugin.actionNames?.length) continue;
-		const factoryVar = `${plugin.id}ActionsPromise`;
-		lines.push(
-			`const ${factoryVar} = getRuntime().then((runtime) =>`,
-			`	${plugin.actionFactory}(runtime),`,
-			`);`,
-			"",
-		);
-		for (const actionName of plugin.actionNames) {
-			lines.push(
-				`export async function ${actionName}(...args: Parameters<Awaited<ReturnType<typeof ${plugin.actionFactory}>>["${actionName}"]>) {`,
-				`	const actions = await ${factoryVar};`,
-				`	return actions.${actionName}(...args);`,
-				`}`,
-				"",
-			);
-		}
-	}
-
 	return lines.join("\n");
 }
 
@@ -171,8 +128,10 @@ export async function runPluginSync(
 			id: resolved.plugin.id,
 			package: resolved.packageName,
 			version: resolved.version,
-			routes: resolved.routes.map(({ host, source }) => ({ host, source })),
-			actions: [...(resolved.plugin.actionNames ?? [])],
+			routes: resolved.routes.map(({ host, source }) => ({
+				host,
+				source,
+			})),
 		})),
 	};
 
@@ -188,10 +147,7 @@ export async function runPluginSync(
 		for (const route of resolved.routes) {
 			const hostPath = join(projectRoot, route.host);
 			nextStubPaths.add(normalizeAppPath(route.host));
-			writeGeneratedFile(
-				hostPath,
-				renderRouteStub(lockPlugin, route),
-			);
+			writeGeneratedFile(hostPath, renderRouteStub(lockPlugin, route));
 			routesWritten += 1;
 		}
 	}
@@ -210,26 +166,11 @@ export async function runPluginSync(
 		}
 	}
 
-	const actionsPath = join(projectRoot, "app/hackkit-plugin-actions.ts");
-	const actionsContent = renderPluginActionsFile(
-		resolvedPlugins.map((resolved) => ({
-			id: resolved.plugin.id,
-			packageName: resolved.packageName,
-			actionFactory: resolved.plugin.actionFactory,
-			actionNames: resolved.plugin.actionNames,
-		})),
-	);
-	writeGeneratedFile(actionsPath, actionsContent);
-
 	writeFileSync(lockfilePath, serializeLockfile(nextLockfile), "utf8");
 
 	return {
 		lockfile: nextLockfile,
 		routesWritten,
-		actionsWritten: resolvedPlugins.reduce(
-			(total, plugin) => total + (plugin.plugin.actionNames?.length ?? 0),
-			0,
-		),
 		stubsRemoved,
 	};
 }

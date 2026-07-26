@@ -1,12 +1,12 @@
 import { HackTagForm } from "@hackkit/ui";
-import { getCurrentUser } from "@/lib/runtime";
+import { getCurrentHackkitUser } from "@/lib/hackkit-server";
 import { getOnboardingSteps } from "@/lib/onboarding";
 import { OnboardingShell } from "../onboarding-shell";
 
 export const dynamic = "force-dynamic";
 
 export default async function HackTagOnboardingPage() {
-	const currentUser = await getCurrentUser();
+	const currentUser = await getCurrentHackkitUser();
 	const steps = await getOnboardingSteps("/onboarding/hacktag");
 
 	return (

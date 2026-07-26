@@ -1,127 +1,134 @@
-import { createInMemoryDatabaseAdapter, type User } from "@hackkit/core";
 import { betterAuth } from "better-auth";
 import { getTestInstance } from "better-auth/test";
+import { defineModel, field, type HackKitPlugin } from "@hackkit/core";
+import { teamsPlugin } from "@hackkit/plugin-teams";
 import { describe, expect, it } from "vitest";
-import { bindHackkitCallIdentity, hackkit } from "../index";
+import { hackkitClient } from "../client";
+import { hackkit } from "../index";
 
-describe("hackkit Better Auth plugin", () => {
-	it("installs the complete HackKit runtime into Better Auth context", async () => {
-		const plugin = hackkit({
-			database: createInMemoryDatabaseAdapter(),
+describe("native HackKit Better Auth plugin", () => {
+	it("contributes HackKit fields and models to Better Auth's schema", () => {
+		const plugin = hackkit();
+
+		expect(plugin.schema.user?.fields).toMatchObject({
+			firstName: { type: "string", required: false },
+			hackTag: { type: "string", unique: true },
+			isApproved: { type: "boolean", required: true },
 		});
+		expect(plugin.schema.coreEvent?.fields).toMatchObject({
+			title: { type: "string", required: true },
+			hidden: { type: "boolean", required: true },
+		});
+		expect(plugin.schema.coreEvent?.fields.id).toBeUndefined();
+	});
 
-		expect(plugin.id).toBe("hackkit");
-		expect(plugin.endpoints.getHackkitCurrentUser.path).toBe(
-			"/hackkit/current-user",
-		);
-		expect("schema" in plugin).toBe(false);
-
+	it("exposes explicit endpoints instead of a generic RPC or runtime context", async () => {
+		const plugin = hackkit();
 		const auth = betterAuth({
 			baseURL: "http://localhost:3000",
 			secret: "hackkit-plugin-test-secret-at-least-32-chars",
 			plugins: [plugin],
 		});
-		const context = await auth.$context;
 
-		expect(auth.api.getHackkitCurrentUser).toBeTypeOf("function");
-		expect(auth.api.callHackkit).toBeTypeOf("function");
-		expect(context.hackkit.api.events.listEvents).toBeTypeOf("function");
-		expect(
-			Object.keys(context.hackkit.api.registry.storage.models),
-		).toEqual(expect.arrayContaining(["user", "role", "event"]));
-
-		const events = await auth.api.callPublicHackkit({
-			body: { path: "events.listEvents", args: [] },
-		});
-		expect(events).toEqual({ data: [] });
-		await expect(
-			auth.api.callPublicHackkit({
-				body: { path: "settings.set", args: [] },
-			}),
-		).rejects.toThrow("requires authentication");
+		expect(auth.api.getHackkitMe).toBeTypeOf("function");
+		expect(auth.api.claimHackkitTag).toBeTypeOf("function");
+		expect(auth.api.listHackkitEvents).toBeTypeOf("function");
+		expect("createHackkitTeam" in auth.api).toBe(false);
+		expect("callHackkit" in auth.api).toBe(false);
+		expect("hackkit" in (await auth.$context)).toBe(false);
 	});
 
-	it("binds authenticated calls to the session identity", () => {
-		expect(
-			bindHackkitCallIdentity(
-				"events.createEvent",
-				[{ actorAuthId: "spoofed", title: "Opening" }],
-				"session-user",
-			),
-		).toEqual([
-			{
-				actorAuthId: "session-user",
-				authId: "session-user",
-				title: "Opening",
-			},
-		]);
-		expect(
-			bindHackkitCallIdentity(
-				"hackers.getHacker",
-				["spoofed"],
-				"session-user",
-			),
-		).toEqual(["session-user"]);
-		expect(
-			bindHackkitCallIdentity(
-				"admin.listRoles",
-				["spoofed-admin"],
-				"session-user",
-			),
-		).toEqual(["session-user"]);
-	});
-
-	it("executes authenticated domain calls through the Better Auth session", async () => {
-		const plugin = hackkit({
-			database: createInMemoryDatabaseAdapter(),
-		});
+	it("stores HackKit profile state on the Better Auth user", async () => {
 		const { auth, signInWithTestUser } = await getTestInstance({
-			plugins: [plugin],
+			plugins: [hackkit()],
 		});
 		const { headers, user } = await signInWithTestUser();
 
-		const result = await auth.api.callHackkit({
+		await auth.api.claimHackkitTag({
 			headers,
-			body: { path: "users.getUser", args: ["spoofed-user"] },
+			body: { hackTag: "native-plugin" },
 		});
+		const profile = await auth.api.getHackkitMe({ headers });
 
-		expect(result.data).toMatchObject({
+		expect(profile).toMatchObject({
 			authId: user.id,
 			email: user.email,
+			hackTag: "native-plugin",
+			skills: [],
 		});
 	});
 
-	it("resolves the current HackKit user from a Better Auth user", async () => {
-		const plugin = hackkit({
-			database: createInMemoryDatabaseAdapter(),
-			clock: () => new Date("2026-07-25T12:00:00.000Z"),
+	it("serves public domain reads through named endpoints", async () => {
+		const { auth } = await getTestInstance({ plugins: [hackkit()] });
+
+		await expect(auth.api.listHackkitEvents()).resolves.toEqual([]);
+	});
+
+	it("keeps Better Auth name synchronized across partial profile updates", async () => {
+		const { auth, signInWithTestUser } = await getTestInstance({
+			plugins: [hackkit()],
+		});
+		const { headers } = await signInWithTestUser();
+		const before = await auth.api.getHackkitMe({ headers });
+
+		await auth.api.updateHackkitProfile({
+			headers,
+			body: { firstName: "Ada" },
 		});
 
-		const auth = betterAuth({
-			baseURL: "http://localhost:3000",
-			secret: "hackkit-plugin-test-secret-at-least-32-chars",
+		const [profile, session] = await Promise.all([
+			auth.api.getHackkitMe({ headers }),
+			auth.api.getSession({ headers }),
+		]);
+		expect(profile.lastName).toBe(before.lastName);
+		expect(session?.user.name).toBe(`Ada ${before.lastName}`);
+	});
+
+	it("folds installed HackKit extensions into Better Auth schema and endpoints", async () => {
+		const plugin = hackkit({ plugins: [teamsPlugin()] });
+
+		expect(plugin.schema.teamsTeam).toBeDefined();
+		expect(plugin.endpoints.createHackkitTeam).toBeDefined();
+		expect(plugin.endpoints.listPendingHackkitTeamInvites).toBeDefined();
+
+		const { auth, signInWithTestUser } = await getTestInstance({
 			plugins: [plugin],
 		});
-		const context = await auth.$context;
+		const { headers } = await signInWithTestUser();
+		await expect(
+			auth.api.listPendingHackkitTeamInvites({ headers }),
+		).resolves.toEqual([]);
+	});
 
-		const user = await context.hackkit.getCurrentUser({
-			id: "auth-user-1",
-			email: "josh@example.com",
-			name: "Josh Silva",
-			image: "https://example.com/josh.png",
-		});
+	it("provides an inference companion for createAuthClient", () => {
+		const clientPlugin = hackkitClient();
 
-		expect(user).toEqual<User>({
-			authId: "auth-user-1",
-			email: "josh@example.com",
-			firstName: "Josh",
-			lastName: "Silva",
-			profilePhotoUrl: "https://example.com/josh.png",
-			skills: [],
-			isProfileSearchable: true,
-			isApproved: false,
-			createdAt: new Date("2026-07-25T12:00:00.000Z"),
-			updatedAt: new Date("2026-07-25T12:00:00.000Z"),
-		});
+		expect(clientPlugin.id).toBe("hackkit");
+		expect(clientPlugin.$InferServerPlugin).toBeDefined();
+	});
+
+	it("rejects model keys that collide after Better Auth name conversion", () => {
+		const plugins: HackKitPlugin[] = [
+			{
+				id: "foo",
+				models: {
+					first: defineModel("foo.barBaz", {
+						fields: { id: field.string().primaryKey() },
+					}),
+				},
+			},
+			{
+				id: "fooBar",
+				models: {
+					second: defineModel("fooBar.baz", {
+						fields: { id: field.string().primaryKey() },
+					}),
+				},
+			},
+		];
+
+		expect(() => hackkit({ plugins })).toThrow(
+			/both map to Better Auth model/,
+		);
 	});
 });

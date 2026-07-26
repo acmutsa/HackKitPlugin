@@ -2,7 +2,6 @@ import type { DatabaseAdapter } from "../database";
 import type { HackKit } from "../hackkit";
 import { coreModels } from "../models";
 import { CorePermission } from "../permissions";
-import { seedRoles } from "../seed";
 
 export type TestHackkit = HackKit & {
 	database: DatabaseAdapter;
@@ -12,16 +11,11 @@ export async function seedTestOwner(
 	hackkit: TestHackkit,
 	authId = "owner-auth",
 ) {
-	await seedRoles({
-		database: hackkit.database,
-		roles: [
-			{
-				id: "core.owner",
-				name: "Owner",
-				position: 0,
-				permissions: [CorePermission.SuperAdmin],
-			},
-		],
+	await hackkit.database.insert(coreModels.role, {
+		id: "core.owner",
+		name: "Owner",
+		position: 0,
+		permissions: [CorePermission.SuperAdmin],
 	});
 	await hackkit.users.ensureUser({
 		authId,

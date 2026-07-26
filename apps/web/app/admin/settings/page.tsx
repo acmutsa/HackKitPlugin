@@ -1,14 +1,15 @@
 import { CorePermission } from "@hackkit/core";
 import { HackathonSettingsForm } from "@hackkit/ui";
-import { getPageGuards, getRuntime } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders, requireHackkitPermission } from "@/lib/hackkit-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
-	const guards = await getPageGuards();
-	const principal = await guards.requirePermission(CorePermission.SettingsManage);
-	const { hackkit } = await getRuntime();
-	const settings = await hackkit.settings.list({ actorAuthId: principal.user.authId });
+	await requireHackkitPermission(CorePermission.SettingsManage);
+	const settings = await auth.api.listHackkitSettings({
+		headers: await hackkitHeaders(),
+	});
 
 	return (
 		<main className="mx-auto max-w-4xl space-y-6 px-6 py-10">

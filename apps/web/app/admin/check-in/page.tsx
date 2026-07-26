@@ -1,13 +1,12 @@
 import { CheckInScanner } from "@hackkit/ui";
 import { CorePermission } from "@hackkit/core";
 import Link from "next/link";
-import { getPageGuards } from "@/lib/runtime";
+import { requireHackkitPermission } from "@/lib/hackkit-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function CheckInPage() {
-	const pageGuards = await getPageGuards();
-	await pageGuards.requirePermission(CorePermission.UsersCheckIn);
+	await requireHackkitPermission(CorePermission.UsersCheckIn);
 
 	return (
 		<main className="min-h-screen px-6 py-10">

@@ -1,21 +1,22 @@
 import { UserDataForm, toUserDataFormDefaultValues } from "@hackkit/ui";
 import { redirect } from "next/navigation";
-import { getCurrentUser, getHackkit } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
+import { getCurrentHackkitUser, hackkitHeaders } from "@/lib/hackkit-server";
 import { getOnboardingSteps } from "@/lib/onboarding";
 import { OnboardingShell } from "../onboarding-shell";
 
 export const dynamic = "force-dynamic";
 
 export default async function UserDataOnboardingPage() {
-	const currentUser = await getCurrentUser();
+	const currentUser = await getCurrentHackkitUser();
 	if (!currentUser.hackTag) {
 		redirect("/onboarding/hacktag");
 	}
 
-	const hackkit = await getHackkit();
-	const existingUserData = await hackkit.userData.getUserData(
-		currentUser.authId,
-	);
+	const [existingUserData, options] = await Promise.all([
+		auth.api.getHackkitUserData({ headers: await hackkitHeaders() }),
+		auth.api.getHackkitOptions(),
+	]);
 	const steps = await getOnboardingSteps("/onboarding/user-data");
 
 	return (
@@ -26,7 +27,7 @@ export default async function UserDataOnboardingPage() {
 		>
 			<UserDataForm
 				currentUser={currentUser}
-				userDataOptions={hackkit.userData.options}
+				userDataOptions={options.userDataOptions}
 				defaultValues={
 					existingUserData
 						? toUserDataFormDefaultValues(existingUserData)

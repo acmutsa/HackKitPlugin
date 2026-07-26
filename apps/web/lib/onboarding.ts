@@ -7,16 +7,20 @@ import {
 } from "@hackkit/ui";
 import { CoreSetting } from "@hackkit/core";
 import { hackKitUIRoutes } from "./hackkit-ui-routes";
-import { getCurrentUser, getHackkit, getRuntime } from "./runtime";
+import { auth } from "./auth";
+import {
+	getCurrentHackkitUser,
+	getHackkitSetting,
+	hackkitHeaders,
+} from "./hackkit-server";
 
 async function loadCompetitorOnboardingInput(currentPath: string) {
-	const user = await getCurrentUser();
-	const hackkit = await getHackkit();
-	const runtime = await getRuntime();
+	const user = await getCurrentHackkitUser();
+	const requestHeaders = await hackkitHeaders();
 	const [userData, hacker, requireApproval] = await Promise.all([
-		hackkit.userData.getUserData(user.authId),
-		hackkit.hackers.getHacker(user.authId),
-		runtime.getSettingValue(CoreSetting.RequireApproval),
+		auth.api.getHackkitUserData({ headers: requestHeaders }),
+		auth.api.getHackkitHacker({ headers: requestHeaders }),
+		getHackkitSetting(CoreSetting.RequireApproval),
 	]);
 	return {
 		user,
@@ -48,5 +52,5 @@ export async function getCompetitorOnboardingState(currentPath: string) {
 }
 
 export async function getRequireApproval(): Promise<boolean> {
-	return Boolean(await (await getRuntime()).getSettingValue(CoreSetting.RequireApproval));
+	return Boolean(await getHackkitSetting(CoreSetting.RequireApproval));
 }

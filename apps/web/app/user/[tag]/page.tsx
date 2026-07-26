@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { PublicProfileCard } from "@hackkit/ui";
-import { getHackkit } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,9 @@ export default async function PublicUserProfilePage({
 	params: { tag: string };
 }) {
 	const tag = decodeURIComponent(params.tag);
-	const profile = await (await getHackkit()).users.getPublicProfileByHackTag(tag);
+	const profile = await auth.api.getHackkitPublicProfile({
+		body: { hackTag: tag },
+	});
 	if (!profile) notFound();
 
 	return (

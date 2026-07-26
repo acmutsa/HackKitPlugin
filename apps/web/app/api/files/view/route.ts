@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { CorePermission } from "@hackkit/core";
 import { getAuthSession } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import {
 	getBlobStorage,
 	isLocalBlobStorage,
 	isS3BlobStorage,
 } from "@/lib/blob";
-import { getRuntime } from "@/lib/runtime";
+import { hackkitHeaders } from "@/lib/hackkit-server";
 
 function storedFileReferenceForKey(key: string): string {
 	return `/api/files/view?key=${encodeURIComponent(key)}`;
@@ -18,15 +19,16 @@ async function canViewFile(key: string): Promise<boolean> {
 	const session = await getAuthSession();
 	if (!session) return false;
 
-	const runtime = await getRuntime();
-	const currentUser = await runtime.getCurrentUser();
-	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.authId);
+	const requestHeaders = await hackkitHeaders();
+	const hacker = await auth.api.getHackkitHacker({ headers: requestHeaders });
 	if (hacker?.resumeUrl === storedFileReferenceForKey(key)) return true;
 
-	return runtime.hackkit.accessControl.hasPermission(
-		currentUser.authId,
-		CorePermission.HackersView,
-	);
+	return (
+		await auth.api.checkHackkitPermission({
+			headers: requestHeaders,
+			body: { permission: CorePermission.HackersView },
+		})
+	).allowed;
 }
 
 export async function GET(request: Request): Promise<NextResponse> {

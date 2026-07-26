@@ -5,18 +5,13 @@ import { teamsModels } from "./models";
 import { TeamsPermission } from "./permissions";
 import { TeamsSetting } from "./settings";
 
-export function teamsPlugin(): HackKitPlugin<"teams", ReturnType<typeof createTeamsApi>> {
+export function teamsPlugin(): HackKitPlugin<
+	"teams",
+	ReturnType<typeof createTeamsApi>
+> {
 	return {
 		id: "teams",
 		packageName: "@hackkit/plugin-teams",
-		actionFactory: "createTeamsActions",
-		actionNames: [
-			"createTeam",
-			"inviteToTeam",
-			"respondToInvite",
-			"leaveTeam",
-			"removeMember",
-		],
 		models: teamsModels,
 		settings: [
 			defineSetting({
@@ -27,7 +22,8 @@ export function teamsPlugin(): HackKitPlugin<"teams", ReturnType<typeof createTe
 				min: 0,
 				unit: "members",
 				label: "Maximum team size",
-				description: "Maximum number of members allowed on one team. 0 means unlimited.",
+				description:
+					"Maximum number of members allowed on one team. 0 means unlimited.",
 				category: "Teams",
 			}),
 		],
@@ -41,7 +37,6 @@ export function teamsPlugin(): HackKitPlugin<"teams", ReturnType<typeof createTe
 	};
 }
 
-export { createTeamsActions } from "./actions";
 export { createTeamsApi } from "./api";
 export { teamsModels } from "./models";
 export { TeamsPermission } from "./permissions";
@@ -53,4 +48,10 @@ export type {
 	PendingTeamInvite,
 	TeamInviteWithInvitee,
 } from "./api";
-export type { TeamsActions } from "./actions";
+export type {
+	CreateTeamInput,
+	InviteToTeamInput,
+	RemoveMemberInput,
+	RespondToInviteInput,
+	TeamsActions,
+} from "./actions";

@@ -24,7 +24,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hackkit/core": "workspace:*"
+    "@hackkit/core": "workspace:*",
+    "@hackkit/plugin-discord": "workspace:*",
+    "@hackkit/plugin-notifications-email": "workspace:*",
+    "@hackkit/plugin-teams": "workspace:*"
   },
   "peerDependencies": {
     "better-auth": ">=1.6"

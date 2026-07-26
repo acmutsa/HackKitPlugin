@@ -40,17 +40,15 @@ OAuth, email delivery, S3 storage, Turso, and Discord bot role sync are optional
 
 ### 4. Generate app-owned files and apply migrations
 
-Sync plugin-owned project files, apply the committed migration chain, then add the roles declared in `hackkit.config.ts`:
+Sync plugin-owned routes, regenerate the unified Better Auth schema when plugin storage changes, and apply the committed migration chain:
 
 ```bash
 pnpm --filter web sync
+pnpm --filter web auth:schema
 pnpm --filter web db:migrate
-pnpm --filter web db:seed
 ```
 
-`sync` only updates plugin routes, actions, and `hackkit.lock`. It does not generate database schema or connect to a database.
-
-`db:seed` is idempotent: it inserts configured roles that do not already exist and skips existing role IDs. The application runtime never seeds roles during startup or page requests.
+`sync` only updates plugin routes and `hackkit.lock`. Better Auth owns schema generation; the app owns Drizzle migrations.
 
 Use `db:reset` when you want to discard and recreate the configured local file database:
 
@@ -58,7 +56,7 @@ Use `db:reset` when you want to discard and recreate the configured local file d
 pnpm --filter web db:reset
 ```
 
-`db:reset` refuses remote URLs, removes the selected local database and its WAL/SHM files, applies committed migrations, and runs `db:seed`.
+`db:reset` refuses remote URLs, removes the selected local database and its WAL/SHM files, and applies committed migrations.
 
 ### 5. Start the app
 
@@ -66,12 +64,12 @@ pnpm --filter web db:reset
 pnpm --filter web dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign up. To bootstrap the first owner for now, edit that user's `roleId` directly in `core_user`:
+Open [http://localhost:3000](http://localhost:3000) and sign up. The app migration creates the participant and owner roles. To bootstrap the first owner for now, assign the owner role on the Better Auth user row:
 
 ```sql
-UPDATE core_user
-SET roleId = 'core.owner'
-WHERE authId = '<better-auth-user-id>';
+UPDATE user
+SET role_id = 'core.owner'
+WHERE id = '<better-auth-user-id>';
 ```
 
 The runtime does not infer ownership from an email address or auth ID.
@@ -151,14 +149,11 @@ DISCORD_PARTICIPANT_ROLE_ID=...
 
 Use `DISCORD_PARTICIPANT_ROLE_NAME` instead of `DISCORD_PARTICIPANT_ROLE_ID` only when role IDs are not available. Optional email delivery is configured with `HACKKIT_EMAIL_PROVIDER=resend` plus `RESEND_API_KEY`, or `HACKKIT_EMAIL_PROVIDER=smtp` plus `SMTP_HOST` and SMTP credentials.
 
-Run `pnpm --filter web db:migrate` and `pnpm --filter web db:seed` as release steps before starting the new production version. Do not run migrations or seed roles during the Next.js build or application startup.
+Run `pnpm --filter web auth:schema`, generate an app-owned Drizzle migration, and apply it before starting a new production version.
 
-## Next integration path
+## Better Auth integration path
 
-This app follows the single `@hackkit/next` integration path for runtime setup, page guards, Core mutations, and HackKit UI provider actions. See:
-
--   [`packages/next/README.md`](../../packages/next/README.md) — package API and wiring recipe
--   [`docs/guides/next-integration.md`](../../docs/guides/next-integration.md) — full guide and drift checks
+[`lib/auth.ts`](lib/auth.ts) is the only server composition root. It instantiates Better Auth with `hackkit(appConfig)`, and server components/actions call named `auth.api.*` endpoints. [`lib/auth-client.ts`](lib/auth-client.ts) creates the browser client with `hackkitClient()` so those endpoints are inferred on the client too.
 
 ## Release checks
 
@@ -170,14 +165,10 @@ pnpm --filter web schema:generate
 pnpm --filter web auth:schema
 pnpm --filter web db:generate
 pnpm --filter web db:migrate
-pnpm --filter web db:seed
-pnpm --filter web test
-pnpm --filter web test:db-workflow
 pnpm --filter @hackkit/core test
-pnpm --filter @hackkit/db-drizzle test
 pnpm --filter @hackkit/cli test
 pnpm --filter @hackkit/config test
-pnpm --filter @hackkit/next test
+pnpm --filter @hackkit/auth-better-auth test
 pnpm --filter @hackkit/plugin-teams test
 pnpm --filter @hackkit/plugin-discord test
 pnpm --filter @hackkit/plugin-notifications-email test
@@ -189,12 +180,13 @@ CI regenerates committed schema, validates and applies the web migration chain, 
 
 ## Server Actions
 
-UI mutations live on the Next runtime (`runtime.mutations` from `createHackKitMutations`). Named server actions and the `hackKitUIActions` provider map ship from `@hackkit/next` — [`app/providers.tsx`](app/providers.tsx) passes `hackKitUIActions` to `HackKitUIProvider`. Plugin actions remain generated in [`app/hackkit-plugin-actions.ts`](app/hackkit-plugin-actions.ts) by `hackkit plugin sync`.
+App-owned Server Actions in [`app/_hackkit/server-actions.ts`](app/_hackkit/server-actions.ts) call explicit Better Auth endpoints and are passed to `HackKitUIProvider`. Plugin UI actions follow the same pattern in [`app/hackkit-plugin-actions.ts`](app/hackkit-plugin-actions.ts); route sync does not generate a second runtime/action bridge.
 
 ## Configuration
 
--   [`hackkit.config.ts`](hackkit.config.ts) — plugins, User Data options, Event Types, and the explicit database adapter
+-   [`hackkit.config.ts`](hackkit.config.ts) — plugin and HackKit domain options
 -   [`lib/auth.ts`](lib/auth.ts) — Better Auth composition root that loads `hackkit(appConfig)`
--   [`lib/runtime.ts`](lib/runtime.ts) — Next adapter over `auth.$context.hackkit`; use `getPageGuards()` for layouts
--   [`db/schema`](db/schema) — separately generated HackKit and Better Auth schema files
+-   [`lib/auth-client.ts`](lib/auth-client.ts) — browser Better Auth client with `hackkitClient()`
+-   [`lib/hackkit-server.ts`](lib/hackkit-server.ts) — app-owned header and route-guard helpers over named endpoints
+-   [`db/schema`](db/schema) — one Better Auth-generated schema containing auth and HackKit models
 -   [`db/migrations`](db/migrations) — app-owned Drizzle migrations

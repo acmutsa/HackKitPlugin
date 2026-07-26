@@ -1,14 +1,14 @@
 import { RsvpConfirmation } from "@hackkit/ui";
-import { getRuntime } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders } from "@/lib/hackkit-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function RsvpPage() {
-	const runtime = await getRuntime();
-	const authId = await runtime.getAuthId();
+	const requestHeaders = await hackkitHeaders();
 	const [rsvp, summary] = await Promise.all([
-		runtime.hackkit.rsvp.getRsvp(authId),
-		runtime.hackkit.rsvp.getSummary(),
+		auth.api.getHackkitRsvp({ headers: requestHeaders }),
+		auth.api.getHackkitRsvpSummary(),
 	]);
 
 	return (

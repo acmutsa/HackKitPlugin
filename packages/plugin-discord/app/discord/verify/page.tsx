@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { getHackkitRuntime } from "@hackkit/next";
-import type { DiscordApi } from "../../../src/api";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders } from "@/lib/hackkit-server";
 import { confirmDiscordVerification } from "@/app/hackkit-plugin-actions";
 import { DiscordVerifyForm } from "../../../src/components/discord-verify-form";
 
@@ -14,26 +14,32 @@ export default async function DiscordVerifyPage({
 	const code = searchParams?.code;
 	if (!code || Array.isArray(code)) notFound();
 
-	const runtime = await getHackkitRuntime();
-	const currentUser = await runtime.getCurrentUser();
-	const [hacker, discord] = await Promise.all([
-		runtime.hackkit.hackers.getHacker(currentUser.authId),
-		Promise.resolve(runtime.hackkit.plugins.discord as DiscordApi),
+	const requestHeaders = await hackkitHeaders();
+	const [currentUser, hacker] = await Promise.all([
+		auth.api.getHackkitMe({ headers: requestHeaders }),
+		auth.api.getHackkitHacker({ headers: requestHeaders }),
 	]);
 	if (!currentUser.isApproved || !hacker) redirect("/i/approval");
 
-	const existingMember = await discord.getMember(currentUser.authId);
+	const existingMember = await auth.api.getHackkitDiscordMember({
+		headers: requestHeaders,
+	});
 	if (existingMember) redirect("/discord");
 
-	const verification = await discord.getVerification(code);
+	const verification = await auth.api.getHackkitDiscordVerification({
+		body: { code },
+	});
 	if (!verification || verification.status !== "pending") notFound();
 	if (verification.expiresAt.getTime() <= Date.now()) {
 		return (
 			<main className="flex min-h-screen items-center justify-center px-6">
 				<div className="max-w-md rounded-lg border bg-card p-6 text-center shadow-sm">
-					<h1 className="text-xl font-semibold">Verification expired</h1>
+					<h1 className="text-xl font-semibold">
+						Verification expired
+					</h1>
 					<p className="mt-2 text-sm text-muted-foreground">
-						Use the Discord verification button again to generate a new link.
+						Use the Discord verification button again to generate a
+						new link.
 					</p>
 				</div>
 			</main>

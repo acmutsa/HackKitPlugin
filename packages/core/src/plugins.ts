@@ -7,7 +7,11 @@ import { HackKitError } from "./errors";
 import { coreModels } from "./models";
 import type { NotificationsApi } from "./notifications";
 import { CorePermission } from "./permissions";
-import type { HackathonSettingDefinition, SettingKey, SettingValue } from "./settings";
+import type {
+	HackathonSettingDefinition,
+	SettingKey,
+	SettingValue,
+} from "./settings";
 import { coreSettings } from "./settings";
 import type { PermissionKey } from "./types";
 import type { HackkitGroup } from "./groups";
@@ -28,12 +32,8 @@ export type HackKitPlugin<
 	TApi extends object = object,
 > = {
 	id: TId;
-	/** npm package name used by HackKit CLI to resolve routes and actions. */
+	/** npm package name used by HackKit CLI to resolve app routes. */
 	packageName?: string;
-	/** Factory exported by the plugin package, e.g. createTeamsActions. */
-	actionFactory?: string;
-	/** Server action names exposed by the plugin action factory. */
-	actionNames?: readonly string[];
 	models?: ModelMap;
 	permissions?: PermissionMap;
 	settings?: readonly HackathonSettingDefinition[];
@@ -103,7 +103,11 @@ export function createPluginRegistry(
 					`Plugin setting '${setting.key}' must use the '${plugin.id}.' namespace.`,
 				);
 			}
-			if (registry.settings.some((existing) => existing.key === setting.key)) {
+			if (
+				registry.settings.some(
+					(existing) => existing.key === setting.key,
+				)
+			) {
 				throw new HackKitError(
 					"CONFLICT",
 					`HackKit setting '${setting.key}' is already registered.`,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
-import { getRuntime } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders } from "@/lib/hackkit-server";
 
 function escapeCsv(value: unknown): string {
 	if (value === null || value === undefined) return "";
@@ -31,10 +32,8 @@ export async function GET() {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
-	const runtime = await getRuntime();
-	const actor = await runtime.getCurrentUser();
-	const rows = await runtime.hackkit.admin.exportUsers({
-		actorAuthId: actor.authId,
+	const rows = await auth.api.exportHackkitAdminUsers({
+		headers: await hackkitHeaders(),
 	});
 	const csv = toCsv(rows);
 	const timestamp = new Date().toISOString().replaceAll(":", "-");

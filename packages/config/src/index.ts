@@ -1,10 +1,8 @@
 import type {
-	DatabaseAdapterFactory,
 	EventTypesInput,
 	HackKitLoggerOptions,
 	GroupsInput,
 	HackKitPlugin,
-	SeedRoleInput,
 	UserDataOptionsInput,
 } from "@hackkit/core";
 import { createJiti } from "jiti";
@@ -30,8 +28,6 @@ export type HackkitBlobS3Config = {
 
 export type HackkitBlobConfig = HackkitBlobLocalConfig | HackkitBlobS3Config;
 
-export type HackkitSeedRole = SeedRoleInput;
-
 export type RegistrationOption = {
 	value: string;
 	label: string;
@@ -47,24 +43,26 @@ export type HackerRegistrationOptions = {
 
 export type HackkitConfig = {
 	plugins?: readonly HackKitPlugin[];
-	database: DatabaseAdapterFactory;
 	userDataOptions?: UserDataOptionsInput;
 	hackerRegistrationOptions?: HackerRegistrationOptions;
 	eventTypes?: EventTypesInput;
 	groups?: GroupsInput;
 	logger?: HackKitLoggerOptions;
 	defaultCompetitorRoleId?: string;
-	seedRoles?: readonly HackkitSeedRole[];
 	blob?: HackkitBlobConfig;
 };
 
-export type NormalizedHackkitConfig = Omit<
-	HackkitConfig,
-	"plugins" | "seedRoles"
-> & {
-	plugins: readonly HackKitPlugin[];
-	seedRoles: readonly HackkitSeedRole[];
+export type NormalizedHackkitConfig<
+	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
+> = Omit<HackkitConfig, "plugins"> & {
+	plugins: TPlugins;
 };
+
+type ConfigPlugins<TConfig extends HackkitConfig> = TConfig extends {
+	plugins: infer TPlugins extends readonly HackKitPlugin[];
+}
+	? TPlugins
+	: readonly [];
 
 export function defineHackkitConfig<const TConfig extends HackkitConfig>(
 	config: TConfig,
@@ -72,17 +70,14 @@ export function defineHackkitConfig<const TConfig extends HackkitConfig>(
 	return config;
 }
 
-export function resolveHackkitConfig(
-	config: HackkitConfig,
-): NormalizedHackkitConfig {
-	if (!config?.database) {
-		throw new Error("HackKit config must include a database adapter.");
-	}
+export function resolveHackkitConfig<const TConfig extends HackkitConfig>(
+	config: TConfig,
+): Omit<TConfig, "plugins"> & NormalizedHackkitConfig<ConfigPlugins<TConfig>> {
 	return {
 		...config,
 		plugins: config.plugins ?? [],
-		seedRoles: config.seedRoles ?? [],
-	};
+	} as unknown as Omit<TConfig, "plugins"> &
+		NormalizedHackkitConfig<ConfigPlugins<TConfig>>;
 }
 
 const jiti = createJiti(fileURLToPath(import.meta.url));

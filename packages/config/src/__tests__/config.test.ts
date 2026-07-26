@@ -9,16 +9,9 @@ import {
 
 describe("HackKit config", () => {
 	it("normalizes optional collection fields", () => {
-		const database = { create: () => ({}) as never };
-		const config = resolveHackkitConfig(
-			defineHackkitConfig({
-				database,
-			}),
-		);
+		const config = resolveHackkitConfig(defineHackkitConfig({}));
 
 		expect(config.plugins).toEqual([]);
-		expect(config.seedRoles).toEqual([]);
-		expect(config.database).toBe(database);
 	});
 
 	it("loads the web HackKit config through the shared loader", async () => {
@@ -30,15 +23,10 @@ describe("HackKit config", () => {
 			cwd: repoRoot,
 		});
 
-		expect(config.database).toBeDefined();
 		expect(config.plugins.map((plugin) => plugin.id)).toEqual([
 			"teams",
 			"discord",
 			"notificationsEmail",
-		]);
-		expect(config.seedRoles.map((role) => role.id)).toEqual([
-			"core.participant",
-			"core.owner",
 		]);
 	});
 });

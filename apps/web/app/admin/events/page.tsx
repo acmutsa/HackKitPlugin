@@ -1,26 +1,27 @@
 import Link from "next/link";
 import { EventAdminList } from "@hackkit/ui";
 import { CorePermission } from "@hackkit/core";
-import { getHackkit, getPageGuards } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders, requireHackkitPermission } from "@/lib/hackkit-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEventsPage() {
-	const pageGuards = await getPageGuards();
-	const principal = await pageGuards.requirePermission(
-		CorePermission.EventsView,
-	);
-	const hackkit = await getHackkit();
-	const events = await hackkit.events.listEvents({
-		actorAuthId: principal.user.authId,
-	});
+	await requireHackkitPermission(CorePermission.EventsView);
+	const requestHeaders = await hackkitHeaders();
+	const [events, options] = await Promise.all([
+		auth.api.listAllHackkitEvents({ headers: requestHeaders }),
+		auth.api.getHackkitOptions(),
+	]);
 
 	return (
 		<main className="min-h-screen px-6 py-10">
 			<div className="mx-auto max-w-5xl space-y-6">
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
-						<h1 className="text-3xl font-bold tracking-tight">Events</h1>
+						<h1 className="text-3xl font-bold tracking-tight">
+							Events
+						</h1>
 						<p className="text-muted-foreground">
 							Manage the hackathon schedule.
 						</p>
@@ -34,7 +35,7 @@ export default async function AdminEventsPage() {
 				</div>
 				<EventAdminList
 					events={events}
-					eventTypes={hackkit.events.options}
+					eventTypes={options.eventTypes}
 				/>
 			</div>
 		</main>

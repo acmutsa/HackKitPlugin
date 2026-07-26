@@ -1,13 +1,14 @@
 import { CorePermission } from "@hackkit/core";
 import { AdminRolesPanel } from "@hackkit/ui";
-import { getRuntime } from "@/lib/runtime";
+import { auth } from "@/lib/auth";
+import { hackkitHeaders } from "@/lib/hackkit-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminRolesPage() {
-	const runtime = await getRuntime();
-	const actorAuthId = await runtime.getAuthId();
-	const roles = await runtime.hackkit.roles.listRoles({ actorAuthId });
+	const roles = await auth.api.listHackkitRoles({
+		headers: await hackkitHeaders(),
+	});
 
 	return (
 		<main className="space-y-6">
@@ -17,7 +18,10 @@ export default async function AdminRolesPage() {
 					Manage admin roles and permissions.
 				</p>
 			</div>
-			<AdminRolesPanel roles={roles} permissions={Object.values(CorePermission)} />
+			<AdminRolesPanel
+				roles={roles}
+				permissions={Object.values(CorePermission)}
+			/>
 		</main>
 	);
 }

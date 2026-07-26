@@ -8,7 +8,7 @@ import { hackkit, toBetterAuthLogger } from "@hackkit/auth-better-auth";
 import { getDb } from "./db";
 import { getAppLogger } from "./logger";
 import { env } from "../env";
-import { account, session, user, verification } from "../db/schema/auth";
+import * as schema from "../db/schema/auth";
 import { appConfig } from "./app-config";
 
 const socialProviders = {
@@ -36,7 +36,7 @@ export const auth = betterAuth({
 	trustedOrigins: env.betterAuthTrustedOrigins,
 	database: drizzleAdapter(getDb(), {
 		provider: "sqlite",
-		schema: { user, session, account, verification },
+		schema,
 		camelCase: true,
 	}),
 	emailAndPassword: {
