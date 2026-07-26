@@ -6,7 +6,7 @@ import {
 
 export const permissionKeySchema = z
 	.string()
-	.regex(/^[a-z0-9_-]+\.[a-z0-9_.-]+$/);
+	.regex(/^[a-z0-9_-]+\.[A-Za-z0-9_.-]+$/);
 export const authIdSchema = z.string().min(1);
 export const roleIdSchema = z.string().min(1);
 export const hackTagSchema = z
@@ -16,12 +16,21 @@ export const hackTagSchema = z
 	.regex(/^[a-zA-Z0-9_-]+$/)
 	.transform((value) => value.toLowerCase());
 
+/** App-relative stored file reference or absolute URL (ADR 0011). */
+export const storedFileReferenceSchema = z.union([
+	z.string().url(),
+	z
+		.string()
+		.min(1)
+		.regex(/^\/\S+$/),
+]);
+
 export const ensureUserSchema = z.object({
 	authId: authIdSchema,
 	email: z.string().email(),
 	firstName: z.string().min(1).max(100),
 	lastName: z.string().min(1).max(100),
-	profilePhotoUrl: z.string().url().optional(),
+	profilePhotoUrl: storedFileReferenceSchema.optional(),
 });
 
 export const updateUserProfileSchema = z.object({
@@ -29,14 +38,7 @@ export const updateUserProfileSchema = z.object({
 	firstName: z.string().min(1).max(100).optional(),
 	lastName: z.string().min(1).max(100).optional(),
 	profilePhotoUrl: z
-		.union([
-			z.string().url(),
-			z
-				.string()
-				.min(1)
-				.regex(/^\/\S+$/),
-			z.literal(""),
-		])
+		.union([storedFileReferenceSchema, z.literal("")])
 		.optional()
 		.transform((value) => (value === "" ? undefined : value)),
 	hackTag: hackTagSchema.optional(),
@@ -56,15 +58,6 @@ export const completeUserDataSchema = createCompleteUserDataSchema(
 	defaultUserDataOptions,
 );
 export type CompleteUserDataInput = z.input<typeof completeUserDataSchema>;
-
-/** App-relative stored file reference or absolute URL (ADR 0011). */
-export const storedFileReferenceSchema = z.union([
-	z.string().url(),
-	z
-		.string()
-		.min(1)
-		.regex(/^\/\S+$/),
-]);
 
 export const registerHackerSchema = z.object({
 	authId: authIdSchema,
