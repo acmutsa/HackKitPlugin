@@ -69,7 +69,6 @@
 		},
         "dev": {
 			"dependsOn": ["^build"],
-            "concurrency": 14, 
 			"cache": false,
 			"persistent": true
 		},
