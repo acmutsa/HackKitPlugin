@@ -64,18 +64,24 @@
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
-			"outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+			"outputs": ["dist/**"],
+            "cache": true
 		},
+        "dev": {
+			"dependsOn": ["^build"],
+			"cache": false,
+			"persistent": true
+		},
+        "test": {
+            "cache": true,
+            "dependsOn": ["^build"] 
+        },
 		"lint": {},
 		"start": {
 			"cache": false,
 			"persistent": true,
 			"dependsOn": ["^build"]
-		},
-		"dev": {
-			"dependsOn": ["^build"],
-			"cache": false,
-			"persistent": true
 		}
+
 	}
 }

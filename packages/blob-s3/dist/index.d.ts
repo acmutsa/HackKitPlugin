@@ -1,5 +1,6 @@
-import type { BlobStorageAdapterWithView } from "@hackkit/core";
-export type S3BlobStorageOptions = {
+import { BlobStorageAdapterWithView } from '@hackkit/core';
+
+type S3BlobStorageOptions = {
     bucket: string;
     region: string;
     endpoint?: string;
@@ -8,8 +9,9 @@ export type S3BlobStorageOptions = {
     filesRoutePrefix?: string;
     presignExpiresInSeconds?: number;
 };
-export type S3BlobStorage = BlobStorageAdapterWithView & {
+type S3BlobStorage = BlobStorageAdapterWithView & {
     getPresignedViewUrl(key: string): Promise<string>;
 };
-export declare function createS3BlobStorage(options: S3BlobStorageOptions): S3BlobStorage;
-//# sourceMappingURL=index.d.ts.map
+declare function createS3BlobStorage(options: S3BlobStorageOptions): S3BlobStorage;
+
+export { type S3BlobStorage, type S3BlobStorageOptions, createS3BlobStorage };
