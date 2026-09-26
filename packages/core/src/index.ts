@@ -20,6 +20,10 @@ export type {
 	LogLevel,
 } from "./adapters/logger";
 export { createHackkit } from "./hackkit";
+export { createHackKitAuth } from "./mikro/auth";
+export type { HackKitAuthOptions } from "./mikro/auth";
+export { authEntities, AuthUser, AuthSession, AuthAccount, AuthVerification } from "./mikro/auth-entities";
+export { HackKitProfile } from "./mikro/profile";
 export type { HackKit } from "./hackkit";
 export { seedRoles } from "./seed";
 export type { SeedRoleInput, SeedRolesOptions, SeedRolesResult } from "./seed";
