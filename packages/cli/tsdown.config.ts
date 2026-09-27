@@ -10,7 +10,6 @@ export default defineConfig({
 	platform: "node",
 	fixedExtension: false,
 	deps: {
-		alwaysBundle: ["@hackkit/core"],
 		onlyBundle: false,
 	},
 });

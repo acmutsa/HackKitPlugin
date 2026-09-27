@@ -1,39 +1,27 @@
-import { describe, expect, it } from "vitest";
 import {
-	createHackkit,
-	createInMemoryDatabaseAdapterFromStorage,
-	createPluginRegistry,
-	type HackKitPlugin,
-} from "@hackkit/core";
-import type { TeamsApi } from "../api";
-import { teamsPlugin } from "../index";
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "@hackkit/core/testing";
+import { describe, expect, it } from "vitest";
 
-function createTeamsHackkit() {
+import { teamsModels } from "../models.js";
+import { teamsPlugin } from "../index.js";
+
+async function createTeamsHackkit() {
 	const plugin = teamsPlugin();
-	const registry = createPluginRegistry([plugin as unknown as HackKitPlugin]);
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	const hackkit = createHackkit({
-		database: db,
-		plugins: [plugin as unknown as HackKitPlugin],
-		clock: now,
-		id,
+	const hackkit = await createTestHackkit({
+		plugins: [plugin],
 	});
-	return { hackkit, teams: hackkit.plugins.teams as unknown as TeamsApi };
+	return { hackkit, teams: hackkit.plugins.teams };
 }
 
 async function seedUserWithHackTag(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit<readonly [ReturnType<typeof teamsPlugin>]>,
 	authId: string,
 	hackTag: string,
 ) {
-	await hackkit.users.ensureUser({
+	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
 		firstName: "Test",
@@ -55,16 +43,17 @@ async function seedUserWithHackTag(
 }
 
 async function seedHacker(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit<readonly [ReturnType<typeof teamsPlugin>]>,
 	authId: string,
 	hackTag?: string,
 ) {
-	await hackkit.users.ensureUser({
-		authId,
-		email: `${authId}@example.com`,
-		firstName: "Test",
-		lastName: "User",
-	});
+	if (!(await hackkit.users.getUser(authId)))
+		await createTestUser(hackkit, {
+			authId,
+			email: `${authId}@example.com`,
+			firstName: "Test",
+			lastName: "User",
+		});
 	await hackkit.userData.completeUserData({
 		authId,
 		age: 20,
@@ -92,7 +81,7 @@ async function seedHacker(
 
 describe("teams plugin", () => {
 	it("creates a team and adds the owner as a member", async () => {
-		const { hackkit, teams } = createTeamsHackkit();
+		const { hackkit, teams } = await createTeamsHackkit();
 		await seedHacker(hackkit, "owner-auth", "owner");
 
 		const team = await teams.createTeam({
@@ -107,7 +96,7 @@ describe("teams plugin", () => {
 	});
 
 	it("accepts an invite and enforces one team per hacker", async () => {
-		const { hackkit, teams } = createTeamsHackkit();
+		const { hackkit, teams } = await createTeamsHackkit();
 		await seedHacker(hackkit, "owner-auth", "owner");
 		await seedHacker(hackkit, "member-auth", "member");
 
@@ -152,7 +141,7 @@ describe("teams plugin", () => {
 	});
 
 	it("allows inviting a user before hacker registration", async () => {
-		const { hackkit, teams } = createTeamsHackkit();
+		const { hackkit, teams } = await createTeamsHackkit();
 		await seedHacker(hackkit, "owner-auth", "owner");
 		await seedUserWithHackTag(hackkit, "pending-auth", "pending");
 
@@ -176,7 +165,8 @@ describe("teams plugin", () => {
 				accept: true,
 			}),
 		).rejects.toMatchObject({
-			message: "Complete hacker registration before accepting a team invite.",
+			message:
+				"Complete hacker registration before accepting a team invite.",
 		});
 
 		await seedHacker(hackkit, "pending-auth");
@@ -187,4 +177,73 @@ describe("teams plugin", () => {
 		});
 		expect(joined).toMatchObject({ id: team.id });
 	});
+});
+
+it("creates only one team when the same owner submits concurrently", async () => {
+	const { hackkit } = await createTeamsHackkit();
+	await seedHacker(hackkit, "owner-auth", "owner");
+	const results = await Promise.allSettled(
+		["first", "second"].map((tag) =>
+			hackkit.runtime.createScope().hackkit.plugins.teams.createTeam({
+				actorAuthId: "owner-auth",
+				name: tag,
+				tag,
+			}),
+		),
+	);
+	expect(
+		results.filter((result) => result.status === "fulfilled"),
+	).toHaveLength(1);
+	const em = hackkit.runtime.createScope().em;
+	expect(await em.count(teamsModels.team, {})).toBe(1);
+	expect(await em.count(teamsModels.member, {})).toBe(1);
+});
+
+it("keeps the final team place and losing invite consistent across concurrent joins", async () => {
+	const { hackkit, teams } = await createTeamsHackkit();
+	await seedHacker(hackkit, "owner-auth", "owner");
+	const team = await teams.createTeam({
+		actorAuthId: "owner-auth",
+		name: "Race",
+		tag: "race",
+	});
+	const invites = [];
+	for (const authId of ["a", "b", "c", "d"]) {
+		await seedHacker(hackkit, authId, authId);
+		invites.push(
+			await teams.inviteToTeam({
+				actorAuthId: "owner-auth",
+				teamId: team.id,
+				inviteeAuthId: authId,
+			}),
+		);
+	}
+	const results = await Promise.allSettled(
+		invites.map((invite) =>
+			hackkit.runtime
+				.createScope()
+				.hackkit.plugins.teams.respondToInvite({
+					actorAuthId: invite.inviteeAuthId,
+					inviteId: invite.id,
+					accept: true,
+				}),
+		),
+	);
+	expect(
+		results.filter((result) => result.status === "fulfilled"),
+	).toHaveLength(3);
+	const em = hackkit.runtime.createScope().em;
+	expect(await em.count(teamsModels.member, { teamId: team.id })).toBe(4);
+	expect(
+		await em.count(teamsModels.invite, {
+			teamId: team.id,
+			status: "accepted",
+		}),
+	).toBe(3);
+	expect(
+		await em.count(teamsModels.invite, {
+			teamId: team.id,
+			status: "pending",
+		}),
+	).toBe(1);
 });

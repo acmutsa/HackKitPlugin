@@ -2,13 +2,29 @@ import { describe, expect, it } from "vitest";
 import { MikroORM, RequestContext } from "@mikro-orm/core";
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { LibSqlDriver } from "@mikro-orm/libsql";
-import { AuthUser, authEntities } from "./auth-entities";
-import { createHackKitAuth } from "./auth";
-import { HackKitProfile } from "./profile";
+import { AuthUser, authEntities } from "./auth-entities.js";
+import { createHackKitAuth } from "./auth.js";
+import { HackKitProfile } from "./profile.js";
 
 describe.each([
-	["SQLite", () => MikroORM.init({ driver: SqliteDriver, dbName: ":memory:", entities: [...authEntities, HackKitProfile] })],
-	["local libSQL", () => MikroORM.init({ driver: LibSqlDriver, dbName: ":memory:", entities: [...authEntities, HackKitProfile] })],
+	[
+		"SQLite",
+		() =>
+			MikroORM.init({
+				driver: SqliteDriver,
+				dbName: ":memory:",
+				entities: [...authEntities, HackKitProfile],
+			}),
+	],
+	[
+		"local libSQL",
+		() =>
+			MikroORM.init({
+				driver: LibSqlDriver,
+				dbName: ":memory:",
+				entities: [...authEntities, HackKitProfile],
+			}),
+	],
 ])("Better Auth MikroORM integration on %s", (_name, open) => {
 	it("persists signup and session with a request-scoped manager", async () => {
 		const orm = await open();
@@ -39,27 +55,48 @@ describe.each([
 			const users = await orm.em.fork().find(AuthUser, {});
 			expect(users).toHaveLength(1);
 			const em = orm.em.fork();
-			const profile = em.create(HackKitProfile, {
-				user: users[0],
-				firstName: "Example",
-				lastName: "User",
-				hackTag: "example",
+			const profile = await em.findOneOrFail(HackKitProfile, {
+				authId: users[0].id,
 			});
+			profile.hackTag = "example";
 			await em.persist(profile).flush();
-			expect((await em.fork().findOneOrFail(HackKitProfile, { hackTag: "example" })).skills).toEqual([]);
+			expect(
+				(
+					await em
+						.fork()
+						.findOneOrFail(HackKitProfile, { hackTag: "example" })
+				).skills,
+			).toEqual([]);
 			const duplicateManager = em.fork();
-			await expect(duplicateManager.persist(
-				duplicateManager.create(HackKitProfile, {
-					user: users[0], firstName: "Duplicate", lastName: "User",
+			await expect(
+				duplicateManager
+					.persist(
+						duplicateManager.create(HackKitProfile, {
+							authId: users[0].id,
+							firstName: "Duplicate",
+							lastName: "User",
+						}),
+					)
+					.flush(),
+			).rejects.toThrow();
+			await expect(
+				em.transactional(async (transaction) => {
+					const value = await transaction.findOneOrFail(
+						HackKitProfile,
+						{ hackTag: "example" },
+					);
+					value.bio = "rolled back";
+					await transaction.flush();
+					throw new Error("abort");
 				}),
-			).flush()).rejects.toThrow();
-			await expect(em.transactional(async (transaction) => {
-				const value = await transaction.findOneOrFail(HackKitProfile, { hackTag: "example" });
-				value.bio = "rolled back";
-				await transaction.flush();
-				throw new Error("abort");
-			})).rejects.toThrow("abort");
-			expect((await em.fork().findOneOrFail(HackKitProfile, { hackTag: "example" })).bio).toBeNull();
+			).rejects.toThrow("abort");
+			expect(
+				(
+					await em
+						.fork()
+						.findOneOrFail(HackKitProfile, { hackTag: "example" })
+				).bio,
+			).toBeNull();
 			expect(await orm.schema.getUpdateSchemaSQL()).toBe("");
 		} finally {
 			await orm.close();

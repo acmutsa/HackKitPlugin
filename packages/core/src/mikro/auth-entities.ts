@@ -10,7 +10,7 @@ export const AuthUser = defineEntity({
 		name: p.string(),
 		email: p.string().unique(),
 		emailVerified: p.boolean().default(false),
-		image: p.string().nullable(),
+		image: p.text().nullable(),
 		createdAt: p.datetime(),
 		updatedAt: p.datetime(),
 	},
@@ -26,8 +26,14 @@ export const AuthSession = defineEntity({
 		createdAt: p.datetime(),
 		updatedAt: p.datetime(),
 		ipAddress: p.string().nullable(),
-		userAgent: p.string().nullable(),
-		userId: p.string().index(),
+		userAgent: p.text().nullable(),
+		userId: () =>
+			p
+				.manyToOne(AuthUser)
+				.mapToPk()
+				.fieldName("user_id")
+				.index()
+				.deleteRule("cascade"),
 	},
 });
 
@@ -38,13 +44,19 @@ export const AuthAccount = defineEntity({
 		id: p.string().primary(),
 		accountId: p.string(),
 		providerId: p.string(),
-		userId: p.string().index(),
-		accessToken: p.string().nullable(),
-		refreshToken: p.string().nullable(),
-		idToken: p.string().nullable(),
+		userId: () =>
+			p
+				.manyToOne(AuthUser)
+				.mapToPk()
+				.fieldName("user_id")
+				.index()
+				.deleteRule("cascade"),
+		accessToken: p.text().nullable(),
+		refreshToken: p.text().nullable(),
+		idToken: p.text().nullable(),
 		accessTokenExpiresAt: p.datetime().nullable(),
 		refreshTokenExpiresAt: p.datetime().nullable(),
-		scope: p.string().nullable(),
+		scope: p.text().nullable(),
 		password: p.string().nullable(),
 		createdAt: p.datetime(),
 		updatedAt: p.datetime(),
@@ -57,11 +69,16 @@ export const AuthVerification = defineEntity({
 	properties: {
 		id: p.string().primary(),
 		identifier: p.string().index(),
-		value: p.string(),
+		value: p.text(),
 		expiresAt: p.datetime(),
 		createdAt: p.datetime().nullable(),
 		updatedAt: p.datetime().nullable(),
 	},
 });
 
-export const authEntities = [AuthUser, AuthSession, AuthAccount, AuthVerification];
+export const authEntities = [
+	AuthUser,
+	AuthSession,
+	AuthAccount,
+	AuthVerification,
+];

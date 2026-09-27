@@ -4,7 +4,7 @@
   "description": "HackKit CLI",
   "type": "module",
   "bin": {
-    "hackkit": "./dist/cli.js"
+    "hackkit": "./bin/hackkit.mjs"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,6 +16,7 @@
     }
   },
   "files": [
+    "bin",
     "dist"
   ],
   "scripts": {
@@ -28,13 +29,17 @@
     "@hackkit/core": "workspace:*",
     "commander": "^12.1.0",
     "dotenv": "^16.6.1",
-    "jiti": "^2.4.2"
+    "jiti": "^2.4.2",
+    "@mikro-orm/core": "7.2.1",
+    "@mikro-orm/migrations": "7.2.1",
+    "prettier": "^3.3.3"
   },
   "devDependencies": {
-    "@types/node": "20.14.11",
+    "@types/node": "22.18.6",
     "tsdown": "^0.22.0",
-    "typescript": "5.5.3",
-    "vitest": "^3.2.4"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.4",
+    "@mikro-orm/sqlite": "7.2.1"
   },
   "license": "MIT",
   "private": true

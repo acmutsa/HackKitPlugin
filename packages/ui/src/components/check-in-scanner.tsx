@@ -1,6 +1,6 @@
 "use client";
 
-import type { User } from "@hackkit/core";
+import type { User } from "@hackkit/core/client";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import * as React from "react";
 import { toast } from "sonner";
@@ -77,12 +77,18 @@ export function CheckInScanner({ className, onDone }: CheckInScannerProps) {
 	}
 
 	return (
-		<div className={cn("mx-auto flex w-full max-w-lg flex-col gap-6", className)}>
+		<div
+			className={cn(
+				"mx-auto flex w-full max-w-lg flex-col gap-6",
+				className,
+			)}
+		>
 			<Card>
 				<CardHeader>
 					<CardTitle>Hackathon Check-in</CardTitle>
 					<CardDescription>
-						Scan a participant&apos;s Event Pass QR code once at arrival.
+						Scan a participant&apos;s Event Pass QR code once at
+						arrival.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

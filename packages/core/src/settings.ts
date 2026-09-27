@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HackKitError } from "./errors";
+import { HackKitError } from "./errors.js";
 
 export type SettingKey = `${string}.${string}`;
 export type SettingValueType = "boolean" | "number";
@@ -32,9 +32,11 @@ export type HackathonSettingDefinition<TKey extends SettingKey = SettingKey> =
 	| NumberSettingDefinition<TKey>;
 
 export type SettingValueForDefinition<TDefinition> =
-	TDefinition extends BooleanSettingDefinition ? boolean
-		: TDefinition extends NumberSettingDefinition ? number
-		: SettingValue;
+	TDefinition extends BooleanSettingDefinition
+		? boolean
+		: TDefinition extends NumberSettingDefinition
+			? number
+			: SettingValue;
 
 export type ResolvedHackathonSetting<
 	TDefinition extends HackathonSettingDefinition = HackathonSettingDefinition,
@@ -74,7 +76,8 @@ export const coreSettings = [
 		type: "boolean",
 		defaultValue: false,
 		label: "Require organiser approval",
-		description: "Require organisers to approve hackers before they receive full participant access.",
+		description:
+			"Require organisers to approve hackers before they receive full participant access.",
 		category: "Registration",
 	}),
 	defineSetting({
@@ -85,7 +88,8 @@ export const coreSettings = [
 		min: 0,
 		unit: "hackers",
 		label: "Maximum registrations",
-		description: "Maximum number of hackers who may register. 0 means unlimited.",
+		description:
+			"Maximum number of hackers who may register. 0 means unlimited.",
 		category: "Registration",
 	}),
 	defineSetting({
@@ -96,7 +100,8 @@ export const coreSettings = [
 		min: 0,
 		unit: "hackers",
 		label: "Hackathon capacity",
-		description: "Maximum number of hackers who may be approved. 0 means unlimited.",
+		description:
+			"Maximum number of hackers who may be approved. 0 means unlimited.",
 		category: "Registration",
 	}),
 	defineSetting({
@@ -123,7 +128,8 @@ export const coreSettings = [
 		type: "boolean",
 		defaultValue: false,
 		label: "RSVP waitlist",
-		description: "Place hackers on an ordered waitlist after the RSVP limit is reached.",
+		description:
+			"Place hackers on an ordered waitlist after the RSVP limit is reached.",
 		category: "RSVP",
 	}),
 	defineSetting({
@@ -134,7 +140,8 @@ export const coreSettings = [
 		min: 1000,
 		unit: "milliseconds",
 		label: "Event Pass QR TTL",
-		description: "How long an Event Pass QR code remains valid, in milliseconds.",
+		description:
+			"How long an Event Pass QR code remains valid, in milliseconds.",
 		category: "Events",
 	}),
 ] as const;
@@ -144,9 +151,9 @@ export type CoreSettingValueMap = {
 	[Definition in CoreSettingDefinition as Definition["key"]]: SettingValueForDefinition<Definition>;
 };
 
-export function defineSetting<const TDefinition extends HackathonSettingDefinition>(
-	definition: TDefinition,
-): TDefinition {
+export function defineSetting<
+	const TDefinition extends HackathonSettingDefinition,
+>(definition: TDefinition): TDefinition {
 	return definition;
 }
 
@@ -160,8 +167,10 @@ export function validateSettingValue(
 	} else {
 		let numberSchema = z.number();
 		if (definition.integer) numberSchema = numberSchema.int();
-		if (definition.min !== undefined) numberSchema = numberSchema.min(definition.min);
-		if (definition.max !== undefined) numberSchema = numberSchema.max(definition.max);
+		if (definition.min !== undefined)
+			numberSchema = numberSchema.min(definition.min);
+		if (definition.max !== undefined)
+			numberSchema = numberSchema.max(definition.max);
 		schema = numberSchema;
 	}
 	const result = schema.safeParse(value);

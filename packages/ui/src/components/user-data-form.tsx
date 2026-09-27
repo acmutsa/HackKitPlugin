@@ -5,7 +5,7 @@ import {
 	createCompleteUserDataSchema,
 	type User,
 	type UserDataOptions,
-} from "@hackkit/core";
+} from "@hackkit/core/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";

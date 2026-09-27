@@ -1,11 +1,14 @@
 import { defineSetting } from "@hackkit/core";
 import type { HackKitPlugin } from "@hackkit/core";
-import { createTeamsApi } from "./api";
-import { teamsModels } from "./models";
-import { TeamsPermission } from "./permissions";
-import { TeamsSetting } from "./settings";
+import { createTeamsApi } from "./api.js";
+import { teamsModels } from "./models.js";
+import { TeamsPermission } from "./permissions.js";
+import { TeamsSetting } from "./settings.js";
 
-export function teamsPlugin(): HackKitPlugin<"teams", ReturnType<typeof createTeamsApi>> {
+export function teamsPlugin(): HackKitPlugin<
+	"teams",
+	ReturnType<typeof createTeamsApi>
+> {
 	return {
 		id: "teams",
 		packageName: "@hackkit/plugin-teams",
@@ -17,7 +20,7 @@ export function teamsPlugin(): HackKitPlugin<"teams", ReturnType<typeof createTe
 			"leaveTeam",
 			"removeMember",
 		],
-		models: teamsModels,
+		entities: Object.values(teamsModels),
 		settings: [
 			defineSetting({
 				key: TeamsSetting.MaximumTeamSize,
@@ -27,7 +30,8 @@ export function teamsPlugin(): HackKitPlugin<"teams", ReturnType<typeof createTe
 				min: 0,
 				unit: "members",
 				label: "Maximum team size",
-				description: "Maximum number of members allowed on one team. 0 means unlimited.",
+				description:
+					"Maximum number of members allowed on one team. 0 means unlimited.",
 				category: "Teams",
 			}),
 		],
@@ -41,16 +45,15 @@ export function teamsPlugin(): HackKitPlugin<"teams", ReturnType<typeof createTe
 	};
 }
 
-export { createTeamsActions } from "./actions";
-export { createTeamsApi } from "./api";
-export { teamsModels } from "./models";
-export { TeamsPermission } from "./permissions";
-export { TeamsSetting } from "./settings";
-export type { Team, TeamInvite, TeamMember } from "./models";
+export { createTeamsApi } from "./api.js";
+export { teamsModels } from "./models.js";
+export { TeamsPermission } from "./permissions.js";
+export { TeamsSetting } from "./settings.js";
+export type { Team, TeamInvite, TeamMember } from "./models.js";
 export type {
 	TeamsApi,
 	TeamWithMembers,
 	PendingTeamInvite,
 	TeamInviteWithInvitee,
-} from "./api";
-export type { TeamsActions } from "./actions";
+} from "./api.js";
+export type { TeamsActions } from "./actions.js";

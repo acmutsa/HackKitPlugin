@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import type { HackkitConfig } from "./config";
-import { runDbSchemaGenerate } from "./db-schema";
 import { createConfigLogger } from "./logger";
 import { PLUGIN_PACKAGE_BY_ID, loadPluginFactory } from "./plugin-manifest";
 import { runPluginSync } from "./plugin-sync";
@@ -113,14 +112,17 @@ export async function runPluginAdd(
 	);
 
 	const { loadConfig } = await import("./cli-config");
-	const refreshedConfig = await loadConfig("hackkit.config.ts");
+	const refreshedConfig = await loadConfig("hackkit.config.ts", {
+		cwd: context.projectRoot,
+	});
 	await runPluginSyncAll({
 		projectRoot: context.projectRoot,
 		config: refreshedConfig,
 	});
-	await runDbSchemaGenerate(refreshedConfig, {
-		projectRoot: context.projectRoot,
-	});
+	createConfigLogger(context.config).log(
+		"info",
+		"Plugin configuration updated. Generate and review a database migration with hackkit db generate.",
+	);
 }
 
 export async function runPluginRemove(
@@ -157,9 +159,10 @@ export async function runPluginRemove(
 		projectRoot: context.projectRoot,
 		plugins: nextConfig.plugins ?? [],
 	});
-	await runDbSchemaGenerate(nextConfig, {
-		projectRoot: context.projectRoot,
-	});
+	createConfigLogger(context.config).log(
+		"info",
+		"Plugin configuration updated. Generate and review a database migration with hackkit db generate.",
+	);
 }
 
 export async function runPluginSyncAll(

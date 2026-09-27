@@ -1,3 +1,5 @@
+type DatabaseDialect = "sqlite" | "libsql" | "mysql" | "postgresql";
+
 type BlobAdapter = "local" | "s3";
 type EmailProvider = "none" | "resend" | "smtp";
 
@@ -8,6 +10,7 @@ type TestWebEnv = {
 	betterAuthSecret: string;
 	betterAuthTrustedOrigins: string[];
 	databaseUrl: string;
+	databaseDialect: DatabaseDialect;
 	tursoAuthToken?: string;
 	blobAdapter: BlobAdapter;
 	localBlobBaseDir: string;
@@ -105,16 +108,6 @@ function assertProductionEnv(env: TestWebEnv): void {
 		);
 	}
 
-	if (env.databaseUrl.startsWith("file:")) {
-		throw new Error(
-			"DATABASE_URL must point to remote libSQL/Turso in production.",
-		);
-	}
-
-	if (!env.tursoAuthToken) {
-		throw new Error("TURSO_AUTH_TOKEN must be set in production.");
-	}
-
 	if (env.blobAdapter !== "s3") {
 		throw new Error("HACKKIT_BLOB_ADAPTER must be s3 in production.");
 	}
@@ -156,6 +149,21 @@ function assertProductionEnv(env: TestWebEnv): void {
 	}
 }
 
+function resolveDatabaseDialect(url: string): DatabaseDialect {
+	const dialect = read("HACKKIT_DATABASE_DIALECT");
+	if (dialect) {
+		if (["sqlite", "libsql", "mysql", "postgresql"].includes(dialect))
+			return dialect as DatabaseDialect;
+		throw new Error(
+			"HACKKIT_DATABASE_DIALECT must be sqlite, libsql, mysql, or postgresql.",
+		);
+	}
+	if (/^postgres(ql)?:/.test(url)) return "postgresql";
+	if (url.startsWith("mysql:")) return "mysql";
+	if (/^(libsql|https?):/.test(url)) return "libsql";
+	return "sqlite";
+}
+
 export function resolveTestWebEnv(): TestWebEnv {
 	const nodeEnv = resolveNodeEnv();
 	const appUrl =
@@ -166,6 +174,7 @@ export function resolveTestWebEnv(): TestWebEnv {
 	const blobAdapter = resolveBlobAdapter(nodeEnv);
 	const emailProvider = resolveEmailProvider();
 
+	const databaseUrl = read("DATABASE_URL") ?? "file:.data/web.db";
 	const env: TestWebEnv = {
 		nodeEnv,
 		appUrl,
@@ -174,7 +183,8 @@ export function resolveTestWebEnv(): TestWebEnv {
 			read("BETTER_AUTH_SECRET") ??
 			"web-development-secret-change-me-please",
 		betterAuthTrustedOrigins: readList("BETTER_AUTH_TRUSTED_ORIGINS"),
-		databaseUrl: read("DATABASE_URL") ?? "file:.data/web.db",
+		databaseUrl,
+		databaseDialect: resolveDatabaseDialect(databaseUrl),
 		tursoAuthToken: read("TURSO_AUTH_TOKEN"),
 		blobAdapter,
 		localBlobBaseDir:

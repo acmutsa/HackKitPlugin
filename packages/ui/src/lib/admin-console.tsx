@@ -1,4 +1,4 @@
-import type { AdminUserRecord } from "@hackkit/core";
+import type { AdminUserRecord } from "@hackkit/core/client";
 import type * as React from "react";
 import { cn } from "./cn";
 

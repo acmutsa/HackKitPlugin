@@ -10,7 +10,7 @@ import type {
 	RsvpSummary,
 	SettingKey,
 	User,
-} from "@hackkit/core";
+} from "@hackkit/core/client";
 import type { HackKitActionResult } from "./actions";
 
 export type {
@@ -21,7 +21,7 @@ export type {
 	RsvpSummary,
 	SettingKey,
 	UserDataOptions,
-} from "@hackkit/core";
+} from "@hackkit/core/client";
 
 export type UserDataFormValues = {
 	age: number;
@@ -98,7 +98,10 @@ export type CheckInUserInput = {
 	rawQr: string;
 };
 
-export type SetSettingsInput = readonly { key: SettingKey; value: boolean | number }[];
+export type SetSettingsInput = readonly {
+	key: SettingKey;
+	value: boolean | number;
+}[];
 
 export type ApproveUserInput = {
 	targetAuthId: string;
@@ -140,9 +143,7 @@ export type HackKitUIActions = {
 	completeUserData: (
 		values: UserDataFormValues,
 	) => Promise<HackKitActionResult>;
-	claimHackTag: (
-		values: HackTagFormValues,
-	) => Promise<HackKitActionResult>;
+	claimHackTag: (values: HackTagFormValues) => Promise<HackKitActionResult>;
 	updateUserProfile: (
 		values: UserProfileFormValues,
 	) => Promise<HackKitActionResult<User>>;
@@ -160,9 +161,7 @@ export type HackKitUIActions = {
 	previewEventPassQr: (
 		input: PreviewEventPassQrInput,
 	) => Promise<HackKitActionResult<PreviewEventPassQrResult>>;
-	recordEventScan: (
-		input: RecordEventScanInput,
-	) => Promise<
+	recordEventScan: (input: RecordEventScanInput) => Promise<
 		HackKitActionResult<{
 			scan: EventScan;
 			priorScans: EventScan[];
@@ -179,7 +178,9 @@ export type HackKitUIActions = {
 		input: SetRsvpStatusInput,
 	) => Promise<HackKitActionResult<Rsvp>>;
 	promoteRsvp: (targetAuthId?: string) => Promise<HackKitActionResult<Rsvp>>;
-	approveUser: (input: ApproveUserInput) => Promise<HackKitActionResult<User>>;
+	approveUser: (
+		input: ApproveUserInput,
+	) => Promise<HackKitActionResult<User>>;
 	banUser: (input: BanUserInput) => Promise<HackKitActionResult>;
 	unbanUser: (targetAuthId: string) => Promise<HackKitActionResult>;
 	assignRoleToUser: (
@@ -188,7 +189,9 @@ export type HackKitUIActions = {
 	createRole: (input: CreateRoleInput) => Promise<HackKitActionResult<Role>>;
 	updateRole: (input: UpdateRoleInput) => Promise<HackKitActionResult<Role>>;
 	deleteRole: (roleId: RoleId) => Promise<HackKitActionResult>;
-	listSettings: () => Promise<HackKitActionResult<ResolvedHackathonSetting[]>>;
+	listSettings: () => Promise<
+		HackKitActionResult<ResolvedHackathonSetting[]>
+	>;
 	setSettings: (
 		values: SetSettingsInput,
 	) => Promise<HackKitActionResult<ResolvedHackathonSetting[]>>;

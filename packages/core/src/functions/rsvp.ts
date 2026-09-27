@@ -1,17 +1,19 @@
-import type { HackkitRuntimeContext } from "../hackkit-context";
-import { CoreNotificationKind } from "../notifications";
-import { HackKitError, parseInput } from "../errors";
-import { withDomainLog } from "../domain-log";
-import { coreModels } from "../models";
-import { CorePermission } from "../permissions";
+import { serialize } from "@mikro-orm/core";
+import { withOperationLock } from "../mikro/operation.js";
+import type { HackkitRuntimeContext } from "../hackkit-context.js";
+import { CoreNotificationKind } from "../notifications.js";
+import { HackKitError, parseInput } from "../errors.js";
+import { withDomainLog } from "../domain-log.js";
+import { coreModels } from "../models.js";
+import { CorePermission } from "../permissions.js";
 import {
 	adminCancelRsvpSchema,
 	adminPromoteRsvpSchema,
 	adminSetRsvpStatusSchema,
 	confirmRsvpSchema,
-} from "../schemas";
-import { CoreSetting } from "../settings";
-import type { AuthId, Rsvp } from "../types";
+} from "../schemas.js";
+import { CoreSetting } from "../settings.js";
+import type { AuthId, Rsvp } from "../types.js";
 
 export type RsvpSummary = {
 	isOpen: boolean;
@@ -24,7 +26,7 @@ export type RsvpSummary = {
 
 export type RsvpApiContext = Pick<
 	HackkitRuntimeContext,
-	| "db"
+	| "em"
 	| "now"
 	| "logger"
 	| "getUserOrThrow"
@@ -54,13 +56,15 @@ function sortWaitlist(rsvps: readonly Rsvp[]): Rsvp[] {
 	});
 }
 
-const clearNumber = null as unknown as number;
-const clearString = null as unknown as string;
-const clearDate = null as unknown as Date;
-
 export function createRsvpApi(context: RsvpApiContext) {
-	const { db, now, logger, getUserOrThrow, getSettingValue, requirePermission } =
-		context;
+	const {
+		em,
+		now,
+		logger,
+		getUserOrThrow,
+		getSettingValue,
+		requirePermission,
+	} = context;
 
 	async function getSettings() {
 		const [isOpen, limit, waitlistEnabled] = await Promise.all([
@@ -76,14 +80,21 @@ export function createRsvpApi(context: RsvpApiContext) {
 	}
 
 	async function listAll(): Promise<Rsvp[]> {
-		return db.findMany(coreModels.rsvp, {
-			orderBy: { field: "createdAt", direction: "asc" },
-		});
+		return serialize(
+			await em.find(
+				coreModels.rsvp,
+				{},
+				{ orderBy: { createdAt: "asc" } },
+			),
+		);
 	}
 
 	async function nextWaitlistPosition(): Promise<number> {
 		const waitlist = sortWaitlist(await listAll());
-		return Math.max(0, ...waitlist.map((rsvp) => rsvp.waitlistPosition ?? 0)) + 1;
+		return (
+			Math.max(0, ...waitlist.map((rsvp) => rsvp.waitlistPosition ?? 0)) +
+			1
+		);
 	}
 
 	async function assertApprovedHacker(authId: AuthId): Promise<void> {
@@ -94,7 +105,7 @@ export function createRsvpApi(context: RsvpApiContext) {
 				"Only approved hackers can RSVP.",
 			);
 		}
-		const hacker = await db.findOne(coreModels.hacker, { authId });
+		const hacker = await em.findOne(coreModels.hacker, { authId });
 		if (!hacker) {
 			throw new HackKitError(
 				"INVALID_OPERATION",
@@ -135,11 +146,18 @@ export function createRsvpApi(context: RsvpApiContext) {
 		for (const [index, rsvp] of waitlist.entries()) {
 			const position = index + 1;
 			if (rsvp.waitlistPosition === position) continue;
-			await db.update(
-				coreModels.rsvp,
-				{ authId: rsvp.authId },
-				{ waitlistPosition: position, updatedAt: now() },
-			);
+			{
+				const updatedRows = await em.find(coreModels.rsvp, {
+					authId: rsvp.authId,
+				});
+				for (const row of updatedRows)
+					em.assign(
+						row,
+						{ waitlistPosition: position, updatedAt: now() },
+						{ ignoreUndefined: true },
+					);
+				await em.flush();
+			}
 		}
 	}
 
@@ -147,7 +165,7 @@ export function createRsvpApi(context: RsvpApiContext) {
 		authId: AuthId,
 		patch: Partial<Rsvp>,
 	): Promise<Rsvp> {
-		const existing = await db.findOne(coreModels.rsvp, { authId });
+		const existing = await em.findOne(coreModels.rsvp, { authId });
 		const timestamp = now();
 		const value = {
 			...patch,
@@ -155,15 +173,23 @@ export function createRsvpApi(context: RsvpApiContext) {
 			updatedAt: timestamp,
 		};
 		if (!existing) {
-			return db.insert(coreModels.rsvp, {
-				status: "confirmed",
-				createdAt: timestamp,
-				...value,
-			});
+			{
+				const created = em.create(coreModels.rsvp, {
+					status: "confirmed",
+					createdAt: timestamp,
+					...value,
+				});
+				await em.flush();
+				return serialize(created);
+			}
 		}
-		const [updated] = await db.update(coreModels.rsvp, { authId }, value);
+		const updated = await em.findOne(coreModels.rsvp, { authId });
+		if (updated) {
+			em.assign(updated, value, { ignoreUndefined: true });
+			await em.flush();
+		}
 		if (!updated) throw new HackKitError("NOT_FOUND", "RSVP not found.");
-		return updated;
+		return serialize(updated);
 	}
 
 	async function getSummary(): Promise<RsvpSummary> {
@@ -179,7 +205,8 @@ export function createRsvpApi(context: RsvpApiContext) {
 			waitlistEnabled,
 			confirmedCount,
 			waitlistedCount,
-			availableSpots: limit === 0 ? null : Math.max(0, limit - confirmedCount),
+			availableSpots:
+				limit === 0 ? null : Math.max(0, limit - confirmedCount),
 		};
 	}
 
@@ -187,178 +214,218 @@ export function createRsvpApi(context: RsvpApiContext) {
 		getSummary,
 
 		async getRsvp(authId: AuthId): Promise<Rsvp | null> {
-			return db.findOne(coreModels.rsvp, { authId });
+			const record = await em.findOne(coreModels.rsvp, { authId });
+			return record ? serialize(record) : null;
 		},
 
 		async listRsvps(input?: { actorAuthId?: AuthId }): Promise<Rsvp[]> {
 			if (input?.actorAuthId) {
-				await requirePermission(input.actorAuthId, CorePermission.UsersView);
+				await requirePermission(
+					input.actorAuthId,
+					CorePermission.UsersView,
+				);
 			}
 			return listAll();
 		},
 
 		async confirm(input: unknown): Promise<Rsvp> {
-			const parsed = parseInput(confirmRsvpSchema, input);
-			return withDomainLog(
-				logger,
-				"rsvp.confirm",
-				{ targetAuthId: parsed.authId },
-				async () => {
-					await assertApprovedHacker(parsed.authId);
-					const settings = await getSettings();
-					if (!settings.isOpen) {
-						throw new HackKitError("INVALID_OPERATION", "RSVPs are closed.");
-					}
-					const existing = await db.findOne(coreModels.rsvp, {
-						authId: parsed.authId,
-					});
-					if (existing && existing.status !== "cancelled") return existing;
-
-					const active = activeRsvps(await listAll());
-					const confirmedCount = confirmedRsvps(active).length;
-					const timestamp = now();
-					const hasCapacity =
-						settings.limit === 0 || confirmedCount < settings.limit;
-
-					let rsvp: Rsvp;
-					if (hasCapacity) {
-						rsvp = await writeRsvp(parsed.authId, {
-							status: "confirmed",
-							waitlistPosition: clearNumber,
-							confirmedAt: timestamp,
-							waitlistedAt: clearDate,
-							cancelledAt: clearDate,
-							cancelledByAuthId: clearString,
+			return withOperationLock(em, "rsvp", async () => {
+				const parsed = parseInput(confirmRsvpSchema, input);
+				return withDomainLog(
+					logger,
+					"rsvp.confirm",
+					{ targetAuthId: parsed.authId },
+					async () => {
+						await assertApprovedHacker(parsed.authId);
+						const settings = await getSettings();
+						if (!settings.isOpen) {
+							throw new HackKitError(
+								"INVALID_OPERATION",
+								"RSVPs are closed.",
+							);
+						}
+						const existing = await em.findOne(coreModels.rsvp, {
+							authId: parsed.authId,
 						});
-					} else if (settings.waitlistEnabled) {
-						rsvp = await writeRsvp(parsed.authId, {
-							status: "waitlisted",
-							waitlistPosition: await nextWaitlistPosition(),
-							waitlistedAt: timestamp,
-							confirmedAt: clearDate,
-							cancelledAt: clearDate,
-							cancelledByAuthId: clearString,
-						});
-					} else {
-						throw new HackKitError(
-							"INVALID_OPERATION",
-							"RSVP capacity has been reached.",
-						);
-					}
+						if (existing && existing.status !== "cancelled")
+							return serialize(existing);
 
-					await queueRsvpIntent(rsvp);
-					return rsvp;
-				},
-			);
+						const active = activeRsvps(await listAll());
+						const confirmedCount = confirmedRsvps(active).length;
+						const timestamp = now();
+						const hasCapacity =
+							settings.limit === 0 ||
+							confirmedCount < settings.limit;
+
+						let rsvp: Rsvp;
+						if (hasCapacity) {
+							rsvp = await writeRsvp(parsed.authId, {
+								status: "confirmed",
+								waitlistPosition: null,
+								confirmedAt: timestamp,
+								waitlistedAt: null,
+								cancelledAt: null,
+								cancelledByAuthId: null,
+							});
+						} else if (settings.waitlistEnabled) {
+							rsvp = await writeRsvp(parsed.authId, {
+								status: "waitlisted",
+								waitlistPosition: await nextWaitlistPosition(),
+								waitlistedAt: timestamp,
+								confirmedAt: null,
+								cancelledAt: null,
+								cancelledByAuthId: null,
+							});
+						} else {
+							throw new HackKitError(
+								"INVALID_OPERATION",
+								"RSVP capacity has been reached.",
+							);
+						}
+
+						await queueRsvpIntent(rsvp);
+						return rsvp;
+					},
+				);
+			});
 		},
 
 		async cancel(input: unknown): Promise<Rsvp> {
-			const parsed = parseInput(adminCancelRsvpSchema, input);
-			return withDomainLog(
-				logger,
-				"rsvp.cancel",
-				{
-					actorAuthId: parsed.actorAuthId,
-					targetAuthId: parsed.targetAuthId,
-				},
-				async () => {
-					await requirePermission(parsed.actorAuthId, CorePermission.UsersApprove);
-					await getUserOrThrow(parsed.targetAuthId);
-					const timestamp = now();
-					const rsvp = await writeRsvp(parsed.targetAuthId, {
-						status: "cancelled",
-						waitlistPosition: clearNumber,
-						cancelledAt: timestamp,
-						cancelledByAuthId: parsed.actorAuthId,
-					});
-					await renumberWaitlist();
-					return rsvp;
-				},
-			);
+			return withOperationLock(em, "rsvp", async () => {
+				const parsed = parseInput(adminCancelRsvpSchema, input);
+				return withDomainLog(
+					logger,
+					"rsvp.cancel",
+					{
+						actorAuthId: parsed.actorAuthId,
+						targetAuthId: parsed.targetAuthId,
+					},
+					async () => {
+						await requirePermission(
+							parsed.actorAuthId,
+							CorePermission.UsersApprove,
+						);
+						await getUserOrThrow(parsed.targetAuthId);
+						const timestamp = now();
+						const rsvp = await writeRsvp(parsed.targetAuthId, {
+							status: "cancelled",
+							waitlistPosition: null,
+							cancelledAt: timestamp,
+							cancelledByAuthId: parsed.actorAuthId,
+						});
+						await renumberWaitlist();
+						return rsvp;
+					},
+				);
+			});
 		},
 
 		async setStatus(input: unknown): Promise<Rsvp> {
-			const parsed = parseInput(adminSetRsvpStatusSchema, input);
-			return withDomainLog(
-				logger,
-				"rsvp.setStatus",
-				{
-					actorAuthId: parsed.actorAuthId,
-					targetAuthId: parsed.targetAuthId,
-				},
-				async () => {
-					await requirePermission(parsed.actorAuthId, CorePermission.UsersApprove);
-					await assertApprovedHacker(parsed.targetAuthId);
-					const timestamp = now();
-					const patch: Partial<Rsvp> =
-						parsed.status === "confirmed"
-							? {
-									status: "confirmed",
-									waitlistPosition: clearNumber,
-									confirmedAt: timestamp,
-									cancelledAt: clearDate,
-									cancelledByAuthId: clearString,
-								}
-							: parsed.status === "waitlisted"
+			return withOperationLock(em, "rsvp", async () => {
+				const parsed = parseInput(adminSetRsvpStatusSchema, input);
+				return withDomainLog(
+					logger,
+					"rsvp.setStatus",
+					{
+						actorAuthId: parsed.actorAuthId,
+						targetAuthId: parsed.targetAuthId,
+					},
+					async () => {
+						await requirePermission(
+							parsed.actorAuthId,
+							CorePermission.UsersApprove,
+						);
+						await assertApprovedHacker(parsed.targetAuthId);
+						const timestamp = now();
+						const patch: Partial<Rsvp> =
+							parsed.status === "confirmed"
 								? {
-										status: "waitlisted",
-										waitlistPosition: await nextWaitlistPosition(),
-										waitlistedAt: timestamp,
-										cancelledAt: clearDate,
-										cancelledByAuthId: clearString,
+										status: "confirmed",
+										waitlistPosition: null,
+										confirmedAt: timestamp,
+										cancelledAt: null,
+										cancelledByAuthId: null,
 									}
-								: {
-										status: "cancelled",
-										waitlistPosition: clearNumber,
-										cancelledAt: timestamp,
-										cancelledByAuthId: parsed.actorAuthId,
-									};
-					const rsvp = await writeRsvp(parsed.targetAuthId, patch);
-					await renumberWaitlist();
-					await queueRsvpIntent(rsvp);
-					return rsvp;
-				},
-			);
+								: parsed.status === "waitlisted"
+									? {
+											status: "waitlisted",
+											waitlistPosition:
+												await nextWaitlistPosition(),
+											waitlistedAt: timestamp,
+											cancelledAt: null,
+											cancelledByAuthId: null,
+										}
+									: {
+											status: "cancelled",
+											waitlistPosition: null,
+											cancelledAt: timestamp,
+											cancelledByAuthId:
+												parsed.actorAuthId,
+										};
+						const rsvp = await writeRsvp(
+							parsed.targetAuthId,
+							patch,
+						);
+						await renumberWaitlist();
+						await queueRsvpIntent(rsvp);
+						return rsvp;
+					},
+				);
+			});
 		},
 
 		async promote(input: unknown): Promise<Rsvp> {
-			const parsed = parseInput(adminPromoteRsvpSchema, input);
-			return withDomainLog(
-				logger,
-				"rsvp.promote",
-				{ actorAuthId: parsed.actorAuthId, targetAuthId: parsed.targetAuthId },
-				async () => {
-					await requirePermission(parsed.actorAuthId, CorePermission.UsersApprove);
-					const summary = await getSummary();
-					if (summary.limit !== 0 && summary.confirmedCount >= summary.limit) {
-						throw new HackKitError(
-							"INVALID_OPERATION",
-							"RSVP capacity has been reached.",
+			return withOperationLock(em, "rsvp", async () => {
+				const parsed = parseInput(adminPromoteRsvpSchema, input);
+				return withDomainLog(
+					logger,
+					"rsvp.promote",
+					{
+						actorAuthId: parsed.actorAuthId,
+						targetAuthId: parsed.targetAuthId,
+					},
+					async () => {
+						await requirePermission(
+							parsed.actorAuthId,
+							CorePermission.UsersApprove,
 						);
-					}
-					const target = parsed.targetAuthId
-						? await db.findOne(coreModels.rsvp, {
-								authId: parsed.targetAuthId,
-								status: "waitlisted",
-							})
-						: sortWaitlist(await listAll())[0];
-					if (!target) {
-						throw new HackKitError("NOT_FOUND", "Waitlisted RSVP not found.");
-					}
-					await assertApprovedHacker(target.authId);
-					const timestamp = now();
-					const rsvp = await writeRsvp(target.authId, {
-						status: "confirmed",
-						waitlistPosition: clearNumber,
-						confirmedAt: timestamp,
-						promotedAt: timestamp,
-						promotedByAuthId: parsed.actorAuthId,
-					});
-					await renumberWaitlist();
-					await queueRsvpIntent(rsvp, parsed.actorAuthId);
-					return rsvp;
-				},
-			);
+						const summary = await getSummary();
+						if (
+							summary.limit !== 0 &&
+							summary.confirmedCount >= summary.limit
+						) {
+							throw new HackKitError(
+								"INVALID_OPERATION",
+								"RSVP capacity has been reached.",
+							);
+						}
+						const target = parsed.targetAuthId
+							? await em.findOne(coreModels.rsvp, {
+									authId: parsed.targetAuthId,
+									status: "waitlisted",
+								})
+							: sortWaitlist(await listAll())[0];
+						if (!target) {
+							throw new HackKitError(
+								"NOT_FOUND",
+								"Waitlisted RSVP not found.",
+							);
+						}
+						await assertApprovedHacker(target.authId);
+						const timestamp = now();
+						const rsvp = await writeRsvp(target.authId, {
+							status: "confirmed",
+							waitlistPosition: null,
+							confirmedAt: timestamp,
+							promotedAt: timestamp,
+							promotedByAuthId: parsed.actorAuthId,
+						});
+						await renumberWaitlist();
+						await queueRsvpIntent(rsvp, parsed.actorAuthId);
+						return rsvp;
+					},
+				);
+			});
 		},
 	};
 }

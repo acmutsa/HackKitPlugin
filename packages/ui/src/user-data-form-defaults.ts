@@ -1,4 +1,4 @@
-import type { UserData } from "@hackkit/core";
+import type { UserData } from "@hackkit/core/client";
 import type { UserDataFormValues } from "./types";
 
 export function toUserDataFormDefaultValues(
@@ -13,7 +13,7 @@ export function toUserDataFormDefaultValues(
 		dietaryRestrictions: userData.dietaryRestrictions,
 		accommodationNote: userData.accommodationNote ?? "",
 		phoneNumber: userData.phoneNumber ?? "",
-		countryOfResidence: userData.countryOfResidence,
+		countryOfResidence: userData.countryOfResidence ?? undefined,
 		hasAcceptedMLHCodeOfConduct: userData.hasAcceptedMLHCodeOfConduct,
 		hasSharedDataWithMLH: userData.hasSharedDataWithMLH,
 		isEmailable: userData.isEmailable,

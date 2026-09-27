@@ -1,12 +1,22 @@
 "use client";
 
 import * as React from "react";
-import type { AdminUserRecord, PermissionKey, Role } from "@hackkit/core";
-import { CorePermission } from "@hackkit/core";
+import type {
+	AdminUserRecord,
+	PermissionKey,
+	Role,
+} from "@hackkit/core/client";
+import { CorePermission } from "@hackkit/core/client";
 import { toast } from "sonner";
 import { useHackKitUI } from "../provider";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -43,13 +53,16 @@ export function AdminUserActions({
 	roles: Role[];
 }) {
 	const { actions, navigation } = useHackKitUI();
-	const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
+	const [pendingAction, setPendingAction] =
+		React.useState<PendingAction>(null);
 	const [roleId, setRoleId] = React.useState(record.user.roleId ?? "");
 	const [banReason, setBanReason] = React.useState(record.ban?.reason ?? "");
 
 	async function run<T>(
 		action: PendingAction,
-		task: () => Promise<{ ok: true; data: T } | { ok: false; message: string }>,
+		task: () => Promise<
+			{ ok: true; data: T } | { ok: false; message: string }
+		>,
 		successMessage: string,
 	) {
 		setPendingAction(action);
@@ -67,7 +80,9 @@ export function AdminUserActions({
 		<Card className="h-fit">
 			<CardHeader>
 				<CardTitle>Admin Actions</CardTitle>
-				<CardDescription>Approval, suspension, and role controls.</CardDescription>
+				<CardDescription>
+					Approval, suspension, and role controls.
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="space-y-2">
@@ -84,11 +99,15 @@ export function AdminUserActions({
 										targetAuthId: record.user.authId,
 										approved: !record.user.isApproved,
 									}),
-								record.user.isApproved ? "Approval removed." : "User approved.",
+								record.user.isApproved
+									? "Approval removed."
+									: "User approved.",
 							)
 						}
 					>
-						{record.user.isApproved ? "Unapprove User" : "Approve User"}
+						{record.user.isApproved
+							? "Unapprove User"
+							: "Approve User"}
 					</Button>
 				</div>
 
@@ -141,7 +160,10 @@ export function AdminUserActions({
 								onClick={() =>
 									run(
 										"unban",
-										() => actions.unbanUser(record.user.authId),
+										() =>
+											actions.unbanUser(
+												record.user.authId,
+											),
 										"User reinstated.",
 									)
 								}
@@ -154,7 +176,9 @@ export function AdminUserActions({
 							<Textarea
 								id="ban-reason"
 								value={banReason}
-								onChange={(event) => setBanReason(event.currentTarget.value)}
+								onChange={(event) =>
+									setBanReason(event.currentTarget.value)
+								}
 								placeholder="Reason visible to admins"
 							/>
 							<Button
@@ -166,8 +190,11 @@ export function AdminUserActions({
 										"ban",
 										() =>
 											actions.banUser({
-												targetAuthId: record.user.authId,
-												reason: banReason.trim() || undefined,
+												targetAuthId:
+													record.user.authId,
+												reason:
+													banReason.trim() ||
+													undefined,
 											}),
 										"User suspended.",
 									)
@@ -224,11 +251,15 @@ export function AdminUserActions({
 						<Button
 							type="button"
 							variant="outline"
-							disabled={pendingAction === "rsvpPromote" || record.rsvp?.status !== "waitlisted"}
+							disabled={
+								pendingAction === "rsvpPromote" ||
+								record.rsvp?.status !== "waitlisted"
+							}
 							onClick={() =>
 								run(
 									"rsvpPromote",
-									() => actions.promoteRsvp(record.user.authId),
+									() =>
+										actions.promoteRsvp(record.user.authId),
 									"Waitlisted RSVP promoted.",
 								)
 							}
@@ -238,11 +269,14 @@ export function AdminUserActions({
 						<Button
 							type="button"
 							variant="outline"
-							disabled={pendingAction === "rsvpCancel" || !record.rsvp}
+							disabled={
+								pendingAction === "rsvpCancel" || !record.rsvp
+							}
 							onClick={() =>
 								run(
 									"rsvpCancel",
-									() => actions.cancelRsvp(record.user.authId),
+									() =>
+										actions.cancelRsvp(record.user.authId),
 									"RSVP cancelled.",
 								)
 							}
@@ -272,11 +306,14 @@ export function AdminRoleManager({
 	permissions?: string[];
 }) {
 	const { actions, navigation } = useHackKitUI();
-	const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
+	const [pendingAction, setPendingAction] =
+		React.useState<PendingAction>(null);
 	const [name, setName] = React.useState("");
 	const [position, setPosition] = React.useState(roles.length + 1);
 	const [color, setColor] = React.useState("");
-	const [selectedPermissions, setSelectedPermissions] = React.useState<PermissionKey[]>([]);
+	const [selectedPermissions, setSelectedPermissions] = React.useState<
+		PermissionKey[]
+	>([]);
 
 	function togglePermission(permission: PermissionKey, checked: boolean) {
 		setSelectedPermissions((existing) =>
@@ -340,7 +377,9 @@ export function AdminRoleManager({
 			<Card className="h-fit">
 				<CardHeader>
 					<CardTitle>Create Role</CardTitle>
-					<CardDescription>Add a role with explicit permissions.</CardDescription>
+					<CardDescription>
+						Add a role with explicit permissions.
+					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<form className="space-y-4" onSubmit={createRole}>
@@ -349,7 +388,9 @@ export function AdminRoleManager({
 							<Input
 								id="role-name"
 								value={name}
-								onChange={(event) => setName(event.currentTarget.value)}
+								onChange={(event) =>
+									setName(event.currentTarget.value)
+								}
 								required
 							/>
 						</div>
@@ -362,7 +403,9 @@ export function AdminRoleManager({
 									min={0}
 									value={position}
 									onChange={(event) =>
-										setPosition(event.currentTarget.valueAsNumber)
+										setPosition(
+											event.currentTarget.valueAsNumber,
+										)
 									}
 									required
 								/>
@@ -372,7 +415,9 @@ export function AdminRoleManager({
 								<Input
 									id="role-color"
 									value={color}
-									onChange={(event) => setColor(event.currentTarget.value)}
+									onChange={(event) =>
+										setColor(event.currentTarget.value)
+									}
 									placeholder="#2563eb"
 								/>
 							</div>
@@ -396,14 +441,18 @@ export function AdminRoleManager({
 												)
 											}
 										/>
-										<span className="font-mono">{permission}</span>
+										<span className="font-mono">
+											{permission}
+										</span>
 									</label>
 								))}
 							</div>
 						</div>
 						<Button
 							type="submit"
-							disabled={!name.trim() || pendingAction === "createRole"}
+							disabled={
+								!name.trim() || pendingAction === "createRole"
+							}
 						>
 							Create Role
 						</Button>
@@ -431,9 +480,9 @@ function RoleEditor({
 	const [name, setName] = React.useState(role.name);
 	const [position, setPosition] = React.useState(role.position);
 	const [color, setColor] = React.useState(role.color ?? "");
-	const [selectedPermissions, setSelectedPermissions] = React.useState<PermissionKey[]>(
-		role.permissions,
-	);
+	const [selectedPermissions, setSelectedPermissions] = React.useState<
+		PermissionKey[]
+	>(role.permissions);
 	const actionId = `updateRole:${role.id}` as const;
 
 	function togglePermission(permission: PermissionKey, checked: boolean) {
@@ -469,7 +518,8 @@ function RoleEditor({
 				<div>
 					<CardTitle>{role.name}</CardTitle>
 					<CardDescription>
-						Position {role.position} · {role.permissions.length} permissions
+						Position {role.position} · {role.permissions.length}{" "}
+						permissions
 					</CardDescription>
 				</div>
 				<Button
@@ -489,27 +539,39 @@ function RoleEditor({
 							<Input
 								id={`role-name-${role.id}`}
 								value={name}
-								onChange={(event) => setName(event.currentTarget.value)}
+								onChange={(event) =>
+									setName(event.currentTarget.value)
+								}
 								required
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor={`role-position-${role.id}`}>Position</Label>
+							<Label htmlFor={`role-position-${role.id}`}>
+								Position
+							</Label>
 							<Input
 								id={`role-position-${role.id}`}
 								type="number"
 								min={0}
 								value={position}
-								onChange={(event) => setPosition(event.currentTarget.valueAsNumber)}
+								onChange={(event) =>
+									setPosition(
+										event.currentTarget.valueAsNumber,
+									)
+								}
 								required
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor={`role-color-${role.id}`}>Color</Label>
+							<Label htmlFor={`role-color-${role.id}`}>
+								Color
+							</Label>
 							<Input
 								id={`role-color-${role.id}`}
 								value={color}
-								onChange={(event) => setColor(event.currentTarget.value)}
+								onChange={(event) =>
+									setColor(event.currentTarget.value)
+								}
 							/>
 						</div>
 					</div>
@@ -517,14 +579,24 @@ function RoleEditor({
 						<Label>Permissions</Label>
 						<div className="grid gap-2 rounded-md border p-3 sm:grid-cols-2">
 							{permissions.map((permission) => (
-								<label key={permission} className="flex items-center gap-2 text-sm">
+								<label
+									key={permission}
+									className="flex items-center gap-2 text-sm"
+								>
 									<Checkbox
-										checked={selectedPermissions.includes(permission as PermissionKey)}
+										checked={selectedPermissions.includes(
+											permission as PermissionKey,
+										)}
 										onCheckedChange={(checked) =>
-											togglePermission(permission as PermissionKey, checked === true)
+											togglePermission(
+												permission as PermissionKey,
+												checked === true,
+											)
 										}
 									/>
-									<span className="font-mono">{permission}</span>
+									<span className="font-mono">
+										{permission}
+									</span>
 								</label>
 							))}
 						</div>

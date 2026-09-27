@@ -12,8 +12,13 @@
 
 -   TypeScript
 -   Next.js
--   Drizzle ORM
+-   MikroORM
+-   Better Auth
 -   Tailwind CSS
+
+## Development
+
+See [the reference app setup](apps/web/README.md) and [the persistence decision](docs/adr/0013-mikroorm-and-core-auth.md). This migration targets fresh databases.
 
 ## Join The Team
 

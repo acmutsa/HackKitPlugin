@@ -1,6 +1,6 @@
 import net from "node:net";
 import tls from "node:tls";
-import type { EmailMessage, EmailProvider } from "./api";
+import type { EmailMessage, EmailProvider } from "./api.js";
 
 export type ResendEmailProviderOptions = {
 	apiKey: string;
@@ -41,14 +41,19 @@ export function createResendEmailProvider(
 					}),
 				},
 			);
-			const body = parseResendResponse(await response.json().catch(() => ({})));
+			const body = parseResendResponse(
+				await response.json().catch(() => ({})),
+			);
 			if (!response.ok) {
 				throw new Error(
 					body.error?.message ??
 						`Resend email request failed with ${response.status}.`,
 				);
 			}
-			return { id: body.id, metadata: { providerStatus: response.status } };
+			return {
+				id: body.id,
+				metadata: { providerStatus: response.status },
+			};
 		},
 	};
 }
@@ -112,7 +117,11 @@ class SmtpClient {
 	static connect(options: SmtpEmailProviderOptions): Promise<SmtpClient> {
 		const port = options.port ?? (options.secure ? 465 : 587);
 		const socket = options.secure
-			? tls.connect({ host: options.host, port, servername: options.host })
+			? tls.connect({
+					host: options.host,
+					port,
+					servername: options.host,
+				})
 			: net.connect({ host: options.host, port });
 		return new Promise((resolve, reject) => {
 			socket.once("error", reject);
@@ -149,7 +158,10 @@ class SmtpClient {
 		});
 	}
 
-	async command(command: string, expected: readonly number[]): Promise<string> {
+	async command(
+		command: string,
+		expected: readonly number[],
+	): Promise<string> {
 		this.socket.write(`${command}\r\n`);
 		const response = await this.readResponse();
 		const code = Number(response.slice(0, 3));
@@ -166,7 +178,9 @@ class SmtpClient {
 		});
 		return new Promise((resolve, reject) => {
 			secureSocket.once("error", reject);
-			secureSocket.once("secureConnect", () => resolve(new SmtpClient(secureSocket)));
+			secureSocket.once("secureConnect", () =>
+				resolve(new SmtpClient(secureSocket)),
+			);
 		});
 	}
 }
@@ -191,8 +205,14 @@ export function createSmtpEmailProvider(
 				await client.command(encodeBase64(options.username), [334]);
 				await client.command(encodeBase64(options.password), [235]);
 			}
-			await client.command(`MAIL FROM:<${normalizeAddress(message.from)}>`, [250]);
-			await client.command(`RCPT TO:<${normalizeAddress(message.to)}>`, [250, 251]);
+			await client.command(
+				`MAIL FROM:<${normalizeAddress(message.from)}>`,
+				[250],
+			);
+			await client.command(
+				`RCPT TO:<${normalizeAddress(message.to)}>`,
+				[250, 251],
+			);
 			await client.command("DATA", [354]);
 			await client.command(`${buildSmtpMessage(message)}\r\n.`, [250]);
 			await client.command("QUIT", [221]);

@@ -1,9 +1,6 @@
 import type { HackKitPlugin } from "@hackkit/core";
-import {
-	createDiscordApi,
-	type DiscordPluginOptions,
-} from "./api";
-import { discordModels } from "./models";
+import { createDiscordApi, type DiscordPluginOptions } from "./api.js";
+import { discordModels } from "./models.js";
 
 export function discordPlugin(
 	options: DiscordPluginOptions,
@@ -13,19 +10,18 @@ export function discordPlugin(
 		packageName: "@hackkit/plugin-discord",
 		actionFactory: "createDiscordActions",
 		actionNames: ["confirmDiscordVerification", "syncDiscordMemberRoles"],
-		models: discordModels,
+		entities: Object.values(discordModels),
 		setup: (context) => createDiscordApi(context, options),
 	};
 }
 
-export { createDiscordActions } from "./actions";
-export { createDiscordApi } from "./api";
-export { discordModels } from "./models";
-export { createDiscordHttpRoleSyncProvider } from "./providers";
+export { createDiscordApi } from "./api.js";
+export { discordModels } from "./models.js";
+export { createDiscordHttpRoleSyncProvider } from "./providers.js";
 export type {
 	ConfirmDiscordVerificationInput,
 	DiscordActions,
-} from "./actions";
+} from "./actions.js";
 export type {
 	CreateDiscordVerificationInput,
 	DiscordApi,
@@ -34,10 +30,10 @@ export type {
 	DiscordRoleSyncInput,
 	DiscordRoleSyncPlan,
 	DiscordRoleSyncProvider,
-} from "./api";
+} from "./api.js";
 export type {
 	DiscordMember,
 	DiscordRoleSyncAttempt,
 	DiscordVerification,
-} from "./models";
-export type { DiscordHttpRoleSyncProviderOptions } from "./providers";
+} from "./models.js";
+export type { DiscordHttpRoleSyncProviderOptions } from "./providers.js";

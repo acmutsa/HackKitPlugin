@@ -1,54 +1,95 @@
-import { defineModel, field } from "@hackkit/core";
+import {
+	defineEntity,
+	p,
+	type EntityDTO,
+	type InferEntity,
+} from "@mikro-orm/core";
+import { HackKitProfile } from "@hackkit/core";
+
+export const TeamsTeam = defineEntity({
+	name: "TeamsTeam",
+	tableName: "teams_team",
+	properties: {
+		id: p
+			.string()
+			.primary()
+			.onCreate(() => crypto.randomUUID()),
+		name: p.string(),
+		tag: p.string().unique(),
+		ownerAuthId: () =>
+			p
+				.manyToOne(HackKitProfile)
+				.mapToPk()
+				.fieldName("owner_auth_id")
+				.deleteRule("cascade"),
+		createdAt: p.datetime().onCreate(() => new Date()),
+	},
+	indexes: [{ properties: ["tag"] }, { properties: ["ownerAuthId"] }],
+});
+
+export const TeamsMember = defineEntity({
+	name: "TeamsMember",
+	tableName: "teams_member",
+	properties: {
+		id: p
+			.string()
+			.primary()
+			.onCreate(() => crypto.randomUUID()),
+		teamId: () =>
+			p
+				.manyToOne(TeamsTeam)
+				.mapToPk()
+				.fieldName("team_id")
+				.deleteRule("cascade"),
+		authId: () =>
+			p
+				.manyToOne(HackKitProfile)
+				.mapToPk()
+				.fieldName("auth_id")
+				.unique()
+				.deleteRule("cascade"),
+		joinedAt: p.datetime().onCreate(() => new Date()),
+	},
+	indexes: [{ properties: ["teamId"] }, { properties: ["authId"] }],
+});
+
+export const TeamsInvite = defineEntity({
+	name: "TeamsInvite",
+	tableName: "teams_invite",
+	properties: {
+		id: p
+			.string()
+			.primary()
+			.onCreate(() => crypto.randomUUID()),
+		teamId: () =>
+			p
+				.manyToOne(TeamsTeam)
+				.mapToPk()
+				.fieldName("team_id")
+				.deleteRule("cascade"),
+		inviteeAuthId: () =>
+			p
+				.manyToOne(HackKitProfile)
+				.mapToPk()
+				.fieldName("invitee_auth_id")
+				.deleteRule("cascade"),
+		status: p
+			.enum(["pending", "accepted", "declined"] as const)
+			.default("pending"),
+		createdAt: p.datetime().onCreate(() => new Date()),
+	},
+	indexes: [
+		{ properties: ["teamId"] },
+		{ properties: ["inviteeAuthId"] },
+		{ properties: ["teamId", "inviteeAuthId"] },
+	],
+});
 
 export const teamsModels = {
-	team: defineModel("teams.team", {
-		fields: {
-			id: field.string().primaryKey().defaultId(),
-			name: field.string(),
-			tag: field.string().unique(),
-			ownerAuthId: field
-				.string()
-				.references("core.user", "authId", { onDelete: "cascade" }),
-			createdAt: field.date().defaultNow(),
-		},
-		indexes: [["tag"], ["ownerAuthId"]],
-	}),
-	member: defineModel("teams.member", {
-		fields: {
-			id: field.string().primaryKey().defaultId(),
-			teamId: field
-				.string()
-				.references("teams.team", "id", { onDelete: "cascade" }),
-			authId: field
-				.string()
-				.unique()
-				.references("core.user", "authId", { onDelete: "cascade" }),
-			joinedAt: field.date().defaultNow(),
-		},
-		indexes: [["teamId"], ["authId"]],
-	}),
-	invite: defineModel("teams.invite", {
-		fields: {
-			id: field.string().primaryKey().defaultId(),
-			teamId: field
-				.string()
-				.references("teams.team", "id", { onDelete: "cascade" }),
-			inviteeAuthId: field
-				.string()
-				.references("core.user", "authId", { onDelete: "cascade" }),
-			status: field
-				.enum(["pending", "accepted", "declined"] as const)
-				.default("pending"),
-			createdAt: field.date().defaultNow(),
-		},
-		indexes: [["teamId"], ["inviteeAuthId"], ["teamId", "inviteeAuthId"]],
-	}),
+	team: TeamsTeam,
+	member: TeamsMember,
+	invite: TeamsInvite,
 } as const;
-
-export type Team = import("@hackkit/core").InferSelect<typeof teamsModels.team>;
-export type TeamMember = import("@hackkit/core").InferSelect<
-	typeof teamsModels.member
->;
-export type TeamInvite = import("@hackkit/core").InferSelect<
-	typeof teamsModels.invite
->;
+export type Team = EntityDTO<InferEntity<typeof TeamsTeam>>;
+export type TeamMember = EntityDTO<InferEntity<typeof TeamsMember>>;
+export type TeamInvite = EntityDTO<InferEntity<typeof TeamsInvite>>;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createLogger } from "../adapters/logger";
+import { createLogger } from "../adapters/logger.js";
 
 describe("HackKit Logger", () => {
 	it("respects minimum log level", () => {

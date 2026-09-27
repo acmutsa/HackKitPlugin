@@ -17,7 +17,7 @@ A replaceable component package that renders HackKit interfaces by consuming Hac
 _Avoid_: Web app, core
 
 **HackKit CLI**:
-A command-line tool for creating HackKit projects, managing plugin-provided project files, generating adapter-native schema, and explicitly seeding configured role data.
+A command-line tool for creating HackKit projects, managing plugin-provided project files, generating and explicitly applying app-owned MikroORM migrations, and explicitly seeding configured role data.
 _Avoid_: Runtime, core
 
 **HackKit Plugin**:
@@ -25,28 +25,21 @@ An extension passed to HackKit Core at creation time that may add capabilities, 
 _Avoid_: App fork, core patch
 
 **Auth ID**:
-The provider-issued identifier for the authenticated person using a HackKit application.
+The Better Auth user identifier for the authenticated person using a HackKit application.
 _Avoid_: Clerk ID, internal user ID, auth subject
 
-**Auth Adapter**:
-An integration boundary that translates an authentication provider's session and profile into HackKit's Auth ID and User identity fields.
-_Avoid_: HackKit Core auth system, session store
+**Core Authentication**:
+Better Auth constructed by Core, with app-supplied secrets, providers, origins, and options. Next owns HTTP and cookie integration.
 
-**Database Adapter**:
-An integration boundary that persists HackKit's canonical data models using a concrete database technology.
-_Avoid_: App schema mapper, repository bundle
+**MikroORM Entity**:
+A native `defineEntity` definition shared by runtime and migrations. Core, plugins, and apps contribute entities before ORM initialization.
 
-**Storage Schema**:
-An adapter-neutral description of HackKit model fields, constraints, and model relationships that database adapters compile into concrete storage schemas.
-_Avoid_: Drizzle schema, SQL migration, app-owned table mapping
-
-**Drizzle Database Adapter**:
-A Database Adapter that persists HackKit's canonical data models through Drizzle ORM.
-_Avoid_: Existing app database package, app schema mapper
+**Request Scope**:
+A fresh EntityManager and domain API set associated with one request, action, job, or CLI operation. Connections are shared; managed entity state is not.
 
 **HackKit Logger**:
 A replaceable logging boundary for HackKit runtime diagnostics and operational messages, configured when creating **HackKit Core** (similar in spirit to Better Auth’s built-in logger: levels, disable switch, optional custom `log` implementation).
-_Avoid_: Legacy `error_log` tables, **Audit Log**, **Auth Adapter** session storage
+_Avoid_: Legacy `error_log` tables, **Audit Log**, authentication session storage
 
 **Log Level**:
 The minimum severity a **HackKit Logger** emits: `debug`, `info`, `warn`, or `error`.
@@ -247,49 +240,29 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   **HackKit CLI** runs from a **HackKit Web App** project directory (not a monorepo root) and reads that app’s `hackkit.config.ts` for plugins and database settings.
 -   **HackKit CLI** uses the same **HackKit Logger** from `hackkit.config.ts` when run from a **HackKit Web App** directory, falling back to the environment-based default **Log Level** when `logger` is omitted.
 -   **HackKit CLI** may explicitly seed configured roles into the app database, but it does not assign those roles to users.
--   **HackKit CLI** may generate a concrete adapter-native schema file from merged **Storage Schema**, but it does not generate, apply, inspect, baseline, or roll back database migrations.
+-   **HackKit CLI** explicitly generates or applies app-owned MikroORM migrations from the same entity collection as runtime. Plugin sync and application startup never apply migrations.
 -   A **HackKit Plugin** may add capabilities to a **HackKit Web App** without changing **HackKit Core** source.
 -   **HackKit Core** accepts an optional **HackKit Logger** at creation time; when omitted, a default console **HackKit Logger** applies with a configurable **Log Level** defaulting to `info` in development and `warn` in production unless overridden.
 -   **HackKit Web Apps** may replace the default **HackKit Logger** with a custom implementation (for example forwarding to a hosted logging service) without changing **HackKit Core** source.
 -   **HackKit Core** emits operational messages for significant domain APIs (such as **Hacker Registration**, **Organiser Approval**, **Hackathon Check-in**) through the **HackKit Logger** at **Log Level**s such as `info` or `debug`; this is not a separate persisted **Audit Log** model in v1.
 -   **Log Context** for those messages includes action name, outcome, **Auth ID**s, relevant record ids, and error codes on failure; it excludes PII and form payloads.
 -   **Hackathon Setting** changes are emitted through the **HackKit Logger** with **Log Context** including the actor **Auth ID** and setting key, but v1 stores only the latest setting value rather than a persisted change history.
--   **HackKit Core** receives **HackKit Plugins** through `createHackkit`.
+-   **HackKit Core** receives **HackKit Plugins** through `initializeHackkit`.
 -   **HackKit Plugins** should be configured in one place so package-specific integration details stay contained inside plugin packages.
--   **HackKit Plugins** expose storage schema contributions using **Storage Schema** without requiring every plugin to implement every database dialect.
--   **Storage Schema** can express field-level single-column references between plugin models and **HackKit Core** models.
+-   **HackKit Plugins** contribute native MikroORM entities with namespaced table names and real relations to Core entities.
 -   **HackKit Core** owns **Notification Intents** and typed notification payloads; **Notification Channel Plugins** own channel-specific destination resolution, rendering, delivery, and **Notification Delivery Attempts**.
 -   **Notification Intents** are persisted before delivery so channel plugins may process them asynchronously and retry failed **Notification Delivery Attempts**.
 -   The **Email Notification Plugin** is configured as a **HackKit Plugin**; **HackKit Core** does not send email directly.
--   **Storage Schema** uses domain property names; database adapters map them to concrete column names.
--   Database adapters derive table names from namespaced model keys using deterministic naming conventions.
--   SQLite table names use a `hackkit_` prefix followed by namespace and snake-cased model name.
--   Database adapters map **Storage Schema** field names to snake_case column names by default.
--   Database adapters translate query inputs and returned records so **HackKit Core** only sees domain property names.
--   **Storage Schema** supports static default values and symbolic dynamic defaults such as creation timestamps and generated string IDs.
--   Database adapters apply **Storage Schema** defaults before inserting records to keep behavior consistent across dialects.
--   **HackKit Core** may still set domain timestamps and IDs explicitly in application behavior.
--   **Storage Schema** distinguishes integer fields from general numeric fields.
--   **Storage Schema** supports string enum fields for constrained domain values.
--   **Storage Schema** represents arrays and structured objects as JSON fields.
--   **Storage Schema** supports field-level and composite uniqueness constraints.
--   **Storage Schema** supports simple single-field and composite non-unique indexes.
--   Persistent model descriptors combine typed model identity with **Storage Schema** so model keys and storage definitions do not drift.
--   Persistent model record types are inferred from **Storage Schema** definitions.
--   **Storage Schema** distinguishes selected record types from insert input types so defaulted fields can be optional on insert and present after persistence.
--   Database adapters accept insert input types and return selected record types derived from persistent model descriptors.
--   Public Core record types such as **User**, **Role**, and **Hacker** are inferred aliases from Core model descriptors.
--   **HackKit Core** merges its base **Storage Schema** with **HackKit Plugin** storage schemas before initializing adapter factories.
--   **HackKit Core** initializes adapter factories with plugin contributions so applications do not pass plugin config to each adapter separately.
--   An **Auth Adapter** supplies **Auth IDs** and User identity fields to a **HackKit Web App** before it calls **HackKit Core**.
+-   Core, auth, enabled plugin, and app entities are collected before initialization. Duplicate names and tables fail initialization.
+-   Native entity metadata defines constraints, relations, defaults, and inferred DTO types. SQL column names use snake_case across dialects.
+-   Core and server plugins query a scoped EntityManager directly. Domain operations retain authorization and validation.
+-   Better Auth owns identity and email. The linked HackKit profile owns editable profile and domain state; signup creates both atomically, and session reads never overwrite the profile.
+-   Each request, action, job, and CLI operation gets a fresh identity map. Public domain results are plain DTOs.
 -   The **Better Auth** integration may forward **HackKit Logger** messages through Better Auth’s own `logger` configuration so a single custom `log` implementation in `hackkit.config.ts` covers auth and **HackKit Core** output.
 -   A **User Data** onboarding flow may display the authenticated **User** while collecting **User Data**.
 -   **HackKit UI** treats authenticated **User** information passed to forms as display context, not as authorization input.
--   A **Database Adapter** persists **HackKit Core** models using HackKit-owned canonical storage shapes.
--   The **Drizzle Database Adapter** supports SQLite/libSQL and PostgreSQL through dialect-specific entrypoints.
--   The **Drizzle Database Adapter** exposes dialect-specific entrypoints so each dialect can use native Drizzle schema definitions.
--   The **Drizzle Database Adapter** generates concrete Drizzle schema from merged **Storage Schema** while Drizzle Kit remains the application's migration tool.
--   The **HackKit Web App** commits separately generated HackKit and Better Auth schema files and delegates migration generation and application entirely to Drizzle Kit.
+-   **HackKit Web Apps** commit reviewed MikroORM migrations and snapshots for PostgreSQL, MySQL, and SQLite/libSQL. Generation, application, and seeding are explicit release steps.
+-   This redesign targets fresh databases; deployed data and existing accounts require a separately designed migration.
 -   A **Blob Storage Adapter** stores files outside **HackKit Core**; **HackKit Core** stores only **Stored File References** supplied by the **HackKit Web App**.
 -   **HackKit Web Apps** choose a **Blob Storage Adapter** implementation via configuration; local filesystem adapters suit development, S3-compatible adapters suit production.
 -   A **User** is identified by exactly one **Auth ID** in a HackKit application.
@@ -313,7 +286,7 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   **Hackathon Capacity**, not **Group** membership, controls how many **Hackers** may receive **Organiser Approval**.
 -   Organizers and judges are **Users** with **Roles**, not **Hackers**, unless they are also competing.
 -   A **User** has one **Role** in v1.
--   Completing **Hacker Registration** assigns the hackathon’s default competitor **Role** from `hackkit.config.ts`; auth sign-up and `ensureUser` do not assign a **Role** by themselves.
+-   Completing **Hacker Registration** assigns the hackathon’s default competitor **Role** from `hackkit.config.ts`; auth sign-up do not assign a **Role** by themselves.
 -   A **Role** grants zero or more **Permissions**.
 -   **Permissions** use namespaced keys so plugins can add capabilities without collisions.
 -   **Admin Permission** is represented by `core.admin`.
@@ -394,6 +367,6 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   Admin experiences should surface when the current **Hacker** or approved **Hacker** count exceeds the configured **Maximum Registrations** or **Hackathon Capacity**.
 -   Resume on **Hacker Registration** — resolved: optional `resumeUrl` only; no legacy “no resume provided” sentinel URL.
 -   **Hacker** `group` assignment — resolved: **Group** is a HackKit participant cohort assigned at **Organiser Approval** time by round-robin distribution unless an organizer has already assigned one; it is separate from **Team** and may map to Discord roles through a plugin.
--   Default competitor **Role** on onboarding — resolved: applied when **Hacker Registration** completes, not at auth/`ensureUser` (legacy-aligned).
+-   Default competitor **Role** on onboarding — resolved: applied when **Hacker Registration** completes, not at auth signup (legacy-aligned).
 -   **Hacker** vs **User** for **Event Pass** could mean competitors only — resolved: attendance uses **Auth ID** for any **User**, matching the original HackKit convention that all participants share one identity record.
 -   Legacy storage used one scan row per user and event with an incrementing count — resolved: HackKit Core stores each scan as a separate **Event Scan** row with its own identifier.
