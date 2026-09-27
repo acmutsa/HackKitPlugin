@@ -1,38 +1,15 @@
+import {
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "../testing.js";
 import { describe, expect, it } from "vitest";
-import { createPluginRegistry } from "../plugins";
-import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory";
-import { createHackkit } from "../hackkit";
-import { CorePermission } from "../permissions";
-import { CoreSetting } from "../settings";
-import { seedTestOwner } from "./seed-test-owner";
-
-function createTestHackkit(
-	options: {
-		defaultCompetitorRoleId?: string;
-	} = {},
-) {
-	const registry = createPluginRegistry();
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return Object.assign(
-		createHackkit({
-			database: db,
-			clock: now,
-			id,
-			defaultCompetitorRoleId: options.defaultCompetitorRoleId,
-		}),
-		{ database: db },
-	);
-}
+import { CorePermission } from "../permissions.js";
+import { CoreSetting } from "../settings.js";
+import { seedTestOwner } from "./seed-test-owner.js";
 
 async function seedParticipantRole(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit,
 	roleId = "core.participant",
 ) {
 	return hackkit.roles.createRole({
@@ -45,14 +22,14 @@ async function seedParticipantRole(
 }
 
 async function setRequireApproval(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit,
 	requireApproval: boolean,
 ) {
 	await setSetting(hackkit, CoreSetting.RequireApproval, requireApproval);
 }
 
 async function setSetting(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit,
 	key: CoreSetting,
 	value: boolean | number,
 ) {
@@ -64,11 +41,11 @@ async function setSetting(
 }
 
 async function seedUserWithData(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit,
 	authId = "hacker-auth",
 	hackTag = "hacker1",
 ) {
-	await hackkit.users.ensureUser({
+	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
 		firstName: "Hack",
@@ -92,10 +69,7 @@ async function seedUserWithData(
 	});
 }
 
-async function registerHacker(
-	hackkit: ReturnType<typeof createHackkit>,
-	authId = "hacker-auth",
-) {
+async function registerHacker(hackkit: TestHackkit, authId = "hacker-auth") {
 	return hackkit.hackers.registerHacker({
 		authId,
 		university: "Test U",
@@ -108,7 +82,7 @@ async function registerHacker(
 
 describe("registerHacker onboarding side effects", () => {
 	it("assigns default role and auto-approves when requireApproval is false", async () => {
-		const hackkit = createTestHackkit({
+		const hackkit = await createTestHackkit({
 			defaultCompetitorRoleId: "core.participant",
 		});
 		await seedTestOwner(hackkit, "admin-auth");
@@ -130,7 +104,7 @@ describe("registerHacker onboarding side effects", () => {
 	});
 
 	it("persists app-relative stored file references as resumeUrl", async () => {
-		const hackkit = createTestHackkit({
+		const hackkit = await createTestHackkit({
 			defaultCompetitorRoleId: "core.participant",
 		});
 		await seedTestOwner(hackkit, "admin-auth");
@@ -153,7 +127,7 @@ describe("registerHacker onboarding side effects", () => {
 	});
 
 	it("assigns default role but leaves user unapproved when requireApproval is true", async () => {
-		const hackkit = createTestHackkit({
+		const hackkit = await createTestHackkit({
 			defaultCompetitorRoleId: "core.participant",
 		});
 		await seedTestOwner(hackkit, "admin-auth");
@@ -176,7 +150,7 @@ describe("registerHacker onboarding side effects", () => {
 	});
 
 	it("blocks first-time Hacker Registration when registration is closed but allows updates", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "admin-auth");
 		await seedUserWithData(hackkit);
 
@@ -202,7 +176,7 @@ describe("registerHacker onboarding side effects", () => {
 	});
 
 	it("blocks new Hacker Registration after maximum registrations is reached", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "admin-auth");
 		await setSetting(hackkit, CoreSetting.MaximumRegistrations, 1);
 		await seedUserWithData(hackkit, "first-auth", "first");
@@ -217,7 +191,7 @@ describe("registerHacker onboarding side effects", () => {
 	});
 
 	it("blocks auto-approval when Hackathon Capacity is reached", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "admin-auth");
 		await setSetting(hackkit, CoreSetting.HackathonCapacity, 1);
 		await seedUserWithData(hackkit, "first-auth", "first");
@@ -232,7 +206,7 @@ describe("registerHacker onboarding side effects", () => {
 	});
 
 	it("blocks manual Organiser Approval when Hackathon Capacity is reached", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "admin-auth");
 		await setRequireApproval(hackkit, true);
 		await setSetting(hackkit, CoreSetting.HackathonCapacity, 1);

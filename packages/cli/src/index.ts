@@ -8,11 +8,8 @@ export type {
 } from "./config";
 export { runDbSeed } from "./db-seed";
 export type { DbSeedResult } from "./db-seed";
-export { runDbSchemaGenerate } from "./db-schema";
-export type {
-	DbSchemaGenerateOptions,
-	DbSchemaGenerateResult,
-} from "./db-schema";
+export { runDbMigrationGenerate, runDbMigrate } from "./db-migrations";
+export type { DbMigrationGenerateOptions } from "./db-migrations";
 export {
 	HACKKIT_LOCKFILE,
 	createEmptyLockfile,

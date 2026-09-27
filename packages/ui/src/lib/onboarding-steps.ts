@@ -1,4 +1,4 @@
-import type { Hacker, User, UserData } from "@hackkit/core";
+import type { Hacker, User, UserData } from "@hackkit/core/client";
 import {
 	DEFAULT_HACKKIT_UI_ROUTES,
 	type HackKitUIRoutes,
@@ -44,7 +44,9 @@ const STEP_LABELS: Record<CompetitorOnboardingStepId, string> = {
 	approval: "Approval",
 };
 
-function stepHrefs(routes: HackKitUIRoutes): Record<CompetitorOnboardingStepId, string> {
+function stepHrefs(
+	routes: HackKitUIRoutes,
+): Record<CompetitorOnboardingStepId, string> {
 	return {
 		hacktag: routes.onboarding.hacktag,
 		"user-data": routes.onboarding.userData,

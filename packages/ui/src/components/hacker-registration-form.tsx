@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { registerHackerSchema, type User } from "@hackkit/core";
+import { registerHackerSchema, type User } from "@hackkit/core/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";

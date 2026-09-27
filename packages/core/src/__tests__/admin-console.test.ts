@@ -1,33 +1,15 @@
+import {
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "../testing.js";
 import { describe, expect, it } from "vitest";
-import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory";
-import { createHackkit } from "../hackkit";
-import { CorePermission } from "../permissions";
-import { createPluginRegistry } from "../plugins";
-import { seedTestOwner } from "./seed-test-owner";
-
-function createTestHackkit() {
-	const registry = createPluginRegistry();
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return Object.assign(
-		createHackkit({
-			database: db,
-			clock: now,
-			id,
-		}),
-		{ database: db },
-	);
-}
+import { CorePermission } from "../permissions.js";
+import { seedTestOwner } from "./seed-test-owner.js";
 
 describe("admin console reads", () => {
 	it("hydrates admin user records and exports flattened rows", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		const ownerRole = await seedTestOwner(hackkit);
 		const hackerRole = await hackkit.roles.createRole({
 			actorAuthId: "owner-auth",
@@ -37,7 +19,7 @@ describe("admin console reads", () => {
 			permissions: [CorePermission.HackersRegister],
 		});
 
-		await hackkit.users.ensureUser({
+		await createTestUser(hackkit, {
 			authId: "participant-auth",
 			email: "participant@example.com",
 			firstName: "Pat",

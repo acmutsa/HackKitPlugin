@@ -20,9 +20,11 @@ export type RemoveMemberInput = {
 	memberAuthId: string;
 };
 
-import type { TeamsApi } from "./api";
+import type { TeamsApi } from "./api.js";
 
-export function createTeamsActions(runtime: HackkitRuntime) {
+export function createTeamsActions(
+	runtime: Pick<HackkitRuntime, "hackkit" | "getAuthId">,
+) {
 	const teams = runtime.hackkit.plugins.teams as unknown as TeamsApi;
 
 	return {
@@ -30,8 +32,8 @@ export function createTeamsActions(runtime: HackkitRuntime) {
 			try {
 				const actorAuthId = await runtime.getAuthId();
 				const team = await teams.createTeam({
-					actorAuthId,
 					...values,
+					actorAuthId,
 				});
 				return actionSuccess(team);
 			} catch (error) {
@@ -43,8 +45,8 @@ export function createTeamsActions(runtime: HackkitRuntime) {
 			try {
 				const actorAuthId = await runtime.getAuthId();
 				const invite = await teams.inviteToTeam({
-					actorAuthId,
 					...values,
+					actorAuthId,
 				});
 				return actionSuccess(invite);
 			} catch (error) {
@@ -56,8 +58,8 @@ export function createTeamsActions(runtime: HackkitRuntime) {
 			try {
 				const actorAuthId = await runtime.getAuthId();
 				const result = await teams.respondToInvite({
-					actorAuthId,
 					...values,
+					actorAuthId,
 				});
 				return actionSuccess(result);
 			} catch (error) {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HackKitError } from "./errors";
+import { HackKitError } from "./errors.js";
 
 export type UserDataOption = {
 	value: string;
@@ -158,11 +158,9 @@ export function createCompleteUserDataSchema(options: UserDataOptions) {
 		),
 		dietaryRestrictions: z
 			.array(
-				z
-					.string()
-					.refine((value) => dietaryValues.has(value), {
-						message: "Select a valid dietary restriction.",
-					}),
+				z.string().refine((value) => dietaryValues.has(value), {
+					message: "Select a valid dietary restriction.",
+				}),
 			)
 			.default([]),
 		accommodationNote: z.string().optional(),

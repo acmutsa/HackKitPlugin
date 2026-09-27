@@ -1,11 +1,13 @@
+import {
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "@hackkit/core/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	CorePermission,
 	CoreSetting,
 	coreModels,
-	createHackkit,
-	createInMemoryDatabaseAdapterFromStorage,
-	createPluginRegistry,
 	seedRoles,
 	type HackKit,
 } from "@hackkit/core";
@@ -28,28 +30,9 @@ vi.mock("next/navigation", () => ({
 
 import { createPageGuards } from "../page-guards";
 
-function createTestHackkit() {
-	const registry = createPluginRegistry();
-	let timestamp = 0;
-	const now = () =>
-		new Date(
-			`2026-05-24T12:00:${String(timestamp++).padStart(2, "0")}.000Z`,
-		);
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return Object.assign(createHackkit({ database: db, clock: now, id }), {
-		database: db,
-	});
-}
-
-async function seedOwner(hackkit: ReturnType<typeof createTestHackkit>) {
+async function seedOwner(hackkit: TestHackkit) {
 	await seedRoles({
-		database: hackkit.database,
+		em: hackkit.em,
 		roles: [
 			{
 				id: "core.owner",
@@ -59,20 +42,24 @@ async function seedOwner(hackkit: ReturnType<typeof createTestHackkit>) {
 			},
 		],
 	});
-	await hackkit.users.ensureUser({
+	await createTestUser(hackkit, {
 		authId: "admin-auth",
 		email: "admin@example.com",
 		firstName: "Ad",
 		lastName: "Min",
 	});
-	await hackkit.database.update(
+	await hackkit.em.nativeUpdate(
 		coreModels.user,
 		{ authId: "admin-auth" },
 		{ roleId: "core.owner", updatedAt: new Date() },
 	);
 }
 
-async function setSetting(hackkit: HackKit, key: CoreSetting, value: boolean) {
+async function setSetting(
+	hackkit: TestHackkit,
+	key: CoreSetting,
+	value: boolean,
+) {
 	await hackkit.settings.set({
 		actorAuthId: "admin-auth",
 		key,
@@ -80,8 +67,12 @@ async function setSetting(hackkit: HackKit, key: CoreSetting, value: boolean) {
 	});
 }
 
-async function ensureUser(hackkit: HackKit, authId: string, hackTag?: string) {
-	await hackkit.users.ensureUser({
+async function createFixtureUser(
+	hackkit: TestHackkit,
+	authId: string,
+	hackTag?: string,
+) {
+	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
 		firstName: authId,
@@ -96,7 +87,7 @@ async function ensureUser(hackkit: HackKit, authId: string, hackTag?: string) {
 	return (await hackkit.users.getUser(authId))!;
 }
 
-async function completeUserData(hackkit: HackKit, authId: string) {
+async function completeUserData(hackkit: TestHackkit, authId: string) {
 	await hackkit.userData.completeUserData({
 		authId,
 		age: 20,
@@ -111,7 +102,7 @@ async function completeUserData(hackkit: HackKit, authId: string) {
 	});
 }
 
-async function registerHacker(hackkit: HackKit, authId: string) {
+async function registerHacker(hackkit: TestHackkit, authId: string) {
 	await hackkit.hackers.registerHacker({
 		authId,
 		university: "Test U",
@@ -123,22 +114,22 @@ async function registerHacker(hackkit: HackKit, authId: string) {
 }
 
 async function seedCompletedUnapprovedHacker(
-	hackkit: HackKit,
+	hackkit: TestHackkit,
 	authId: string,
 	hackTag: string,
 ) {
 	await setSetting(hackkit, CoreSetting.RequireApproval, true);
-	await ensureUser(hackkit, authId, hackTag);
+	await createFixtureUser(hackkit, authId, hackTag);
 	await completeUserData(hackkit, authId);
 	await registerHacker(hackkit, authId);
 }
 
 async function seedApprovedParticipant(
-	hackkit: HackKit,
+	hackkit: TestHackkit,
 	authId: string,
 	hackTag: string,
 ) {
-	await ensureUser(hackkit, authId, hackTag);
+	await createFixtureUser(hackkit, authId, hackTag);
 	await completeUserData(hackkit, authId);
 	await registerHacker(hackkit, authId);
 }
@@ -148,17 +139,17 @@ function expectRedirect(promise: Promise<unknown>, to: string) {
 }
 
 describe("createPageGuards", () => {
-	let hackkit: HackKit;
+	let hackkit: TestHackkit;
 
 	beforeEach(async () => {
 		redirectMock.mockClear();
 		notFoundMock.mockClear();
-		hackkit = createTestHackkit();
+		hackkit = await createTestHackkit();
 		await seedOwner(hackkit);
 	});
 
 	it("redirects incomplete onboarding to the next step", async () => {
-		await ensureUser(hackkit, "user-1", "alice");
+		await createFixtureUser(hackkit, "user-1", "alice");
 		const guards = createPageGuards(hackkit, async () => "user-1");
 
 		await expectRedirect(
@@ -191,7 +182,7 @@ describe("createPageGuards", () => {
 	});
 
 	it("redirects banned users to suspended", async () => {
-		await ensureUser(hackkit, "user-4", "dan");
+		await createFixtureUser(hackkit, "user-4", "dan");
 		await hackkit.users.banUser({
 			actorAuthId: "admin-auth",
 			targetAuthId: "user-4",
@@ -203,7 +194,7 @@ describe("createPageGuards", () => {
 	});
 
 	it("redirects new hackers when registration is closed", async () => {
-		await ensureUser(hackkit, "user-5", "erin");
+		await createFixtureUser(hackkit, "user-5", "erin");
 		await completeUserData(hackkit, "user-5");
 		await setSetting(hackkit, CoreSetting.RegistrationOpen, false);
 

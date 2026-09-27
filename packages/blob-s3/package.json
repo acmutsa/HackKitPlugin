@@ -24,8 +24,8 @@
     "@hackkit/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "20.14.11",
-    "typescript": "5.5.3"
+    "@types/node": "22.18.6",
+    "typescript": "5.9.3"
   },
   "license": "MIT",
   "private": true

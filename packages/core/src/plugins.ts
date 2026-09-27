@@ -1,22 +1,24 @@
+import type { EntityManager, EntitySchema } from "@mikro-orm/core";
+import { authEntities } from "./mikro/auth-entities.js";
+import { HackKitError } from "./errors.js";
+import { coreModels } from "./models.js";
+import type { NotificationsApi } from "./notifications.js";
+import { CorePermission } from "./permissions.js";
 import type {
-	DatabaseAdapter,
-	PersistentModel,
-	StorageRegistry,
-} from "./database";
-import { HackKitError } from "./errors";
-import { coreModels } from "./models";
-import type { NotificationsApi } from "./notifications";
-import { CorePermission } from "./permissions";
-import type { HackathonSettingDefinition, SettingKey, SettingValue } from "./settings";
-import { coreSettings } from "./settings";
-import type { PermissionKey } from "./types";
-import type { HackkitGroup } from "./groups";
+	HackathonSettingDefinition,
+	SettingKey,
+	SettingValue,
+} from "./settings.js";
+import { coreSettings } from "./settings.js";
+import type { PermissionKey } from "./types.js";
+import type { HackkitGroup } from "./groups.js";
 
-type ModelMap = Record<string, PersistentModel>;
 type PermissionMap = Record<string, PermissionKey>;
 
 export type HackKitPluginContext = {
-	database: DatabaseAdapter;
+	em: EntityManager;
+	actorAuthId?: string;
+	getUser: (authId: string) => Promise<import("./types.js").User | null>;
 	registry: HackKitRegistry;
 	getSettingValue: (key: SettingKey) => Promise<SettingValue>;
 	notifications: NotificationsApi;
@@ -34,7 +36,7 @@ export type HackKitPlugin<
 	actionFactory?: string;
 	/** Server action names exposed by the plugin action factory. */
 	actionNames?: readonly string[];
-	models?: ModelMap;
+	entities?: readonly EntitySchema[];
 	permissions?: PermissionMap;
 	settings?: readonly HackathonSettingDefinition[];
 	setup?: (context: HackKitPluginContext) => TApi;
@@ -50,22 +52,21 @@ export type PluginApiMap<TPlugins extends readonly HackKitPlugin[]> = {
 };
 
 export type HackKitRegistry = {
-	models: Record<string, PersistentModel>;
+	entities: EntitySchema[];
 	permissions: Record<string, PermissionKey>;
 	plugins: Record<string, HackKitPlugin>;
 	settings: readonly HackathonSettingDefinition[];
-	storage: StorageRegistry;
 };
 
 export function createPluginRegistry(
 	plugins: readonly HackKitPlugin[] = [],
+	entities: readonly EntitySchema[] = [],
 ): HackKitRegistry {
 	const registry: HackKitRegistry = {
-		models: { ...coreModels },
+		entities: [...authEntities, ...Object.values(coreModels)],
 		permissions: { ...CorePermission },
 		plugins: {},
 		settings: [...coreSettings],
-		storage: { models: { ...coreModels } },
 	};
 
 	for (const plugin of plugins) {
@@ -78,22 +79,15 @@ export function createPluginRegistry(
 
 		registry.plugins[plugin.id] = plugin;
 
-		for (const [name, pluginModel] of Object.entries(plugin.models ?? {})) {
-			const modelKey = pluginModel.key;
-			if (!modelKey.startsWith(`${plugin.id}.`)) {
+		for (const entity of plugin.entities ?? []) {
+			const prefix = `${plugin.id.replaceAll("-", "_")}_`;
+			if (!entity.meta.tableName?.startsWith(prefix)) {
 				throw new HackKitError(
 					"INVALID_OPERATION",
-					`Plugin model '${name}' must use the '${plugin.id}.' namespace.`,
+					`Plugin entity '${entity.meta.className}' must use the '${prefix}' table namespace.`,
 				);
 			}
-			if (registry.models[modelKey]) {
-				throw new HackKitError(
-					"CONFLICT",
-					`HackKit model '${modelKey}' is already registered.`,
-				);
-			}
-			registry.models[modelKey] = pluginModel;
-			registry.storage.models[modelKey] = pluginModel;
+			registry.entities.push(entity);
 		}
 
 		for (const setting of plugin.settings ?? []) {
@@ -103,7 +97,11 @@ export function createPluginRegistry(
 					`Plugin setting '${setting.key}' must use the '${plugin.id}.' namespace.`,
 				);
 			}
-			if (registry.settings.some((existing) => existing.key === setting.key)) {
+			if (
+				registry.settings.some(
+					(existing) => existing.key === setting.key,
+				)
+			) {
 				throw new HackKitError(
 					"CONFLICT",
 					`HackKit setting '${setting.key}' is already registered.`,
@@ -131,6 +129,25 @@ export function createPluginRegistry(
 		}
 	}
 
+	registry.entities.push(...entities);
+	const names = new Set<string>();
+	const tables = new Set<string>();
+	for (const entity of registry.entities) {
+		const name = entity.meta.className;
+		const table = entity.meta.tableName;
+		if (!table)
+			throw new HackKitError(
+				"INVALID_OPERATION",
+				`Entity '${name}' must declare a tableName.`,
+			);
+		if (names.has(name) || tables.has(table))
+			throw new HackKitError(
+				"CONFLICT",
+				`Duplicate entity name or table: '${name}' / '${table}'.`,
+			);
+		names.add(name);
+		tables.add(table);
+	}
 	return registry;
 }
 

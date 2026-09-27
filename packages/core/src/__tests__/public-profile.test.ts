@@ -1,22 +1,12 @@
+import {
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "../testing.js";
 import { describe, expect, it } from "vitest";
-import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory";
-import { createHackkit } from "../hackkit";
-import { createPluginRegistry } from "../plugins";
 
-function createTestHackkit() {
-	const registry = createPluginRegistry();
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	const id = () => "id";
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return createHackkit({ database: db, clock: now, id });
-}
-
-async function seedUser(hackkit: ReturnType<typeof createHackkit>) {
-	await hackkit.users.ensureUser({
+async function seedUser(hackkit: TestHackkit) {
+	await createTestUser(hackkit, {
 		authId: "hacker-auth",
 		email: "hacker@example.com",
 		firstName: "Hack",
@@ -47,7 +37,7 @@ async function seedUser(hackkit: ReturnType<typeof createHackkit>) {
 
 describe("public profiles", () => {
 	it("returns Core-owned profile fields by HackTag when searchable", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedUser(hackkit);
 
 		await hackkit.users.updateProfile({
@@ -61,7 +51,8 @@ describe("public profiles", () => {
 			isProfileSearchable: true,
 		});
 
-		const profile = await hackkit.users.getPublicProfileByHackTag("hackerone");
+		const profile =
+			await hackkit.users.getPublicProfileByHackTag("hackerone");
 
 		expect(profile?.user.hackTag).toBe("hackerone");
 		expect(profile?.user.skills).toEqual(["typescript", "design"]);
@@ -70,7 +61,7 @@ describe("public profiles", () => {
 	});
 
 	it("hides public profiles when searchability is disabled", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedUser(hackkit);
 		await hackkit.users.updateProfile({
 			authId: "hacker-auth",

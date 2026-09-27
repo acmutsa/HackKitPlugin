@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HackKitError } from "./errors";
+import { HackKitError } from "./errors.js";
 
 export type EventTypeOption = {
 	value: string;
@@ -27,7 +27,9 @@ const eventTypeOptionSchema = z.object({
 
 const eventTypesSchema = z.array(eventTypeOptionSchema).min(1);
 
-function assertUniqueEventTypeValues(options: readonly EventTypeOption[]): void {
+function assertUniqueEventTypeValues(
+	options: readonly EventTypeOption[],
+): void {
 	const seen = new Set<string>();
 	for (const option of options) {
 		if (seen.has(option.value)) {

@@ -1,4 +1,4 @@
-import { HackKitError } from "@hackkit/core";
+import { HackKitError } from "@hackkit/core/client";
 
 export type HackKitActionResult<T = void> =
 	| { ok: true; data: T }

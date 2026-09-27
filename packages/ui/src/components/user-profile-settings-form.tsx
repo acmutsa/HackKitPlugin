@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { updateUserProfileSchema, type User } from "@hackkit/core";
+import { updateUserProfileSchema, type User } from "@hackkit/core/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -154,7 +154,9 @@ export function UserProfileSettingsForm({
 				<form
 					className="space-y-6"
 					onSubmit={form.handleSubmit(onSubmit, () => {
-						toast.error("Please correct the highlighted profile fields.");
+						toast.error(
+							"Please correct the highlighted profile fields.",
+						);
 					})}
 				>
 					<div className="flex items-center gap-4">

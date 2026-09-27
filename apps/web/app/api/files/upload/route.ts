@@ -32,7 +32,7 @@ export async function PUT(request: Request): Promise<NextResponse> {
 	}
 
 	const filePath = await storage.ensureDirectoryForKey(key);
-	const body = Buffer.from(await request.arrayBuffer());
+	const body = new Uint8Array(await request.arrayBuffer());
 	await writeFile(filePath, body);
 
 	return new NextResponse(null, { status: 204 });

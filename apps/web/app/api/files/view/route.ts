@@ -56,12 +56,8 @@ export async function GET(request: Request): Promise<NextResponse> {
 		}
 		const body =
 			result.body instanceof Uint8Array
-				? result.body
-				: Buffer.isBuffer(result.body)
-					? result.body
-					: Buffer.from(
-							await new Response(result.body).arrayBuffer(),
-						);
+				? Uint8Array.from(result.body).buffer
+				: await new Response(result.body).arrayBuffer();
 		return new NextResponse(body, {
 			headers: {
 				"Content-Type":

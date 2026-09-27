@@ -1,9 +1,19 @@
 "use client";
 
-import type { AdminOverview, AdminUserRecord, Role } from "@hackkit/core";
+import type {
+	AdminOverview,
+	AdminUserRecord,
+	Role,
+} from "@hackkit/core/client";
 import { BadgeText, formatDateTime, fullName } from "../lib/admin-console";
 import { useHackKitNavigation } from "../provider";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "./ui/card";
 import { Button } from "./ui/button";
 import { AdminUserActions, AdminRoleManager } from "./admin-console-controls";
 
@@ -30,7 +40,9 @@ export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
 				{stats.map(([label, value]) => (
 					<Card key={label}>
 						<CardHeader className="pb-2">
-							<CardTitle className="text-sm font-medium">{label}</CardTitle>
+							<CardTitle className="text-sm font-medium">
+								{label}
+							</CardTitle>
 						</CardHeader>
 						<CardContent>
 							<div className="text-3xl font-bold">{value}</div>
@@ -43,13 +55,20 @@ export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
 				<Card>
 					<CardHeader>
 						<CardTitle>Recent Signups</CardTitle>
-						<CardDescription>New accounts over the last seven days.</CardDescription>
+						<CardDescription>
+							New accounts over the last seven days.
+						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="space-y-3">
 							{overview.recentSignups.map((item) => (
-								<div key={item.date} className="grid grid-cols-[7rem_1fr_auto] items-center gap-3 text-sm">
-									<span className="font-mono text-muted-foreground">{item.date}</span>
+								<div
+									key={item.date}
+									className="grid grid-cols-[7rem_1fr_auto] items-center gap-3 text-sm"
+								>
+									<span className="font-mono text-muted-foreground">
+										{item.date}
+									</span>
 									<div className="h-2 overflow-hidden rounded-full bg-muted">
 										<div
 											className="h-full rounded-full bg-primary"
@@ -58,7 +77,9 @@ export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
 											}}
 										/>
 									</div>
-									<span className="font-medium">{item.count}</span>
+									<span className="font-medium">
+										{item.count}
+									</span>
 								</div>
 							))}
 						</div>
@@ -68,16 +89,22 @@ export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
 				<Card>
 					<CardHeader>
 						<CardTitle>Recent Users</CardTitle>
-						<CardDescription>Newest account records.</CardDescription>
+						<CardDescription>
+							Newest account records.
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-3">
 						{overview.recentUsers.map((record) => (
 							<Link
 								key={record.user.authId}
-								href={routes.admin.userDetail(record.user.authId)}
+								href={routes.admin.userDetail(
+									record.user.authId,
+								)}
 								className="block rounded-md border p-3 hover:bg-muted"
 							>
-								<div className="font-medium">{fullName(record)}</div>
+								<div className="font-medium">
+									{fullName(record)}
+								</div>
 								<div className="text-sm text-muted-foreground">
 									{record.user.email}
 								</div>
@@ -118,7 +145,9 @@ export function AdminUsersTable({ users, exportHref }: AdminUsersTableProps) {
 							<th className="px-4 py-3 font-medium">Role</th>
 							<th className="px-4 py-3 font-medium">Status</th>
 							<th className="px-4 py-3 font-medium">RSVP</th>
-							<th className="px-4 py-3 font-medium">Registered</th>
+							<th className="px-4 py-3 font-medium">
+								Registered
+							</th>
 							<th className="px-4 py-3 font-medium">Check-in</th>
 						</tr>
 					</thead>
@@ -127,32 +156,62 @@ export function AdminUsersTable({ users, exportHref }: AdminUsersTableProps) {
 							<tr key={record.user.authId} className="border-t">
 								<td className="px-4 py-3">
 									<Link
-										href={routes.admin.userDetail(record.user.authId)}
+										href={routes.admin.userDetail(
+											record.user.authId,
+										)}
 										className="font-medium hover:underline"
 									>
 										{fullName(record)}
 									</Link>
-									<div className="text-muted-foreground">{record.user.email}</div>
+									<div className="text-muted-foreground">
+										{record.user.email}
+									</div>
 									{record.user.hackTag ? (
 										<div className="font-mono text-xs text-muted-foreground">
 											@{record.user.hackTag}
 										</div>
 									) : null}
 								</td>
-								<td className="px-4 py-3">{record.role?.name ?? "No role"}</td>
+								<td className="px-4 py-3">
+									{record.role?.name ?? "No role"}
+								</td>
 								<td className="px-4 py-3">
 									<div className="flex flex-wrap gap-2">
-										<BadgeText tone={record.user.isApproved ? "success" : "muted"}>
-											{record.user.isApproved ? "Approved" : "Pending"}
+										<BadgeText
+											tone={
+												record.user.isApproved
+													? "success"
+													: "muted"
+											}
+										>
+											{record.user.isApproved
+												? "Approved"
+												: "Pending"}
 										</BadgeText>
-										{record.ban ? <BadgeText tone="danger">Suspended</BadgeText> : null}
-										{record.hacker ? <BadgeText tone="info">Hacker</BadgeText> : null}
+										{record.ban ? (
+											<BadgeText tone="danger">
+												Suspended
+											</BadgeText>
+										) : null}
+										{record.hacker ? (
+											<BadgeText tone="info">
+												Hacker
+											</BadgeText>
+										) : null}
 									</div>
 								</td>
-								<td className="px-4 py-3">{formatRsvpStatus(record.rsvp)}</td>
-								<td className="px-4 py-3">{formatDateTime(record.user.createdAt)}</td>
 								<td className="px-4 py-3">
-									{record.user.checkedInAt ? formatDateTime(record.user.checkedInAt) : "Not checked in"}
+									{formatRsvpStatus(record.rsvp)}
+								</td>
+								<td className="px-4 py-3">
+									{formatDateTime(record.user.createdAt)}
+								</td>
+								<td className="px-4 py-3">
+									{record.user.checkedInAt
+										? formatDateTime(
+												record.user.checkedInAt,
+											)
+										: "Not checked in"}
 								</td>
 							</tr>
 						))}
@@ -179,43 +238,132 @@ export function AdminUserDetail({ record, roles }: AdminUserDetailProps) {
 					</CardHeader>
 					<CardContent className="grid gap-4 sm:grid-cols-2">
 						<Detail label="Auth ID" value={record.user.authId} />
-						<Detail label="HackTag" value={record.user.hackTag ? `@${record.user.hackTag}` : "Not claimed"} />
-						<Detail label="Role" value={record.role?.name ?? "No role"} />
-						<Detail label="Joined" value={formatDateTime(record.user.createdAt)} />
-						<Detail label="Approval" value={record.user.isApproved ? "Approved" : "Pending"} />
-						<Detail label="RSVP" value={formatRsvpStatus(record.rsvp)} />
-						<Detail label="Check-in" value={record.user.checkedInAt ? formatDateTime(record.user.checkedInAt) : "Not checked in"} />
+						<Detail
+							label="HackTag"
+							value={
+								record.user.hackTag
+									? `@${record.user.hackTag}`
+									: "Not claimed"
+							}
+						/>
+						<Detail
+							label="Role"
+							value={record.role?.name ?? "No role"}
+						/>
+						<Detail
+							label="Joined"
+							value={formatDateTime(record.user.createdAt)}
+						/>
+						<Detail
+							label="Approval"
+							value={
+								record.user.isApproved ? "Approved" : "Pending"
+							}
+						/>
+						<Detail
+							label="RSVP"
+							value={formatRsvpStatus(record.rsvp)}
+						/>
+						<Detail
+							label="Check-in"
+							value={
+								record.user.checkedInAt
+									? formatDateTime(record.user.checkedInAt)
+									: "Not checked in"
+							}
+						/>
 					</CardContent>
 				</Card>
 
 				<Card>
 					<CardHeader>
 						<CardTitle>Hacker Registration</CardTitle>
-						<CardDescription>Competition registration fields.</CardDescription>
+						<CardDescription>
+							Competition registration fields.
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-4 sm:grid-cols-2">
-						<Detail label="University" value={record.hacker?.university ?? "Not registered"} />
-						<Detail label="Major" value={record.hacker?.major ?? ""} />
-						<Detail label="Level of Study" value={record.hacker?.levelOfStudy ?? ""} />
-						<Detail label="Hackathons Attended" value={record.hacker ? String(record.hacker.hackathonsAttended) : ""} />
-						<Detail label="Experience" value={record.hacker?.softwareExperience ?? ""} />
-						<Detail label="Group" value={record.hacker?.group ?? ""} />
-						<Detail label="Resume" value={record.hacker?.resumeUrl ?? ""} />
+						<Detail
+							label="University"
+							value={
+								record.hacker?.university ?? "Not registered"
+							}
+						/>
+						<Detail
+							label="Major"
+							value={record.hacker?.major ?? ""}
+						/>
+						<Detail
+							label="Level of Study"
+							value={record.hacker?.levelOfStudy ?? ""}
+						/>
+						<Detail
+							label="Hackathons Attended"
+							value={
+								record.hacker
+									? String(record.hacker.hackathonsAttended)
+									: ""
+							}
+						/>
+						<Detail
+							label="Experience"
+							value={record.hacker?.softwareExperience ?? ""}
+						/>
+						<Detail
+							label="Group"
+							value={record.hacker?.group ?? ""}
+						/>
+						<Detail
+							label="Resume"
+							value={record.hacker?.resumeUrl ?? ""}
+						/>
 					</CardContent>
 				</Card>
 
 				<Card>
 					<CardHeader>
 						<CardTitle>User Data</CardTitle>
-						<CardDescription>Participant account and event data.</CardDescription>
+						<CardDescription>
+							Participant account and event data.
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-4 sm:grid-cols-2">
-						<Detail label="Age" value={record.userData ? String(record.userData.age) : "Not completed"} />
-						<Detail label="Shirt Size" value={record.userData?.shirtSize ?? ""} />
-						<Detail label="Dietary Restrictions" value={record.userData?.dietaryRestrictions.join(", ") ?? ""} />
-						<Detail label="Phone" value={record.userData?.phoneNumber ?? ""} />
-						<Detail label="Country" value={record.userData?.countryOfResidence ?? ""} />
-						<Detail label="Emailable" value={record.userData ? String(record.userData.isEmailable) : ""} />
+						<Detail
+							label="Age"
+							value={
+								record.userData
+									? String(record.userData.age)
+									: "Not completed"
+							}
+						/>
+						<Detail
+							label="Shirt Size"
+							value={record.userData?.shirtSize ?? ""}
+						/>
+						<Detail
+							label="Dietary Restrictions"
+							value={
+								record.userData?.dietaryRestrictions.join(
+									", ",
+								) ?? ""
+							}
+						/>
+						<Detail
+							label="Phone"
+							value={record.userData?.phoneNumber ?? ""}
+						/>
+						<Detail
+							label="Country"
+							value={record.userData?.countryOfResidence ?? ""}
+						/>
+						<Detail
+							label="Emailable"
+							value={
+								record.userData
+									? String(record.userData.isEmailable)
+									: ""
+							}
+						/>
 					</CardContent>
 				</Card>
 			</div>

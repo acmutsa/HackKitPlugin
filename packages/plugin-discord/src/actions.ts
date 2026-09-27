@@ -1,6 +1,6 @@
 import type { HackkitRuntime } from "@hackkit/next";
 import { actionFailure, actionSuccess } from "@hackkit/next";
-import type { DiscordApi } from "./api";
+import type { DiscordApi } from "./api.js";
 
 export type ConfirmDiscordVerificationInput = {
 	code: string;
@@ -10,7 +10,9 @@ export function createDiscordActions(runtime: HackkitRuntime) {
 	const discord = runtime.hackkit.plugins.discord as unknown as DiscordApi;
 
 	return {
-		async confirmDiscordVerification(values: ConfirmDiscordVerificationInput) {
+		async confirmDiscordVerification(
+			values: ConfirmDiscordVerificationInput,
+		) {
 			try {
 				const authId = await runtime.getAuthId();
 				const member = await discord.confirmVerification({

@@ -1,3 +1,4 @@
+import { withOrm } from "./orm";
 import { seedRoles } from "@hackkit/core";
 import type { SeedRolesResult } from "@hackkit/core";
 import type { HackkitConfig } from "./config";
@@ -6,11 +7,15 @@ import { createConfigLogger } from "./logger";
 export type DbSeedResult = SeedRolesResult;
 
 export async function runDbSeed(config: HackkitConfig): Promise<DbSeedResult> {
-	const result = await seedRoles({
-		database: config.database,
-		plugins: config.plugins,
-		roles: config.seedRoles ?? [],
-	});
+	const result = await withOrm(config, (orm) =>
+		orm.em.transactional((em) =>
+			seedRoles({
+				em,
+				roles: config.seedRoles ?? [],
+			}),
+		),
+	);
+
 	const logger = createConfigLogger(config);
 
 	for (const roleId of result.insertedRoleIds) {

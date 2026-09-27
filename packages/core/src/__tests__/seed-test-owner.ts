@@ -1,19 +1,16 @@
-import type { DatabaseAdapter } from "../database";
-import type { HackKit } from "../hackkit";
-import { coreModels } from "../models";
-import { CorePermission } from "../permissions";
-import { seedRoles } from "../seed";
+import { createTestUser, type TestHackkit } from "../testing.js";
+import { coreModels } from "../models.js";
+import { CorePermission } from "../permissions.js";
+import { seedRoles } from "../seed.js";
 
-export type TestHackkit = HackKit & {
-	database: DatabaseAdapter;
-};
+export type { TestHackkit } from "../testing.js";
 
 export async function seedTestOwner(
 	hackkit: TestHackkit,
 	authId = "owner-auth",
 ) {
 	await seedRoles({
-		database: hackkit.database,
+		em: hackkit.em,
 		roles: [
 			{
 				id: "core.owner",
@@ -23,16 +20,14 @@ export async function seedTestOwner(
 			},
 		],
 	});
-	await hackkit.users.ensureUser({
+	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
 		firstName: "Test",
 		lastName: "Owner",
 	});
-	await hackkit.database.update(
-		coreModels.user,
-		{ authId },
-		{ roleId: "core.owner", updatedAt: new Date() },
-	);
+	const owner = await hackkit.em.findOneOrFail(coreModels.user, { authId });
+	owner.roleId = "core.owner";
+	await hackkit.em.flush();
 	return (await hackkit.roles.getRole("core.owner"))!;
 }

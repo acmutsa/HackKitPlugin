@@ -1,17 +1,17 @@
-import { describe, expect, it } from "vitest";
 import {
-	createHackkit,
-	createInMemoryDatabaseAdapterFromStorage,
-	createPluginRegistry,
-	type HackKitPlugin,
-} from "@hackkit/core";
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "@hackkit/core/testing";
+import { describe, expect, it } from "vitest";
+
 import {
 	discordPlugin,
 	type DiscordApi,
 	type DiscordRoleSyncInput,
-} from "../index";
+} from "../index.js";
 
-function createDiscordHackkit() {
+async function createDiscordHackkit() {
 	const syncInputs: DiscordRoleSyncInput[] = [];
 	const plugin = discordPlugin({
 		guildId: "guild-1",
@@ -19,35 +19,26 @@ function createDiscordHackkit() {
 		participantRole: { id: "participant-role" },
 		roleSyncProvider: {
 			async syncRoles(input) {
+				expect(hackkit.em.isInTransaction()).toBe(false);
 				syncInputs.push(input);
 			},
 		},
 	});
-	const registry = createPluginRegistry([plugin as unknown as HackKitPlugin]);
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	const hackkit = createHackkit({
-		database: db,
-		plugins: [plugin as unknown as HackKitPlugin],
-		clock: now,
-		id,
+	const hackkit = await createTestHackkit({
+		plugins: [plugin],
 		groups: [{ id: "alpha", label: "Alpha", discordRoleId: "alpha-role" }],
 	});
 	return {
 		hackkit,
-		discord: hackkit.plugins.discord as unknown as DiscordApi,
+		discord: hackkit.plugins.discord,
 		syncInputs,
 	};
 }
 
-async function seedApprovedHacker(hackkit: ReturnType<typeof createHackkit>) {
-	await hackkit.users.ensureUser({
+async function seedApprovedHacker(
+	hackkit: TestHackkit<readonly [ReturnType<typeof discordPlugin>]>,
+) {
+	await createTestUser(hackkit, {
 		authId: "hacker-auth",
 		email: "hacker@example.com",
 		firstName: "Hazel",
@@ -78,7 +69,7 @@ async function seedApprovedHacker(hackkit: ReturnType<typeof createHackkit>) {
 
 describe("discord plugin", () => {
 	it("links a pending verification and syncs participant and group roles", async () => {
-		const { hackkit, discord, syncInputs } = createDiscordHackkit();
+		const { hackkit, discord, syncInputs } = await createDiscordHackkit();
 		await seedApprovedHacker(hackkit);
 
 		const verification = await discord.createVerification({
@@ -112,5 +103,36 @@ describe("discord plugin", () => {
 			status: "accepted",
 			authId: "hacker-auth",
 		});
+	});
+});
+
+it("consumes a verification code once across concurrent requests", async () => {
+	const { hackkit, discord, syncInputs } = await createDiscordHackkit();
+	await seedApprovedHacker(hackkit);
+	await discord.createVerification({
+		code: "race",
+		discordUserId: "discord-race",
+		username: "racer",
+	});
+	const results = await Promise.allSettled(
+		[1, 2].map(() =>
+			hackkit.runtime
+				.createScope()
+				.hackkit.plugins.discord.confirmVerification({
+					authId: "hacker-auth",
+					code: "race",
+				}),
+		),
+	);
+	expect(
+		results.filter((result) => result.status === "fulfilled"),
+	).toHaveLength(1);
+	expect(
+		results.find((result) => result.status === "rejected"),
+	).toMatchObject({ reason: { code: "INVALID_OPERATION" } });
+	expect(syncInputs).toHaveLength(1);
+	expect(await discord.getVerification("race")).toMatchObject({
+		status: "accepted",
+		authId: "hacker-auth",
 	});
 });

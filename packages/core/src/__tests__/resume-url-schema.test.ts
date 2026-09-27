@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { registerHackerSchema } from "../schemas";
+import { registerHackerSchema } from "../schemas.js";
 
 const base = {
 	authId: "hacker-auth",

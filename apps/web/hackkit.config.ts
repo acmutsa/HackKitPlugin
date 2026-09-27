@@ -1,6 +1,7 @@
 import { defineHackkitConfig } from "@hackkit/config";
 import { CorePermission, type PermissionKey } from "@hackkit/core";
-import { createDrizzleLibsqlAdapter } from "@hackkit/db-drizzle/libsql";
+import { databaseOptions } from "./lib/database-config";
+import { authOptions } from "./lib/auth-options";
 import {
 	createResendEmailProvider,
 	createSmtpEmailProvider,
@@ -13,7 +14,6 @@ import {
 } from "@hackkit/plugin-discord";
 import { teamsPlugin, TeamsPermission } from "@hackkit/plugin-teams";
 import { env } from "./env";
-import { getDb } from "./lib/db";
 
 const participantPermissions = [] as PermissionKey[];
 
@@ -140,7 +140,8 @@ function createDiscordRoleSyncProvider() {
 }
 
 export default defineHackkitConfig({
-	database: createDrizzleLibsqlAdapter(getDb),
+	database: databaseOptions,
+	auth: authOptions,
 	defaultCompetitorRoleId: "core.participant",
 	groups,
 	seedRoles: [

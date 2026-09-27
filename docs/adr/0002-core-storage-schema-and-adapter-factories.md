@@ -1,5 +1,7 @@
 # Use Core-owned Storage Schema and adapter factories for plugin-aware persistence
 
+> Superseded: [ADR 0013](0013-mikroorm-and-core-auth.md) adopts native MikroORM entities and queries, Core-owned Better Auth, and explicit MikroORM migration commands. The historical decision below no longer governs persistence. Domain boundaries and app ownership of reviewed migrations remain.
+
 HackKit Core owns an adapter-neutral Storage Schema DSL for persistent model descriptors. Core model descriptors combine typed model identity with storage schema, and public record types such as User, Role, and Hacker are inferred from those descriptors. Plugins contribute storage schema using the same adapter-neutral model descriptors rather than dialect-specific database schemas.
 
 HackKit Core merges its base Storage Schema with plugin-provided Storage Schema and initializes database adapter factories with the merged registry. Applications configure plugins once through `createHackkit({ plugins: [...] })`; they do not pass plugin configuration separately to each adapter. Database adapters compile or interpret the merged Storage Schema for their concrete backend. The Drizzle adapter will target SQLite/libSQL first through `@hackkit/db-drizzle/sqlite`, while preserving room for future dialect-specific entrypoints.

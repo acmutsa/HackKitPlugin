@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
 	createCompleteUserDataSchema,
 	defaultUserDataOptions,
-} from "./user-data-options";
+} from "./user-data-options.js";
 
 export const permissionKeySchema = z
 	.string()
@@ -15,14 +15,6 @@ export const hackTagSchema = z
 	.max(50)
 	.regex(/^[a-zA-Z0-9_-]+$/)
 	.transform((value) => value.toLowerCase());
-
-export const ensureUserSchema = z.object({
-	authId: authIdSchema,
-	email: z.string().email(),
-	firstName: z.string().min(1).max(100),
-	lastName: z.string().min(1).max(100),
-	profilePhotoUrl: z.string().url().optional(),
-});
 
 export const updateUserProfileSchema = z.object({
 	authId: authIdSchema,
