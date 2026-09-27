@@ -20,7 +20,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown --config-loader native",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
