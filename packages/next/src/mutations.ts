@@ -321,8 +321,8 @@ export function createHackKitMutations(
 			try {
 				const actorAuthId = await getAuthId();
 				const rsvp = await hackkit.rsvp.setStatus({
-					actorAuthId,
 					...input,
+					actorAuthId,
 				});
 				return actionSuccess(rsvp);
 			} catch (error) {
@@ -399,8 +399,8 @@ export function createHackKitMutations(
 			try {
 				const actorAuthId = await getAuthId();
 				const role = await hackkit.roles.createRole({
-					actorAuthId,
 					...input,
+					actorAuthId,
 				});
 				return actionSuccess(role);
 			} catch (error) {
@@ -412,8 +412,8 @@ export function createHackKitMutations(
 			try {
 				const actorAuthId = await getAuthId();
 				const role = await hackkit.roles.updateRole({
-					actorAuthId,
 					...input,
+					actorAuthId,
 				});
 				return actionSuccess(role);
 			} catch (error) {
