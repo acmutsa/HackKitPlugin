@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runDbMigrate, runDbSeed } from "@hackkit/cli";
+import { runDatabaseCommand } from "../../scripts/database";
 import { initializeHackkit } from "@hackkit/core";
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { expect, it } from "vitest";
@@ -29,8 +29,8 @@ it("runs Core, plugins, and Better Auth against committed app migrations", async
 		logger: { disabled: true },
 	};
 	try {
-		await runDbMigrate(config);
-		await runDbSeed(config);
+		await runDatabaseCommand(config, { command: "migrate" });
+		await runDatabaseCommand(config, { command: "seed" });
 		const core = await initializeHackkit(config);
 		try {
 			expect(await core.orm.schema.getUpdateSchemaSQL()).toBe("");

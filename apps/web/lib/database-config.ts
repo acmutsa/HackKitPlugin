@@ -6,7 +6,7 @@ import { MySqlDriver } from "@mikro-orm/mysql";
 import { PostgreSqlDriver } from "@mikro-orm/postgresql";
 import { env } from "../env";
 
-// Next and the HackKit CLI run from the application directory.
+// Next and the application's database scripts run from the application directory.
 const appDirectory = process.cwd();
 const migrations = {
 	path: resolve(
@@ -23,6 +23,15 @@ const migrations = {
 function resolveDatabaseOptions(): HackKitDatabaseOptions {
 	switch (env.databaseDialect) {
 		case "sqlite":
+			if (
+				/^[a-z][a-z\d+.-]*:/i.test(env.databaseUrl) &&
+				!env.databaseUrl.startsWith("file:") &&
+				env.databaseUrl !== ":memory:"
+			) {
+				throw new Error(
+					"SQLite DATABASE_URL must be a local file path or :memory:.",
+				);
+			}
 			return {
 				driver: SqliteDriver,
 				dbName:
@@ -45,7 +54,13 @@ function resolveDatabaseOptions(): HackKitDatabaseOptions {
 			return {
 				driver: MySqlDriver,
 				clientUrl: env.databaseUrl,
-				migrations,
+				// MySQL DDL commits implicitly. A failed migration can leave
+				// partial schema changes even when its history entry is absent.
+				migrations: {
+					...migrations,
+					transactional: false,
+					allOrNothing: false,
+				},
 			};
 		case "postgresql":
 			return {

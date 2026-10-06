@@ -3,6 +3,7 @@ import {
 	ParticipantDashboard,
 } from "@hackkit/ui";
 import { publicSiteConfig } from "@/lib/public-site-config";
+import { getEnabledSiteLinks } from "@/lib/plugin-navigation";
 import { getHackkit } from "@/lib/runtime";
 import {
 	getCompetitorOnboardingState,
@@ -38,7 +39,9 @@ export default async function DashboardPage() {
 			requireApproval={requireApproval}
 			approved={currentUser.isApproved}
 			primaryActions={publicSiteConfig.dashboard.primaryActions}
-			resourceLinks={publicSiteConfig.dashboard.resourceLinks}
+			resourceLinks={getEnabledSiteLinks(
+				publicSiteConfig.dashboard.resourceLinks,
+			)}
 			statusItems={[
 				{
 					label: "HackTag",

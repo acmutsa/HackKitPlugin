@@ -15,9 +15,9 @@ Use Node.js 22.17 or newer and pnpm 8.3.1. Run these commands from the repositor
 
 Development defaults use `http://localhost:3000`, SQLite at `apps/web/.data/web.db`, and local blob storage. OAuth, email, and Discord providers are optional locally. The runtime does not migrate or seed on startup. Plugin sync only updates routes, actions, and `hackkit.lock`.
 
-After signup, bootstrap an owner explicitly by assigning `core.owner` to that user's `role_id` in `core_user`, selected by `auth_id`. Better Auth's `user.id` is the canonical ID. The runtime does not infer ownership from email.
+After signup, bootstrap an owner explicitly by assigning `core.owner` to that user's `role_id` in `core_user`, selected by `id`. Better Auth's `user.id` is the canonical ID. The runtime does not infer ownership from email.
 
-`pnpm --filter web db:reset` discards only the selected `file:` database and its WAL/SHM files, then migrates and seeds. It refuses remote URLs. Never use it for data you need to retain.
+`pnpm --filter web db:reset` drops registered tables and migration history in the selected local SQLite database, then migrates and seeds. It refuses production and non-SQLite drivers. Never use it for data you need to retain.
 
 ## Database selection
 
@@ -33,7 +33,7 @@ Set `TURSO_AUTH_TOKEN` when the libSQL endpoint requires authentication. Driver 
 
 ## Entity and migration workflow
 
-Core, Better Auth, enabled plugins, and application entities form one native MikroORM registry. Add app-owned `defineEntity` definitions through `entities` in `hackkit.config.ts`; plugins expose an `entities` array. Runtime and CLI use the same registry. Auth plugins requiring extra tables or fields must declare them before initialization; undeclared schema fails early.
+Core, Better Auth, installed plugins (including disabled plugins), and application entities form one native MikroORM registry. Add app-owned `defineEntity` definitions through `entities` in `hackkit.config.ts`; plugins expose an `entities` array. Runtime and app migration scripts use the same registry. Auth plugins requiring extra tables or fields must declare them before initialization; undeclared schema fails early.
 
 Migrations and snapshots are committed under `db/migrations/postgresql`, `db/migrations/mysql`, and `db/migrations/sqlite`. libSQL uses the SQLite chain. After changing entities:
 
@@ -43,11 +43,13 @@ Migrations and snapshots are committed under `db/migrations/postgresql`, `db/mig
 4. Apply with `pnpm --filter web db:migrate` and validate against fresh databases.
 5. Commit every dialect's reviewed migration and snapshot.
 
-Removing a plugin can generate table drops. Review data retention before applying them. `db:seed` only inserts missing configured role IDs; it does not update existing roles or assign them to users.
+Set `enabled: false` on a registered plugin to disable behavior while keeping its schema and data. Removing it can generate table drops. Review data retention before applying them. `db:seed` only inserts missing configured role IDs; it does not update existing roles or assign them to users.
+
+The database commands now use application-owned utility scripts, independently of the CLI. Use `db:status`, `db:check`, staged `db:migrate --to`, `db:rollback`, and `db:generate --blank` for upgrades. See [the migration guide](../../docs/guides/database-migrations.md) for exact commands, data transformations, MySQL recovery, and plugin retention.
 
 ## Authentication and request scope
 
-[lib/auth-options.ts](lib/auth-options.ts) supplies secrets, origins, and OAuth providers. Core owns Better Auth construction, native entities, the pinned community adapter, and atomic profile creation. Auth owns email; profile edits are stored separately and survive later session reads.
+[lib/auth-options.ts](lib/auth-options.ts) supplies secrets, origins, and OAuth providers. Core owns Better Auth construction, native entities, and the pinned community adapter. Better Auth identity and HackKit profile fields share the canonical `core_user` row.
 
 [lib/runtime.ts](lib/runtime.ts) initializes shared connections and registers a function that creates request-scoped domain APIs. Next owns cookies, headers, guards, and redirects. Server actions return plain DTOs. Browser code uses `@hackkit/core/client`; it does not import the ORM.
 
@@ -63,7 +65,7 @@ See [env.ts](env.ts) for exact variable names. Database storage must persist acr
 
 ## Validation
 
-Build dependencies before tests. Run `pnpm --filter web test` for the committed SQLite migration and auth flow. `pnpm --filter web test:db-workflow` verifies that sync does not connect and reset affects only its selected file. `pnpm --filter web verify` syncs generated files, typechecks, and builds Next.js. After building, `pnpm --filter web test:runtime` starts the production server on loopback port 33017 with an isolated temporary SQLite database, verifies HTTP auth and access control, then stops the server and removes its test data.
+Build dependencies before tests. Run `pnpm --filter web test` for committed migrations, auth, and existing-data upgrade/replay checks with SQLite/local libSQL. `pnpm --filter web test:db-workflow` verifies that sync does not connect and reset affects only its selected file. `pnpm --filter web verify` syncs generated files, typechecks, and builds Next.js. After building, `pnpm --filter web test:runtime` starts the production server on loopback port 33017 with an isolated temporary SQLite database, verifies HTTP auth and access control, then stops the server and removes its test data.
 
 `pnpm --filter web test:db-matrix` always runs SQLite and local libSQL. For the complete matrix, supply URLs for **empty, disposable** databases:
 
@@ -72,7 +74,7 @@ Build dependencies before tests. Run `pnpm --filter web test` for the committed 
 -   `HACKKIT_TEST_LIBSQL_URL` (a real HTTP/libSQL server)
 -   `HACKKIT_REQUIRE_DATABASE_MATRIX=1` to fail if any URL is missing.
 
-The matrix writes test accounts and domain records; it never drops the target database. Use fresh databases for every run. CI requires all five targets, checks schema agreement, runs package tests, typechecks, and builds Next.js. External OAuth, hosted Turso credentials/TLS, and real email/Discord delivery require deployment-specific validation.
+The matrix writes test accounts and domain records; it never drops the target database. Use fresh databases for every run. CI requires all five targets, checks schema agreement and existing-data upgrades, runs package tests, typechecks, and builds Next.js. External OAuth, hosted Turso credentials/TLS, and real email/Discord delivery require deployment-specific validation.
 
 ## Architecture
 

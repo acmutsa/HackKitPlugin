@@ -70,3 +70,23 @@ describe("email notifications plugin", () => {
 		]);
 	});
 });
+
+it("lazily resolves provider options once and skips them while disabled", async () => {
+	let resolutions = 0;
+	const plugin = emailNotificationsPlugin(() => {
+		resolutions++;
+		return {
+			from: "HackKit <test@example.com>",
+			baseUrl: "http://localhost:3000",
+		};
+	});
+	const disabled = await createTestHackkit({
+		plugins: [{ ...plugin, enabled: false }],
+	});
+	expect(disabled.isPluginEnabled("notificationsEmail")).toBe(false);
+	expect(resolutions).toBe(0);
+	const enabled = await createTestHackkit({ plugins: [plugin] });
+	enabled.runtime.createScope();
+	expect(enabled.isPluginEnabled("notificationsEmail")).toBe(true);
+	expect(resolutions).toBe(1);
+});

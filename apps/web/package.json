@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "plugin:sync": "hackkit plugin sync",
-    "db:generate": "hackkit db generate",
-    "db:migrate": "hackkit db migrate",
-    "db:seed": "hackkit db seed",
-    "db:reset": "bash scripts/db-reset.sh",
-    "test": "vitest run db/__tests__/database-workflow.test.ts",
+    "db:generate": "node scripts/db.mjs generate",
+    "db:migrate": "node scripts/db.mjs migrate",
+    "db:seed": "node scripts/db.mjs seed",
+    "db:reset": "node scripts/db.mjs reset",
+    "test": "vitest run db/__tests__/database-workflow.test.ts db/__tests__/migration-workflow.test.ts",
     "test:db-workflow": "bash scripts/test-db-workflow.sh",
     "sync": "pnpm plugin:sync",
     "predev": "turbo run build --filter=web^...",
@@ -19,7 +19,10 @@
     "start": "next start",
     "typecheck": "turbo run build --filter=@hackkit/cli && tsc -p tsconfig.json --noEmit",
     "test:db-matrix": "vitest run db/__tests__/dialects.test.ts",
-    "test:runtime": "node scripts/test-runtime.mjs"
+    "test:runtime": "node scripts/test-runtime.mjs",
+    "db:status": "node scripts/db.mjs status",
+    "db:check": "node scripts/db.mjs check",
+    "db:rollback": "node scripts/db.mjs rollback"
   },
   "dependencies": {
     "@hackkit/blob-local": "workspace:*",
@@ -42,7 +45,10 @@
     "@mikro-orm/libsql": "7.2.1",
     "@mikro-orm/mysql": "7.2.1",
     "@mikro-orm/postgresql": "7.2.1",
-    "@mikro-orm/migrations": "7.2.1"
+    "@mikro-orm/migrations": "7.2.1",
+    "@mikro-orm/core": "7.2.1",
+    "jiti": "2.4.2",
+    "@next/env": "14.2.35"
   },
   "devDependencies": {
     "@types/node": "22.18.6",

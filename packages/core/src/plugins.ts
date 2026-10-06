@@ -30,6 +30,8 @@ export type HackKitPlugin<
 	TApi extends object = object,
 > = {
 	id: TId;
+	/** Disable runtime behavior while retaining entities, settings, and permissions. */
+	enabled?: boolean;
 	/** npm package name used by HackKit CLI to resolve routes and actions. */
 	packageName?: string;
 	/** Factory exported by the plugin package, e.g. createTeamsActions. */
@@ -157,6 +159,19 @@ export function setupPluginApis<TPlugins extends readonly HackKitPlugin[]>(
 ): PluginApiMap<TPlugins> {
 	const apis: Record<string, object> = {};
 	for (const plugin of plugins) {
+		if (plugin.enabled === false) {
+			// Keep the typed API contract: accessing a disabled API fails explicitly.
+			Object.defineProperty(apis, plugin.id, {
+				enumerable: true,
+				get() {
+					throw new HackKitError(
+						"INVALID_OPERATION",
+						`HackKit plugin '${plugin.id}' is disabled.`,
+					);
+				},
+			});
+			continue;
+		}
 		apis[plugin.id] = plugin.setup?.(context) ?? {};
 	}
 	return apis as PluginApiMap<TPlugins>;

@@ -6,7 +6,7 @@ Status: accepted. Supersedes the persistence and authentication boundaries in AD
 
 Core and server plugins use native MikroORM `defineEntity` definitions and `EntityManager` queries. PostgreSQL, MySQL, SQLite, and libSQL are supported. The generic DatabaseAdapter, adapter factories, custom schema language, schema compiler, and Drizzle packages have been removed. Framework independence, domain operations, authorization, plugin registration, and app ownership of migrations remain.
 
-`initializeHackkit` collects Core entities, Better Auth entities, enabled plugin entities, and app entities before initializing the ORM. The CLI uses `createOrmOptions` with this same collection. Plugin table names start with the plugin ID converted to snake_case plus an underscore. Duplicate entity names and table names fail initialization.
+`initializeHackkit` collects Core entities, Better Auth entities, installed plugin entities, including disabled plugins, and app entities before initializing the ORM. Application migration scripts use `createOrmOptions` with this same collection. Plugin table names start with the plugin ID converted to snake_case plus an underscore. Duplicate entity names and table names fail initialization.
 
 One ORM owns shared connections. Each request, action, job, or CLI operation gets a fresh EntityManager. `runtime.createScope(actorAuthId)` binds domain and plugin APIs; `runtime.run(callback, actorAuthId)` also provides MikroORM RequestContext. Transactions use a fresh identity map and clear the parent map on completion. Domain responses are plain DTOs; managed entities and authentication secrets stay on the server. Browser code imports `@hackkit/core/client`.
 
@@ -30,9 +30,11 @@ Notification intents persist with the domain change. Workers claim pending inten
 
 ## Migrations and releases
 
-Apps commit native MikroORM migrations and snapshots for PostgreSQL, MySQL, and SQLite; libSQL shares SQLite migrations. `hackkit db generate` creates a reviewable migration. `hackkit db migrate` explicitly applies it, and `hackkit db seed` explicitly inserts missing configured roles. Startup and plugin sync do neither.
+Apps commit native MikroORM migrations and snapshots for PostgreSQL, MySQL, and SQLite; libSQL shares SQLite migrations. The application’s `db:generate` utility creates a reviewable migration. `db:migrate` explicitly applies it, and `db:seed` explicitly inserts missing configured roles. These scripts use the native migrator without changing the CLI package. Startup and plugin sync do neither.
 
-For an entity change, generate and review each dialect's migration. Plugin removal may propose dropping tables; review retention requirements before applying that migration. This is a fresh-database redesign. The initial migration definitions now create the unified user schema for every dialect. There is no conversion of existing data or user accounts. Existing databases using the split user schema must stay untouched; use a separate fresh database for this implementation.
+For an entity change, generate and review each dialect's migration. A registered plugin with `enabled: false` skips runtime setup while retaining schema, settings, and permissions. Plugin removal may propose dropping tables; review retention requirements before applying that migration. This is a fresh-database redesign. The initial migration definitions now create the unified user schema for every dialect. There is no conversion of existing data or user accounts. Existing databases using the split user schema must stay untouched; use a separate fresh database for this implementation.
+
+The [migration guide](../guides/database-migrations.md) specifies staged upgrades, static SQL transformations, plugin retention, snapshot checks, and MySQL partial-DDL recovery. Package maintainers publish tested transformation SQL and upgrade notes; applications incorporate those steps into one ordered history.
 
 ## Validation
 

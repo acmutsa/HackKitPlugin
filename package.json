@@ -13,7 +13,10 @@
     "deploy-discord:dev": "pnpm --filter=bot deploy:dev",
     "deploy-discord:prod": "pnpm --filter=bot deploy:prod",
     "format": "prettier --write .",
-    "format-check": "prettier --check ."
+    "format-check": "prettier --check .",
+    "db:status": "pnpm --filter=web db:status",
+    "db:check": "pnpm --filter=web db:check",
+    "db:rollback": "pnpm --filter=web db:rollback"
   },
   "devDependencies": {
     "@turbo/gen": "^2.0.9",

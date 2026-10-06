@@ -25,11 +25,11 @@ import type { TeamsApi } from "./api.js";
 export function createTeamsActions(
 	runtime: Pick<HackkitRuntime, "hackkit" | "getAuthId">,
 ) {
-	const teams = runtime.hackkit.plugins.teams as unknown as TeamsApi;
-
 	return {
 		async createTeam(values: CreateTeamInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				const team = await teams.createTeam({
 					...values,
@@ -43,6 +43,8 @@ export function createTeamsActions(
 
 		async inviteToTeam(values: InviteToTeamInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				const invite = await teams.inviteToTeam({
 					...values,
@@ -56,6 +58,8 @@ export function createTeamsActions(
 
 		async respondToInvite(values: RespondToInviteInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				const result = await teams.respondToInvite({
 					...values,
@@ -69,6 +73,8 @@ export function createTeamsActions(
 
 		async leaveTeam() {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				await teams.leaveTeam({ actorAuthId });
 				return actionSuccess();
@@ -79,6 +85,8 @@ export function createTeamsActions(
 
 		async removeMember(values: RemoveMemberInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				await teams.removeMember({
 					actorAuthId,

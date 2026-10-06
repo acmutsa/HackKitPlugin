@@ -1,5 +1,5 @@
 import { getHackkitRuntime } from "@hackkit/next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { TeamsApi } from "../../src/api";
 import {
 	createTeam,
@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TeamsPage() {
 	const runtime = await getHackkitRuntime();
+	if (!runtime.hackkit.isPluginEnabled("teams")) notFound();
 	const teams = runtime.hackkit.plugins.teams as TeamsApi;
 	const currentUser = await runtime.getCurrentUser();
 	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.authId);
@@ -36,7 +37,9 @@ export default async function TeamsPage() {
 			<div className="mx-auto flex max-w-3xl flex-col gap-6">
 				<div className="space-y-2">
 					<p className="text-sm font-medium text-primary">Teams</p>
-					<h1 className="text-3xl font-bold tracking-tight">Your team</h1>
+					<h1 className="text-3xl font-bold tracking-tight">
+						Your team
+					</h1>
 					<p className="text-muted-foreground">
 						Create or manage your hackathon competition team.
 					</p>

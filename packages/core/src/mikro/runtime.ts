@@ -60,7 +60,7 @@ export type HackKitRuntime<
 	): Promise<T>;
 };
 
-/** Runtime and CLI migrations discover exactly the same entity collection. */
+/** Runtime and application migrations discover exactly the same entity collection. */
 export function createOrmOptions(
 	options: Pick<
 		InitializeHackkitOptions,

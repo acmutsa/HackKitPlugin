@@ -3,15 +3,20 @@ import { createDiscordApi, type DiscordPluginOptions } from "./api.js";
 import { discordModels } from "./models.js";
 
 export function discordPlugin(
-	options: DiscordPluginOptions,
+	options: DiscordPluginOptions | (() => DiscordPluginOptions),
 ): HackKitPlugin<"discord", ReturnType<typeof createDiscordApi>> {
+	let resolvedOptions: DiscordPluginOptions | undefined;
 	return {
 		id: "discord",
 		packageName: "@hackkit/plugin-discord",
 		actionFactory: "createDiscordActions",
 		actionNames: ["confirmDiscordVerification", "syncDiscordMemberRoles"],
 		entities: Object.values(discordModels),
-		setup: (context) => createDiscordApi(context, options),
+		setup: (context) => {
+			resolvedOptions ??=
+				typeof options === "function" ? options() : options;
+			return createDiscordApi(context, resolvedOptions);
+		},
 	};
 }
 

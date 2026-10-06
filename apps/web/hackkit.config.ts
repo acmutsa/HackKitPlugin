@@ -177,7 +177,7 @@ export default defineHackkitConfig({
 	},
 	plugins: [
 		teamsPlugin(),
-		discordPlugin({
+		discordPlugin(() => ({
 			guildId: env.discordGuildId,
 			verificationBaseUrl: env.discordVerificationBaseUrl,
 			participantRole: {
@@ -185,14 +185,14 @@ export default defineHackkitConfig({
 				name: env.discordParticipantRoleName,
 			},
 			roleSyncProvider: createDiscordRoleSyncProvider(),
-		}),
-		emailNotificationsPlugin({
+		})),
+		emailNotificationsPlugin(() => ({
 			provider: createEmailProvider(),
 			from: env.emailFrom ?? "HackKit <notifications@example.com>",
 			replyTo: env.emailReplyTo,
 			appName: "HackKit",
 			baseUrl: env.appUrl,
-		}),
+		})),
 	],
 	userDataOptions: {
 		shirtSize: shirtSizeOptions,
