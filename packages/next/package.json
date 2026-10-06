@@ -15,7 +15,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
@@ -34,7 +35,8 @@
     "next": "14.2.35",
     "typescript": "5.9.3",
     "vitest": "^3.2.4",
-    "@types/react": "18.3.3"
+    "@types/react": "18.3.3",
+    "tsup": "^8.5.1"
   },
   "license": "MIT",
   "private": true

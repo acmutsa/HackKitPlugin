@@ -1,12 +1,14 @@
-import type { BlobStorageAdapterWithView } from "@hackkit/core";
-export type LocalBlobStorageOptions = {
+import { BlobStorageAdapterWithView } from '@hackkit/core';
+
+type LocalBlobStorageOptions = {
     baseDir: string;
     filesRoutePrefix?: string;
     appBaseUrl?: string;
 };
-export type LocalBlobStorage = BlobStorageAdapterWithView & {
+type LocalBlobStorage = BlobStorageAdapterWithView & {
     resolveAbsolutePath(key: string): string;
     ensureDirectoryForKey(key: string): Promise<string>;
 };
-export declare function createLocalBlobStorage(options: LocalBlobStorageOptions): LocalBlobStorage;
-//# sourceMappingURL=index.d.ts.map
+declare function createLocalBlobStorage(options: LocalBlobStorageOptions): LocalBlobStorage;
+
+export { type LocalBlobStorage, type LocalBlobStorageOptions, createLocalBlobStorage };
