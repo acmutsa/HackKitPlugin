@@ -1,20 +1,6 @@
 import { defineEntity, p } from "@mikro-orm/core";
 
-// These are Better Auth's default models. Changes to Better Auth options that add
-// columns or plugins must regenerate the auth entities before a migration is made.
-export const AuthUser = defineEntity({
-	name: "AuthUser",
-	tableName: "user",
-	properties: {
-		id: p.string().primary(),
-		name: p.string(),
-		email: p.string().unique(),
-		emailVerified: p.boolean().default(false),
-		image: p.text().nullable(),
-		createdAt: p.datetime(),
-		updatedAt: p.datetime(),
-	},
-});
+import { HackKitUser } from "../models.js";
 
 export const AuthSession = defineEntity({
 	name: "AuthSession",
@@ -29,7 +15,7 @@ export const AuthSession = defineEntity({
 		userAgent: p.text().nullable(),
 		userId: () =>
 			p
-				.manyToOne(AuthUser)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("user_id")
 				.index()
@@ -46,7 +32,7 @@ export const AuthAccount = defineEntity({
 		providerId: p.string(),
 		userId: () =>
 			p
-				.manyToOne(AuthUser)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("user_id")
 				.index()
@@ -76,9 +62,4 @@ export const AuthVerification = defineEntity({
 	},
 });
 
-export const authEntities = [
-	AuthUser,
-	AuthSession,
-	AuthAccount,
-	AuthVerification,
-];
+export const authEntities = [AuthSession, AuthAccount, AuthVerification];

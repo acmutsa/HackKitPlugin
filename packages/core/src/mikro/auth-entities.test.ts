@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { MikroORM, RequestContext } from "@mikro-orm/core";
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { LibSqlDriver } from "@mikro-orm/libsql";
-import { AuthUser, authEntities } from "./auth-entities.js";
+import { authEntities } from "./auth-entities.js";
 import { createHackKitAuth } from "./auth.js";
-import { HackKitProfile } from "./profile.js";
+import { HackKitUser } from "../models.js";
 
 describe.each([
 	[
@@ -13,7 +13,7 @@ describe.each([
 			MikroORM.init({
 				driver: SqliteDriver,
 				dbName: ":memory:",
-				entities: [...authEntities, HackKitProfile],
+				entities: [...authEntities, HackKitUser],
 			}),
 	],
 	[
@@ -22,7 +22,7 @@ describe.each([
 			MikroORM.init({
 				driver: LibSqlDriver,
 				dbName: ":memory:",
-				entities: [...authEntities, HackKitProfile],
+				entities: [...authEntities, HackKitUser],
 			}),
 	],
 ])("Better Auth MikroORM integration on %s", (_name, open) => {
@@ -52,11 +52,11 @@ describe.each([
 				});
 				expect(session?.user.email).toBe("example@example.com");
 			});
-			const users = await orm.em.fork().find(AuthUser, {});
+			const users = await orm.em.fork().find(HackKitUser, {});
 			expect(users).toHaveLength(1);
 			const em = orm.em.fork();
-			const profile = await em.findOneOrFail(HackKitProfile, {
-				authId: users[0].id,
+			const profile = await em.findOneOrFail(HackKitUser, {
+				id: users[0].id,
 			});
 			profile.hackTag = "example";
 			await em.persist(profile).flush();
@@ -64,27 +64,26 @@ describe.each([
 				(
 					await em
 						.fork()
-						.findOneOrFail(HackKitProfile, { hackTag: "example" })
+						.findOneOrFail(HackKitUser, { hackTag: "example" })
 				).skills,
 			).toEqual([]);
 			const duplicateManager = em.fork();
 			await expect(
 				duplicateManager
 					.persist(
-						duplicateManager.create(HackKitProfile, {
-							authId: users[0].id,
-							firstName: "Duplicate",
-							lastName: "User",
+						duplicateManager.create(HackKitUser, {
+							id: users[0].id,
+							name: "Duplicate User",
+							email: "duplicate@example.com",
 						}),
 					)
 					.flush(),
 			).rejects.toThrow();
 			await expect(
 				em.transactional(async (transaction) => {
-					const value = await transaction.findOneOrFail(
-						HackKitProfile,
-						{ hackTag: "example" },
-					);
+					const value = await transaction.findOneOrFail(HackKitUser, {
+						hackTag: "example",
+					});
 					value.bio = "rolled back";
 					await transaction.flush();
 					throw new Error("abort");
@@ -94,7 +93,7 @@ describe.each([
 				(
 					await em
 						.fork()
-						.findOneOrFail(HackKitProfile, { hackTag: "example" })
+						.findOneOrFail(HackKitUser, { hackTag: "example" })
 				).bio,
 			).toBeNull();
 			expect(await orm.schema.getUpdateSchemaSQL()).toBe("");

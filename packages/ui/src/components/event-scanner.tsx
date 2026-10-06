@@ -98,9 +98,7 @@ export function EventScanner({ event, className, onDone }: EventScannerProps) {
 			{targetUser ? (
 				<Card>
 					<CardHeader>
-						<CardTitle>
-							{targetUser.firstName} {targetUser.lastName}
-						</CardTitle>
+						<CardTitle>{targetUser.name}</CardTitle>
 						<CardDescription>{targetUser.email}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">

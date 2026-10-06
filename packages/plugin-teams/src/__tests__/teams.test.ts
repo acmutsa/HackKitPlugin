@@ -25,8 +25,7 @@ async function seedUserWithHackTag(
 	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: "Test",
-		lastName: "User",
+		name: "Test User",
 	});
 	await hackkit.userData.completeUserData({
 		authId,
@@ -52,8 +51,7 @@ async function seedHacker(
 		await createTestUser(hackkit, {
 			authId,
 			email: `${authId}@example.com`,
-			firstName: "Test",
-			lastName: "User",
+			name: "Test User",
 		});
 	await hackkit.userData.completeUserData({
 		authId,

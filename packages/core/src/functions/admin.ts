@@ -70,11 +70,7 @@ export function createAdminApi(context: AdminApiContext) {
 			{},
 			{ orderBy: { createdAt: "desc" } },
 		);
-		return Promise.all(
-			users.map(async (profile) =>
-				hydrateUser(await toUser(em, profile)),
-			),
-		);
+		return Promise.all(users.map((user) => hydrateUser(toUser(user))));
 	}
 
 	async function getUser(input: {
@@ -82,7 +78,7 @@ export function createAdminApi(context: AdminApiContext) {
 		targetAuthId: AuthId;
 	}): Promise<AdminUserRecord | null> {
 		await requirePermission(input.actorAuthId, CorePermission.UsersView);
-		const user = await readUser(em, { authId: input.targetAuthId });
+		const user = await readUser(em, { id: input.targetAuthId });
 		return user ? hydrateUser(user) : null;
 	}
 
@@ -146,8 +142,7 @@ export function createAdminApi(context: AdminApiContext) {
 		return records.map(({ user, userData, hacker, rsvp, role, ban }) => ({
 			authId: user.authId,
 			email: user.email,
-			firstName: user.firstName,
-			lastName: user.lastName,
+			name: user.name,
 			hackTag: user.hackTag ?? "",
 			role: role?.name ?? "",
 			isApproved: user.isApproved,

@@ -23,8 +23,7 @@ async function seedApprovedHacker(hackkit: TestHackkit, authId: string) {
 	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: authId,
-		lastName: "Hacker",
+		name: `${authId} Hacker`,
 	});
 	await hackkit.userData.completeUserData({
 		authId,
@@ -62,8 +61,7 @@ describe("RSVP", () => {
 		await createTestUser(hackkit, {
 			authId: "unregistered-auth",
 			email: "unregistered@example.com",
-			firstName: "Unregistered",
-			lastName: "User",
+			name: "Unregistered User",
 		});
 		await expect(
 			hackkit.rsvp.confirm({ authId: "unregistered-auth" }),

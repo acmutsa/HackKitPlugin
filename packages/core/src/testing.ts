@@ -6,7 +6,7 @@ import {
 	type HackKitScope,
 	type HackKitRuntime,
 } from "./mikro/runtime.js";
-import { AuthUser } from "./mikro/auth-entities.js";
+import { HackKitUser } from "./models.js";
 import type { HackKitPlugin } from "./plugins.js";
 import type { EntityManager } from "@mikro-orm/core";
 
@@ -48,16 +48,15 @@ export async function createTestUser(
 	input: {
 		authId: string;
 		email: string;
-		firstName: string;
-		lastName: string;
+		name: string;
 		profilePhotoUrl?: string;
 	},
 ) {
-	context.em.create(AuthUser, {
+	context.em.create(HackKitUser, {
 		id: input.authId,
 		email: input.email,
-		name: `${input.firstName} ${input.lastName}`,
-		image: input.profilePhotoUrl,
+		name: input.name,
+		profilePhotoUrl: input.profilePhotoUrl,
 		createdAt: new Date("2026-05-24T12:00:00.000Z"),
 		updatedAt: new Date("2026-05-24T12:00:00.000Z"),
 	});

@@ -18,8 +18,7 @@ export const hackTagSchema = z
 
 export const updateUserProfileSchema = z.object({
 	authId: authIdSchema,
-	firstName: z.string().min(1).max(100).optional(),
-	lastName: z.string().min(1).max(100).optional(),
+	name: z.string().trim().min(1).max(200).optional(),
 	profilePhotoUrl: z
 		.union([
 			z.string().url(),

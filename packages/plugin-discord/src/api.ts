@@ -123,7 +123,7 @@ export function createDiscordApi(
 	): Promise<DiscordRoleSyncPlan> {
 		const [member, user, hacker] = await Promise.all([
 			getMember(authId),
-			em.findOne(coreModels.user, { authId }),
+			em.findOne(coreModels.user, { id: authId }),
 			em.findOne(coreModels.hacker, { authId }),
 		]);
 		if (!member) {
@@ -151,7 +151,7 @@ export function createDiscordApi(
 			roleNames: roleRefs.flatMap((role) =>
 				role.name ? [role.name] : [],
 			),
-			nickname: `${user.firstName} ${user.lastName}`.trim(),
+			nickname: user.name,
 		};
 	}
 
@@ -251,7 +251,7 @@ export function createDiscordApi(
 						};
 					}
 					const [user, hacker] = await Promise.all([
-						em.findOne(coreModels.user, { authId: input.authId }),
+						em.findOne(coreModels.user, { id: input.authId }),
 						em.findOne(coreModels.hacker, { authId: input.authId }),
 					]);
 					if (!user)

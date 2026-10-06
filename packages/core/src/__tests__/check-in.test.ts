@@ -14,8 +14,7 @@ describe("hackkit access control and check-in", () => {
 		await createTestUser(hackkit, {
 			authId: "participant-auth",
 			email: "p@example.com",
-			firstName: "Pat",
-			lastName: "Participant",
+			name: "Pat Participant",
 		});
 
 		const checkedIn = await hackkit.users.checkIn({
@@ -38,8 +37,7 @@ describe("hackkit access control and check-in", () => {
 		await createTestUser(hackkit, {
 			authId: "participant-auth",
 			email: "p@example.com",
-			firstName: "Pat",
-			lastName: "Participant",
+			name: "Pat Participant",
 		});
 
 		const event = await hackkit.events.createEvent({
@@ -74,8 +72,7 @@ describe("hackkit access control and check-in", () => {
 		await createTestUser(hackkit, {
 			authId: "no-role-auth",
 			email: "n@example.com",
-			firstName: "No",
-			lastName: "Role",
+			name: "No Role",
 		});
 
 		await expect(

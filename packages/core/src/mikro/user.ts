@@ -4,23 +4,19 @@ import {
 	type FilterQuery,
 	type InferEntity,
 } from "@mikro-orm/core";
-import { AuthUser } from "./auth-entities.js";
-import { HackKitProfile } from "../models.js";
+import { HackKitUser } from "../models.js";
 import type { User } from "../types.js";
 
-/** Domain profile data uses Better Auth's current email without copying it. */
-export async function toUser(
-	em: EntityManager,
-	profile: InferEntity<typeof HackKitProfile>,
-): Promise<User> {
-	const identity = await em.findOneOrFail(AuthUser, { id: profile.authId });
-	return { ...wrap(profile).toObject(), email: identity.email };
+/** Keep the domain Auth ID API while serializing the single native user row. */
+export function toUser(user: InferEntity<typeof HackKitUser>): User {
+	const { id, ...data } = wrap(user).toObject();
+	return { ...data, authId: id };
 }
 
 export async function readUser(
 	em: EntityManager,
-	where: FilterQuery<InferEntity<typeof HackKitProfile>>,
+	where: FilterQuery<InferEntity<typeof HackKitUser>>,
 ): Promise<User | null> {
-	const profile = await em.findOne(HackKitProfile, where);
-	return profile ? toUser(em, profile) : null;
+	const user = await em.findOne(HackKitUser, where);
+	return user ? toUser(user) : null;
 }

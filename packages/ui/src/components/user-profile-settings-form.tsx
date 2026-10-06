@@ -23,8 +23,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 
 const formSchema = updateUserProfileSchema.omit({ authId: true }).extend({
-	firstName: z.string().min(1).max(100),
-	lastName: z.string().min(1).max(100),
+	name: z.string().trim().min(1).max(200),
 	hackTag: z.string().min(1).max(50),
 	skillsText: z.string().optional(),
 });
@@ -55,8 +54,7 @@ function textToSkills(value?: string) {
 
 function userToFormValues(user: User): FormValues {
 	return {
-		firstName: user.firstName,
-		lastName: user.lastName,
+		name: user.name,
 		hackTag: user.hackTag ?? "",
 		bio: user.bio ?? "",
 		pronouns: user.pronouns ?? "",
@@ -113,8 +111,7 @@ export function UserProfileSettingsForm({
 		}
 
 		const payload: UserProfileFormValues = {
-			firstName: values.firstName,
-			lastName: values.lastName,
+			name: values.name,
 			hackTag: values.hackTag,
 			bio: values.bio,
 			pronouns: values.pronouns,
@@ -169,8 +166,7 @@ export function UserProfileSettingsForm({
 							/>
 						) : (
 							<div className="grid h-20 w-20 place-items-center rounded-full bg-muted text-lg font-semibold">
-								{currentUser.firstName[0]}
-								{currentUser.lastName[0]}
+								{currentUser.name.slice(0, 2).toUpperCase()}
 							</div>
 						)}
 						{uploadProfilePhoto ? (
@@ -194,27 +190,10 @@ export function UserProfileSettingsForm({
 
 					<div className="grid gap-4 md:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="firstName">First name</Label>
-							<Input
-								id="firstName"
-								{...form.register("firstName")}
-							/>
+							<Label htmlFor="name">Display name</Label>
+							<Input id="name" {...form.register("name")} />
 							<FieldError
-								message={
-									form.formState.errors.firstName?.message
-								}
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="lastName">Last name</Label>
-							<Input
-								id="lastName"
-								{...form.register("lastName")}
-							/>
-							<FieldError
-								message={
-									form.formState.errors.lastName?.message
-								}
+								message={form.formState.errors.name?.message}
 							/>
 						</div>
 						<div className="space-y-2">

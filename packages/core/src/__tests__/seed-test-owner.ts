@@ -23,10 +23,11 @@ export async function seedTestOwner(
 	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: "Test",
-		lastName: "Owner",
+		name: "Test Owner",
 	});
-	const owner = await hackkit.em.findOneOrFail(coreModels.user, { authId });
+	const owner = await hackkit.em.findOneOrFail(coreModels.user, {
+		id: authId,
+	});
 	owner.roleId = "core.owner";
 	await hackkit.em.flush();
 	return (await hackkit.roles.getRole("core.owner"))!;

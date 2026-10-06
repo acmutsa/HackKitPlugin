@@ -43,8 +43,7 @@ export type HackTagFormValues = {
 };
 
 export type UserProfileFormValues = {
-	firstName: string;
-	lastName: string;
+	name: string;
 	hackTag: string;
 	bio?: string;
 	pronouns?: string;

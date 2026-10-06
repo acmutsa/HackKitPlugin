@@ -73,7 +73,7 @@ async function resolveInviteeAuthId(
 			"User with that HackTag was not found.",
 		);
 	}
-	return user.authId;
+	return user.id;
 }
 
 async function assertTeamHasRoom(

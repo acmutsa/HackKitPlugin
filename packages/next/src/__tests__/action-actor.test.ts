@@ -9,8 +9,7 @@ it("does not let a submitted actor ID grant a caller administrator permissions",
 		await createTestUser(hackkit, {
 			authId,
 			email: `${authId}@example.com`,
-			firstName: authId,
-			lastName: "Test",
+			name: `${authId} Test`,
 		});
 	}
 	hackkit.em.create(coreModels.role, {
@@ -20,7 +19,7 @@ it("does not let a submitted actor ID grant a caller administrator permissions",
 		permissions: [CorePermission.SuperAdmin],
 	});
 	const owner = await hackkit.em.findOneOrFail(coreModels.user, {
-		authId: "owner",
+		id: "owner",
 	});
 	owner.roleId = "owner-role";
 	await hackkit.em.flush();

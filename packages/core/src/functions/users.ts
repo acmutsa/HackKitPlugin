@@ -47,7 +47,7 @@ export function createUsersApi(context: UsersApiContext) {
 
 	return {
 		async getUser(authId: AuthId): Promise<User | null> {
-			return readUser(em, { authId });
+			return readUser(em, { id: authId });
 		},
 
 		async getUserByHackTag(hackTag: string): Promise<User | null> {
@@ -72,8 +72,7 @@ export function createUsersApi(context: UsersApiContext) {
 			return {
 				user: {
 					authId: user.authId,
-					firstName: user.firstName,
-					lastName: user.lastName,
+					name: user.name,
 					profilePhotoUrl: user.profilePhotoUrl,
 					hackTag: user.hackTag,
 					bio: user.bio,
@@ -106,15 +105,12 @@ export function createUsersApi(context: UsersApiContext) {
 					input.actorAuthId,
 					CorePermission.UsersView,
 				);
-			return Promise.all(
-				(
-					await em.find(
-						coreModels.user,
-						{},
-						{ orderBy: { createdAt: "desc" } },
-					)
-				).map((profile) => toUser(em, profile)),
+			const users = await em.find(
+				coreModels.user,
+				{},
+				{ orderBy: { createdAt: "desc" } },
 			);
+			return users.map(toUser);
 		},
 
 		async claimHackTag(input: unknown): Promise<User> {
@@ -129,14 +125,14 @@ export function createUsersApi(context: UsersApiContext) {
 						const existing = await em.findOne(coreModels.user, {
 							hackTag: parsed.hackTag,
 						});
-						if (existing && existing.authId !== parsed.authId) {
+						if (existing && existing.id !== parsed.authId) {
 							throw new HackKitError(
 								"CONFLICT",
 								"HackTag is already claimed.",
 							);
 						}
 						const updated = await em.findOne(coreModels.user, {
-							authId: parsed.authId,
+							id: parsed.authId,
 						});
 						if (updated) {
 							em.assign(
@@ -154,7 +150,7 @@ export function createUsersApi(context: UsersApiContext) {
 								"NOT_FOUND",
 								"User not found.",
 							);
-						return getUserOrThrow(updated.authId);
+						return getUserOrThrow(updated.id);
 					},
 				);
 			});
@@ -173,7 +169,7 @@ export function createUsersApi(context: UsersApiContext) {
 							const existing = await em.findOne(coreModels.user, {
 								hackTag: parsed.hackTag,
 							});
-							if (existing && existing.authId !== parsed.authId) {
+							if (existing && existing.id !== parsed.authId) {
 								throw new HackKitError(
 									"CONFLICT",
 									"HackTag is already claimed.",
@@ -181,14 +177,13 @@ export function createUsersApi(context: UsersApiContext) {
 							}
 						}
 						const updated = await em.findOne(coreModels.user, {
-							authId: parsed.authId,
+							id: parsed.authId,
 						});
 						if (updated) {
 							em.assign(
 								updated,
 								{
-									firstName: parsed.firstName,
-									lastName: parsed.lastName,
+									name: parsed.name,
 									profilePhotoUrl: parsed.profilePhotoUrl,
 									hackTag: parsed.hackTag,
 									bio: parsed.bio,
@@ -211,7 +206,7 @@ export function createUsersApi(context: UsersApiContext) {
 								"NOT_FOUND",
 								"User not found.",
 							);
-						return getUserOrThrow(updated.authId);
+						return getUserOrThrow(updated.id);
 					},
 				);
 			});
@@ -246,7 +241,7 @@ export function createUsersApi(context: UsersApiContext) {
 								await getRoleOrThrow(target.roleId),
 							);
 						const updated = await em.findOne(coreModels.user, {
-							authId: parsed.targetAuthId,
+							id: parsed.targetAuthId,
 						});
 						if (updated) {
 							em.assign(
@@ -267,7 +262,7 @@ export function createUsersApi(context: UsersApiContext) {
 						if (parsed.approved) {
 							await groups.assignNextGroup(parsed.targetAuthId);
 						}
-						return getUserOrThrow(updated.authId);
+						return getUserOrThrow(updated.id);
 					},
 				);
 			});
@@ -348,7 +343,7 @@ export function createUsersApi(context: UsersApiContext) {
 						}
 						const timestamp = now();
 						const updated = await em.findOne(coreModels.user, {
-							authId: parsed.targetAuthId,
+							id: parsed.targetAuthId,
 						});
 						if (updated) {
 							em.assign(
@@ -366,7 +361,7 @@ export function createUsersApi(context: UsersApiContext) {
 								"NOT_FOUND",
 								"User not found.",
 							);
-						return getUserOrThrow(updated.authId);
+						return getUserOrThrow(updated.id);
 					},
 				);
 			});
@@ -390,7 +385,7 @@ export function createUsersApi(context: UsersApiContext) {
 						await getUserOrThrow(parsed.targetAuthId);
 						const timestamp = now();
 						const updated = await em.findOne(coreModels.user, {
-							authId: parsed.targetAuthId,
+							id: parsed.targetAuthId,
 						});
 						if (updated) {
 							em.assign(
@@ -408,7 +403,7 @@ export function createUsersApi(context: UsersApiContext) {
 								"NOT_FOUND",
 								"User not found.",
 							);
-						return getUserOrThrow(updated.authId);
+						return getUserOrThrow(updated.id);
 					},
 				);
 			});

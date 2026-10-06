@@ -16,7 +16,10 @@ it("runs Core, plugins, and Better Auth against committed app migrations", async
 			driver: SqliteDriver,
 			dbName: join(directory, "web.db"),
 			clientUrl: undefined,
-			migrations: { path: join(process.cwd(), "db/migrations/sqlite") },
+			migrations: {
+				path: join(process.cwd(), "db/migrations/sqlite"),
+				snapshotOnMigrate: false,
+			},
 		},
 		auth: {
 			baseURL: "http://localhost:3000",
@@ -54,8 +57,7 @@ it("runs Core, plugins, and Better Auth against committed app migrations", async
 				await scope.hackkit.users.getUser(signup.response.user.id),
 			).toMatchObject({
 				authId: signup.response.user.id,
-				firstName: "Schema",
-				lastName: "Test",
+				name: "Schema Test",
 				email: "schema@example.com",
 			});
 		} finally {

@@ -1,5 +1,4 @@
 import { defineEntity, p } from "@mikro-orm/core";
-import { AuthUser } from "./mikro/auth-entities.js";
 
 export const CoreRole = defineEntity({
 	name: "CoreRole",
@@ -22,20 +21,14 @@ export const CoreRole = defineEntity({
 	indexes: [{ properties: ["position"] }],
 });
 
-export const HackKitProfile = defineEntity({
-	name: "HackKitProfile",
+export const HackKitUser = defineEntity({
+	name: "HackKitUser",
 	tableName: "core_user",
 	properties: {
-		authId: () =>
-			p
-				.oneToOne(AuthUser)
-				.owner()
-				.mapToPk()
-				.fieldName("auth_id")
-				.primary()
-				.deleteRule("cascade"),
-		firstName: p.string(),
-		lastName: p.string(),
+		id: p.string().primary(),
+		name: p.string(),
+		email: p.string().unique(),
+		emailVerified: p.boolean().default(false),
 		profilePhotoUrl: p.text().nullable(),
 		hackTag: p.string().nullable().unique(),
 		bio: p.text().nullable(),
@@ -71,7 +64,7 @@ export const CoreUserData = defineEntity({
 	properties: {
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.primary()
@@ -102,7 +95,7 @@ export const CoreHacker = defineEntity({
 	properties: {
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.primary()
@@ -134,7 +127,7 @@ export const CoreRsvp = defineEntity({
 	properties: {
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.primary()
@@ -151,7 +144,7 @@ export const CoreRsvp = defineEntity({
 		cancelledAt: p.datetime().nullable(),
 		cancelledByAuthId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("cancelled_by_auth_id")
 				.nullable()
@@ -159,7 +152,7 @@ export const CoreRsvp = defineEntity({
 		promotedAt: p.datetime().nullable(),
 		promotedByAuthId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("promoted_by_auth_id")
 				.nullable()
@@ -179,17 +172,14 @@ export const CoreUserBan = defineEntity({
 	properties: {
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.primary()
 				.deleteRule("cascade"),
 		reason: p.string().nullable(),
 		bannedByAuthId: () =>
-			p
-				.manyToOne(HackKitProfile)
-				.mapToPk()
-				.fieldName("banned_by_auth_id"),
+			p.manyToOne(HackKitUser).mapToPk().fieldName("banned_by_auth_id"),
 		createdAt: p.datetime().onCreate(() => new Date()),
 	},
 });
@@ -232,7 +222,7 @@ export const CoreSetting = defineEntity({
 		createdAt: p.datetime().onCreate(() => new Date()),
 		createdByAuthId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("created_by_auth_id")
 				.nullable()
@@ -243,7 +233,7 @@ export const CoreSetting = defineEntity({
 			.onUpdate(() => new Date()),
 		updatedByAuthId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("updated_by_auth_id")
 				.nullable()
@@ -271,15 +261,12 @@ export const CoreEventScan = defineEntity({
 				.deleteRule("cascade"),
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.deleteRule("cascade"),
 		scannedByAuthId: () =>
-			p
-				.manyToOne(HackKitProfile)
-				.mapToPk()
-				.fieldName("scanned_by_auth_id"),
+			p.manyToOne(HackKitUser).mapToPk().fieldName("scanned_by_auth_id"),
 		scannedAt: p.datetime().onCreate(() => new Date()),
 	},
 	indexes: [
@@ -301,7 +288,7 @@ export const CoreNotificationIntent = defineEntity({
 		kind: p.string(),
 		recipientAuthId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("recipient_auth_id")
 				.nullable()
@@ -374,7 +361,7 @@ export const CoreOperationLock = defineEntity({
 
 export const coreModels = {
 	operationLock: CoreOperationLock,
-	user: HackKitProfile,
+	user: HackKitUser,
 	userData: CoreUserData,
 	hacker: CoreHacker,
 	rsvp: CoreRsvp,

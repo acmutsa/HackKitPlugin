@@ -12,8 +12,7 @@ describe("notifications", () => {
 		await createTestUser(hackkit, {
 			authId: "hacker-auth",
 			email: "hacker@example.com",
-			firstName: "Test",
-			lastName: "Hacker",
+			name: "Test Hacker",
 		});
 
 		const intent = await hackkit.notifications.queueIntent({
@@ -47,8 +46,7 @@ describe("notifications", () => {
 		await createTestUser(hackkit, {
 			authId: "hacker-auth",
 			email: "hacker@example.com",
-			firstName: "Test",
-			lastName: "Hacker",
+			name: "Test Hacker",
 		});
 		const intent = await hackkit.notifications.queueIntent({
 			kind: "sample.custom",

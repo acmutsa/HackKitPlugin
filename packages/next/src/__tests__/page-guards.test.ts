@@ -45,12 +45,11 @@ async function seedOwner(hackkit: TestHackkit) {
 	await createTestUser(hackkit, {
 		authId: "admin-auth",
 		email: "admin@example.com",
-		firstName: "Ad",
-		lastName: "Min",
+		name: "Ad Min",
 	});
 	await hackkit.em.nativeUpdate(
 		coreModels.user,
-		{ authId: "admin-auth" },
+		{ id: "admin-auth" },
 		{ roleId: "core.owner", updatedAt: new Date() },
 	);
 }
@@ -75,8 +74,7 @@ async function createFixtureUser(
 	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: authId,
-		lastName: "User",
+		name: `${authId} User`,
 	});
 	if (hackTag) {
 		await hackkit.users.claimHackTag({

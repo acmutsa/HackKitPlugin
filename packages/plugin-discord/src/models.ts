@@ -4,7 +4,7 @@ import {
 	type EntityDTO,
 	type InferEntity,
 } from "@mikro-orm/core";
-import { HackKitProfile } from "@hackkit/core";
+import { HackKitUser } from "@hackkit/core";
 
 export const DiscordVerification = defineEntity({
 	name: "DiscordVerification",
@@ -17,7 +17,7 @@ export const DiscordVerification = defineEntity({
 		avatarHash: p.string().nullable(),
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.nullable()
@@ -44,7 +44,7 @@ export const DiscordMember = defineEntity({
 	properties: {
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.primary()
@@ -77,7 +77,7 @@ export const DiscordRoleSyncAttempt = defineEntity({
 			.onCreate(() => crypto.randomUUID()),
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.deleteRule("cascade"),

@@ -44,14 +44,11 @@ export function PublicProfileCard({
 					/>
 				) : (
 					<div className="grid h-24 w-24 place-items-center rounded-full bg-muted text-2xl font-semibold">
-						{user.firstName[0]}
-						{user.lastName[0]}
+						{user.name.slice(0, 2).toUpperCase()}
 					</div>
 				)}
 				<div>
-					<CardTitle className="text-3xl">
-						{user.firstName} {user.lastName}
-					</CardTitle>
+					<CardTitle className="text-3xl">{user.name}</CardTitle>
 					<CardDescription>
 						{user.hackTag
 							? `@${user.hackTag}`

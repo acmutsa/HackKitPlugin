@@ -6,8 +6,11 @@ export type UserId = AuthId;
 export type RoleId = string;
 export type PermissionKey = `${string}.${string}`;
 
-export type User = EntityDTO<InferEntity<typeof coreModels.user>> & {
-	email: string;
+export type User = Omit<
+	EntityDTO<InferEntity<typeof coreModels.user>>,
+	"id"
+> & {
+	authId: AuthId;
 };
 export type UserData = EntityDTO<InferEntity<typeof coreModels.userData>>;
 export type Hacker = EntityDTO<InferEntity<typeof coreModels.hacker>>;
@@ -39,8 +42,7 @@ export type PublicUserProfile = {
 	user: Pick<
 		User,
 		| "authId"
-		| "firstName"
-		| "lastName"
+		| "name"
 		| "profilePhotoUrl"
 		| "hackTag"
 		| "bio"
@@ -76,8 +78,7 @@ export type AdminOverview = {
 export type AdminUserExportRow = {
 	authId: string;
 	email: string;
-	firstName: string;
-	lastName: string;
+	name: string;
 	hackTag: string;
 	role: string;
 	isApproved: boolean;

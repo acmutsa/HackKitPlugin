@@ -260,7 +260,7 @@
           "referencedColumnNames": [
             "id"
           ],
-          "referencedTableName": "user",
+          "referencedTableName": "core_user",
           "deleteRule": "cascade"
         }
       },
@@ -666,7 +666,7 @@
           "constraintName": "core_event_scan_auth_id_foreign",
           "localTableName": "core_event_scan",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "cascade"
@@ -690,7 +690,7 @@
           "constraintName": "core_event_scan_scanned_by_auth_id_foreign",
           "localTableName": "core_event_scan",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user"
         }
@@ -998,7 +998,7 @@
           "constraintName": "core_hacker_auth_id_foreign",
           "localTableName": "core_hacker",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "updateRule": "cascade",
@@ -1487,7 +1487,7 @@
           "constraintName": "core_notification_intent_recipient_auth_id_foreign",
           "localTableName": "core_notification_intent",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "set null"
@@ -2004,7 +2004,7 @@
           "constraintName": "core_rsvp_auth_id_foreign",
           "localTableName": "core_rsvp",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "updateRule": "cascade",
@@ -2017,7 +2017,7 @@
           "constraintName": "core_rsvp_cancelled_by_auth_id_foreign",
           "localTableName": "core_rsvp",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "set null"
@@ -2029,7 +2029,7 @@
           "constraintName": "core_rsvp_promoted_by_auth_id_foreign",
           "localTableName": "core_rsvp",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "set null"
@@ -2195,7 +2195,7 @@
           "constraintName": "core_setting_created_by_auth_id_foreign",
           "localTableName": "core_setting",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "set null"
@@ -2207,7 +2207,7 @@
           "constraintName": "core_setting_updated_by_auth_id_foreign",
           "localTableName": "core_setting",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "set null"
@@ -2218,23 +2218,6 @@
     {
       "name": "core_user",
       "columns": {
-        "auth_id": {
-          "name": "auth_id",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": true,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
         "bio": {
           "name": "bio",
           "type": "text",
@@ -2303,14 +2286,14 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "first_name": {
-          "name": "first_name",
+        "email": {
+          "name": "email",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": false,
+          "unique": true,
           "length": null,
           "precision": null,
           "scale": null,
@@ -2320,6 +2303,23 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "hack_tag": {
           "name": "hack_tag",
           "type": "text",
@@ -2328,6 +2328,23 @@
           "primary": false,
           "nullable": true,
           "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
@@ -2371,8 +2388,8 @@
           "enumItems": [],
           "mappedType": "integer"
         },
-        "last_name": {
-          "name": "last_name",
+        "name": {
+          "name": "name",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -2487,6 +2504,16 @@
         },
         {
           "columnNames": [
+            "email"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "core_user_email_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
             "hack_tag"
           ],
           "composite": false,
@@ -2517,7 +2544,7 @@
         },
         {
           "columnNames": [
-            "auth_id"
+            "id"
           ],
           "composite": false,
           "constraint": true,
@@ -2529,19 +2556,6 @@
       "checks": [],
       "triggers": [],
       "foreignKeys": {
-        "core_user_auth_id_foreign": {
-          "columnNames": [
-            "auth_id"
-          ],
-          "constraintName": "core_user_auth_id_foreign",
-          "localTableName": "core_user",
-          "referencedColumnNames": [
-            "id"
-          ],
-          "referencedTableName": "user",
-          "updateRule": "cascade",
-          "deleteRule": "cascade"
-        },
         "core_user_role_id_foreign": {
           "columnNames": [
             "role_id"
@@ -2671,7 +2685,7 @@
           "constraintName": "core_user_ban_auth_id_foreign",
           "localTableName": "core_user_ban",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "updateRule": "cascade",
@@ -2684,7 +2698,7 @@
           "constraintName": "core_user_ban_banned_by_auth_id_foreign",
           "localTableName": "core_user_ban",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user"
         }
@@ -2982,7 +2996,7 @@
           "constraintName": "core_user_data_auth_id_foreign",
           "localTableName": "core_user_data",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "updateRule": "cascade",
@@ -3203,7 +3217,7 @@
           "constraintName": "discord_member_auth_id_foreign",
           "localTableName": "discord_member",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "updateRule": "cascade",
@@ -3442,7 +3456,7 @@
           "constraintName": "discord_role_sync_attempt_auth_id_foreign",
           "localTableName": "discord_role_sync_attempt",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "cascade"
@@ -3708,7 +3722,7 @@
           "constraintName": "discord_verification_auth_id_foreign",
           "localTableName": "discord_verification",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "set null"
@@ -3900,7 +3914,7 @@
           "referencedColumnNames": [
             "id"
           ],
-          "referencedTableName": "user",
+          "referencedTableName": "core_user",
           "deleteRule": "cascade"
         }
       },
@@ -4059,7 +4073,7 @@
           "constraintName": "teams_invite_invitee_auth_id_foreign",
           "localTableName": "teams_invite",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "cascade"
@@ -4203,7 +4217,7 @@
           "constraintName": "teams_member_auth_id_foreign",
           "localTableName": "teams_member",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "cascade"
@@ -4364,162 +4378,12 @@
           "constraintName": "teams_team_owner_auth_id_foreign",
           "localTableName": "teams_team",
           "referencedColumnNames": [
-            "auth_id"
+            "id"
           ],
           "referencedTableName": "core_user",
           "deleteRule": "cascade"
         }
       },
-      "comment": null
-    },
-    {
-      "name": "user",
-      "columns": {
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": true,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "email_verified": {
-          "name": "email_verified",
-          "type": "integer",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "false",
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "integer"
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": true,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "image": {
-          "name": "image",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        }
-      },
-      "indexes": [
-        {
-          "columnNames": [
-            "id"
-          ],
-          "composite": false,
-          "constraint": true,
-          "keyName": "primary",
-          "primary": true,
-          "unique": true
-        },
-        {
-          "columnNames": [
-            "email"
-          ],
-          "composite": false,
-          "constraint": true,
-          "keyName": "user_email_unique",
-          "primary": false,
-          "unique": true
-        }
-      ],
-      "checks": [],
-      "triggers": [],
-      "foreignKeys": {},
       "comment": null
     },
     {

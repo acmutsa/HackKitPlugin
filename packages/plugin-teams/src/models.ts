@@ -4,7 +4,7 @@ import {
 	type EntityDTO,
 	type InferEntity,
 } from "@mikro-orm/core";
-import { HackKitProfile } from "@hackkit/core";
+import { HackKitUser } from "@hackkit/core";
 
 export const TeamsTeam = defineEntity({
 	name: "TeamsTeam",
@@ -18,7 +18,7 @@ export const TeamsTeam = defineEntity({
 		tag: p.string().unique(),
 		ownerAuthId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("owner_auth_id")
 				.deleteRule("cascade"),
@@ -43,7 +43,7 @@ export const TeamsMember = defineEntity({
 				.deleteRule("cascade"),
 		authId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("auth_id")
 				.unique()
@@ -69,7 +69,7 @@ export const TeamsInvite = defineEntity({
 				.deleteRule("cascade"),
 		inviteeAuthId: () =>
 			p
-				.manyToOne(HackKitProfile)
+				.manyToOne(HackKitUser)
 				.mapToPk()
 				.fieldName("invitee_auth_id")
 				.deleteRule("cascade"),

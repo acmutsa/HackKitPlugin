@@ -59,7 +59,7 @@ async function defaultRecipientResolver(
 	if (!user) return null;
 	return {
 		email: user.email,
-		name: `${user.firstName} ${user.lastName}`.trim(),
+		name: user.name,
 	};
 }
 

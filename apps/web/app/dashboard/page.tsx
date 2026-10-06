@@ -27,9 +27,7 @@ export default async function DashboardPage() {
 		? await hackkit.roles.getRole(currentUser.roleId)
 		: null;
 	const participantName =
-		[currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") ||
-		currentUser.hackTag ||
-		"participant";
+		currentUser.name || currentUser.hackTag || "participant";
 
 	return (
 		<ParticipantDashboard
@@ -42,7 +40,10 @@ export default async function DashboardPage() {
 			primaryActions={publicSiteConfig.dashboard.primaryActions}
 			resourceLinks={publicSiteConfig.dashboard.resourceLinks}
 			statusItems={[
-				{ label: "HackTag", value: currentUser.hackTag ?? "Not claimed" },
+				{
+					label: "HackTag",
+					value: currentUser.hackTag ?? "Not claimed",
+				},
 				{
 					label: "Profile",
 					value: userData ? "Complete" : "Needs information",
@@ -56,7 +57,9 @@ export default async function DashboardPage() {
 				nextHref
 					? {
 							nextHref,
-							progress: <CompetitorOnboardingProgress steps={steps} />,
+							progress: (
+								<CompetitorOnboardingProgress steps={steps} />
+							),
 						}
 					: undefined
 			}

@@ -190,8 +190,7 @@ export function HackerRegistrationForm({
 			<CardHeader>
 				<CardTitle>Hacker Registration</CardTitle>
 				<CardDescription>
-					Competitor details for {currentUser.firstName}{" "}
-					{currentUser.lastName}
+					Competitor details for {currentUser.name}
 					{currentUser.hackTag ? ` (@${currentUser.hackTag})` : ""}.
 				</CardDescription>
 			</CardHeader>

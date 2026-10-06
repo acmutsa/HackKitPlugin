@@ -22,12 +22,11 @@ export { createHackKitAuth } from "./mikro/auth.js";
 export type { HackKitAuthOptions } from "./mikro/auth.js";
 export {
 	authEntities,
-	AuthUser,
 	AuthSession,
 	AuthAccount,
 	AuthVerification,
 } from "./mikro/auth-entities.js";
-export { HackKitProfile } from "./mikro/profile.js";
+export { HackKitUser } from "./models.js";
 export type { HackKit } from "./hackkit.js";
 export { seedRoles } from "./seed.js";
 export type {

@@ -22,8 +22,7 @@ describe("admin console reads", () => {
 		await createTestUser(hackkit, {
 			authId: "participant-auth",
 			email: "participant@example.com",
-			firstName: "Pat",
-			lastName: "Participant",
+			name: "Pat Participant",
 		});
 		await hackkit.userData.completeUserData({
 			authId: "participant-auth",

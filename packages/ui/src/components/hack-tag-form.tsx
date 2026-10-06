@@ -72,8 +72,7 @@ export function HackTagForm({
 			<CardHeader>
 				<CardTitle>Claim your HackTag</CardTitle>
 				<CardDescription>
-					Choose a public handle for {currentUser.firstName}{" "}
-					{currentUser.lastName}.
+					Choose a public handle for {currentUser.name}.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

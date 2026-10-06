@@ -108,8 +108,7 @@ export function TeamDashboard({
 						>
 							<div>
 								<p className="font-medium">
-									{member.user.firstName}{" "}
-									{member.user.lastName}
+									{member.user.name}
 								</p>
 								<p className="text-sm text-muted-foreground">
 									{member.user.hackTag
@@ -155,8 +154,7 @@ export function TeamDashboard({
 									>
 										<div>
 											<p className="font-medium">
-												{invite.invitee.firstName}{" "}
-												{invite.invitee.lastName}
+												{invite.invitee.name}
 											</p>
 											<p className="text-sm text-muted-foreground">
 												{invite.invitee.hackTag

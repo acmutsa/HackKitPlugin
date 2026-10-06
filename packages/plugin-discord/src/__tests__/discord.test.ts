@@ -41,8 +41,7 @@ async function seedApprovedHacker(
 	await createTestUser(hackkit, {
 		authId: "hacker-auth",
 		email: "hacker@example.com",
-		firstName: "Hazel",
-		lastName: "Hacker",
+		name: "Hazel Hacker",
 	});
 	await hackkit.userData.completeUserData({
 		authId: "hacker-auth",

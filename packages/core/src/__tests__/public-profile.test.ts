@@ -9,8 +9,7 @@ async function seedUser(hackkit: TestHackkit) {
 	await createTestUser(hackkit, {
 		authId: "hacker-auth",
 		email: "hacker@example.com",
-		firstName: "Hack",
-		lastName: "Er",
+		name: "Hack Er",
 	});
 	await hackkit.userData.completeUserData({
 		authId: "hacker-auth",

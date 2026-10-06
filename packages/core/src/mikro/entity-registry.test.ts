@@ -21,7 +21,7 @@ it("collects plugin and app entities once alongside Core and auth", () => {
 	expect(registry.entities).toContain(appEntity);
 	expect(
 		registry.entities.filter((item) => item.meta.tableName === "user"),
-	).toHaveLength(1);
+	).toHaveLength(0);
 	expect(
 		registry.entities.filter((item) => item.meta.tableName === "core_user"),
 	).toHaveLength(1);
@@ -37,7 +37,7 @@ it("rejects a plugin attempting to use another namespace", () => {
 
 it("rejects duplicate table or entity names before ORM initialization", () => {
 	expect(() =>
-		createPluginRegistry([], [entity("DuplicateAuth", "user")]),
+		createPluginRegistry([], [entity("DuplicateUser", "core_user")]),
 	).toThrow("Duplicate entity name or table");
 	expect(() =>
 		createPluginRegistry(

@@ -36,9 +36,7 @@ export function EventPass({
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="space-y-1 text-center">
-					<p className="text-lg font-semibold">
-						{user.firstName} {user.lastName}
-					</p>
+					<p className="text-lg font-semibold">{user.name}</p>
 					<p className="text-sm text-muted-foreground">
 						{user.email}
 					</p>

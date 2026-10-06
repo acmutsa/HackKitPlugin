@@ -2,11 +2,42 @@ import type { EntityMetadata, MikroORM } from "@mikro-orm/core";
 import { mikroOrmAdapter } from "@a77ay/better-auth-mikro-orm";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { getAuthTables } from "better-auth/db";
-import { HackKitProfile } from "./profile.js";
-import { AuthUser } from "./auth-entities.js";
-import type { FlushEventArgs } from "@mikro-orm/core";
+import { HackKitUser } from "../models.js";
 
-export type HackKitAuthOptions = Omit<BetterAuthOptions, "database">;
+export type HackKitAuthOptions = Omit<
+	BetterAuthOptions,
+	"database" | "user"
+> & {
+	user?: Omit<NonNullable<BetterAuthOptions["user"]>, "modelName" | "fields">;
+};
+const authUserProperties = new Set([
+	"id",
+	"name",
+	"email",
+	"emailVerified",
+	"profilePhotoUrl",
+	"createdAt",
+	"updatedAt",
+]);
+const domainUserProperties = new Set(
+	Object.keys(HackKitUser.meta.properties).filter(
+		(property) => !authUserProperties.has(property),
+	),
+);
+
+/** Core owns the canonical user mapping. Domain fields stay behind Core APIs. */
+export function resolveHackKitAuthOptions<
+	const TOptions extends HackKitAuthOptions,
+>(options: TOptions) {
+	return {
+		...options,
+		user: {
+			...options.user,
+			modelName: "core_user",
+			fields: { image: "profilePhotoUrl" },
+		},
+	};
+}
 
 /** Fail startup and migration generation when auth needs an undeclared schema. */
 export function assertAuthEntitySchema(
@@ -16,7 +47,9 @@ export function assertAuthEntitySchema(
 	>[],
 	options: HackKitAuthOptions,
 ): void {
-	for (const table of Object.values(getAuthTables(options))) {
+	for (const table of Object.values(
+		getAuthTables(resolveHackKitAuthOptions(options)),
+	)) {
 		const entity = entities.find(
 			(candidate) =>
 				candidate.tableName === table.modelName ||
@@ -28,6 +61,13 @@ export function assertAuthEntitySchema(
 			);
 		for (const [name, field] of Object.entries(table.fields)) {
 			const property = field.fieldName ?? name;
+			if (
+				entity.tableName === HackKitUser.meta.tableName &&
+				domainUserProperties.has(property)
+			)
+				throw new Error(
+					`Better Auth field 'core_user.${property}' is owned by Core and cannot be exposed through auth options.`,
+				);
 			if (!(property in entity.properties))
 				throw new Error(
 					`Better Auth field '${table.modelName}.${property}' needs a native MikroORM property and a reviewed migration.`,
@@ -36,38 +76,18 @@ export function assertAuthEntitySchema(
 	}
 }
 
-const profileSubscriber = {
-	beforeFlush({ em, uow }: FlushEventArgs) {
-		for (const user of uow.getPersistStack()) {
-			if (
-				!(user instanceof AuthUser.class) ||
-				uow.getOriginalEntityData(user)
-			)
-				continue;
-			const [firstName = "", ...lastName] = user.name.trim().split(/\s+/);
-			em.create(HackKitProfile, {
-				authId: user.id,
-				firstName,
-				lastName: lastName.join(" "),
-				profilePhotoUrl: user.image ?? null,
-			});
-		}
-	},
-};
-
 /** The application supplies credentials and providers; Core owns the database adapter. */
 export function createHackKitAuth<const TOptions extends HackKitAuthOptions>(
 	orm: MikroORM,
 	options: TOptions,
 ) {
-	assertAuthEntitySchema([...orm.getMetadata().getAll().values()], options);
-	// Better Auth's create.after hooks run after commit. Create the profile in the
-	// same MikroORM flush instead, so identity and profile always commit together.
-	const events = orm.em.getEventManager();
-	if (!events.getSubscribers().has(profileSubscriber))
-		events.registerSubscriber(profileSubscriber);
+	const authOptions = resolveHackKitAuthOptions(options);
+	assertAuthEntitySchema(
+		[...orm.getMetadata().getAll().values()],
+		authOptions,
+	);
 	return betterAuth({
-		...options,
+		...authOptions,
 		database: mikroOrmAdapter(orm),
 	});
 }

@@ -84,7 +84,7 @@ export function createHackkit<
 	const notificationsApi = createNotificationsApi({ em, now });
 
 	async function getUserOrThrow(authId: AuthId): Promise<User> {
-		const user = await readUser(em, { authId });
+		const user = await readUser(em, { id: authId });
 		if (!user) throw new HackKitError("NOT_FOUND", "User not found.");
 		return user;
 	}
@@ -109,7 +109,7 @@ export function createHackkit<
 	const pluginApis = setupPluginApis(plugins, {
 		em,
 		actorAuthId: options.actorAuthId,
-		getUser: (authId) => readUser(em, { authId }),
+		getUser: (authId) => readUser(em, { id: authId }),
 		registry,
 		getSettingValue: settingsApi.getValue,
 		notifications: notificationsApi,
@@ -175,7 +175,7 @@ export function createHackkit<
 						await registrationPolicy.assertCanRegisterNewHacker();
 					const hacker = em.create(coreModels.hacker, value);
 					const profile = await em.findOneOrFail(coreModels.user, {
-						authId: parsed.authId,
+						id: parsed.authId,
 					});
 					if (defaultCompetitorRoleId) {
 						await getRoleOrThrow(defaultCompetitorRoleId);
@@ -400,7 +400,7 @@ export function createHackkit<
 							await getRoleOrThrow(target.roleId),
 						);
 					const updated = await em.findOne(coreModels.user, {
-						authId: parsed.targetAuthId,
+						id: parsed.targetAuthId,
 					});
 					if (updated) {
 						em.assign(

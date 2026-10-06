@@ -48,8 +48,7 @@ async function seedUserWithData(
 	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: "Hack",
-		lastName: "Er",
+		name: "Hack Er",
 	});
 	await hackkit.users.claimHackTag({
 		authId,

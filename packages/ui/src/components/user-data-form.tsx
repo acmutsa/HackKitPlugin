@@ -368,8 +368,8 @@ export function UserDataForm({
 			<CardHeader>
 				<CardTitle>User Data</CardTitle>
 				<CardDescription>
-					Completing registration as {currentUser.firstName}{" "}
-					{currentUser.lastName} ({currentUser.email}).
+					Completing registration as {currentUser.name} (
+					{currentUser.email}).
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

@@ -30,9 +30,7 @@ export function createCompetitorRegistrationPolicy(
 		const approvedUsers = await em.find(coreModels.user, {
 			isApproved: true,
 		});
-		const approvedAuthIds = new Set(
-			approvedUsers.map((user) => user.authId),
-		);
+		const approvedAuthIds = new Set(approvedUsers.map((user) => user.id));
 		return (await em.find(coreModels.hacker, {})).filter((hacker) =>
 			approvedAuthIds.has(hacker.authId),
 		).length;

@@ -17,8 +17,7 @@ async function prepareParticipant(
 	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: "Test",
-		lastName: "Hacker",
+		name: "Test Hacker",
 	});
 	await hackkit.userData.completeUserData({
 		authId,
