@@ -13,7 +13,8 @@ export default async function AdminUsersPage() {
 			<div>
 				<h1 className="text-3xl font-bold tracking-tight">Users</h1>
 				<p className="text-muted-foreground">
-					Review registrations, approvals, roles, suspensions, and check-ins.
+					Review registrations, approvals, roles, suspensions, and
+					check-ins.
 				</p>
 			</div>
 			<AdminUsersTable users={users} exportHref="/api/admin/export" />

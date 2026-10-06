@@ -72,9 +72,9 @@ How a skill's content is arranged, and how far down the ladder each piece sits.
 
 A skill's content ranked by how immediately the agent needs it — a single ladder, produced by two cuts: in-file or behind a pointer, and step or reference. The rungs:
 
-- **Steps** — in-file, primary
-- **Reference**, in-file — secondary
-- **Reference**, disclosed — behind a **context pointer**
+-   **Steps** — in-file, primary
+-   **Reference**, in-file — secondary
+-   **Reference**, disclosed — behind a **context pointer**
 
 A skill with no **steps** uses just the bottom two rungs — often a legitimately flat peer-set (e.g. every rule of a review on one rung), which is a fine arrangement, not a smell. The hierarchy is independent of invocation: a skill can be model- or user-invoked whether it is all steps, all reference, or both. When a skill has steps, in-file reference that should be disclosed buries them and turns attending to them into a coin-flip — a variance lever, not just a legibility one. Keep the top of the ladder legible; push down it whatever you can.
 

@@ -28,15 +28,17 @@ export default async function RegistrationSettingsPage() {
 					Registration Settings
 				</h1>
 				<p className="text-muted-foreground">
-					Update registration details that organizers use for logistics and
-					participant review.
+					Update registration details that organizers use for
+					logistics and participant review.
 				</p>
 			</div>
 
 			<UserDataForm
 				currentUser={currentUser}
 				userDataOptions={hackkit.userData.options}
-				defaultValues={userData ? toUserDataFormDefaultValues(userData) : undefined}
+				defaultValues={
+					userData ? toUserDataFormDefaultValues(userData) : undefined
+				}
 				localStorageKey={`web:settings:${currentUser.authId}:user-data`}
 				successRedirectTo="/settings/registration"
 			/>

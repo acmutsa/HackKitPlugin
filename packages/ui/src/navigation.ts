@@ -40,8 +40,7 @@ export const DEFAULT_HACKKIT_UI_ROUTES: HackKitUIRoutes = {
 		events: "/admin/events",
 		eventEdit: (eventId) => `/admin/events/${eventId}/edit`,
 		eventScanner: (eventId) => `/admin/scanner/${eventId}`,
-		userDetail: (authId) =>
-			`/admin/users/${encodeURIComponent(authId)}`,
+		userDetail: (authId) => `/admin/users/${encodeURIComponent(authId)}`,
 	},
 };
 

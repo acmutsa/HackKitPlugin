@@ -7,11 +7,7 @@ import { authClient } from "@/lib/auth-client";
 
 type AuthMode = "sign-in" | "sign-up";
 
-export function AuthForm({
-	mode,
-}: {
-	mode: AuthMode;
-}) {
+export function AuthForm({ mode }: { mode: AuthMode }) {
 	const router = useRouter();
 	const [error, setError] = useState<string | null>(null);
 	const [isPending, setIsPending] = useState(false);
@@ -43,7 +39,10 @@ export function AuthForm({
 	}
 
 	return (
-		<form onSubmit={onSubmit} className="space-y-4 rounded-lg border bg-background p-6">
+		<form
+			onSubmit={onSubmit}
+			className="space-y-4 rounded-lg border bg-background p-6"
+		>
 			{isSignUp ? (
 				<label className="block space-y-2">
 					<span className="text-sm font-medium">Name</span>
@@ -82,13 +81,19 @@ export function AuthForm({
 				disabled={isPending}
 				className="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-60"
 			>
-				{isPending ? "Working..." : isSignUp ? "Create account" : "Sign in"}
+				{isPending
+					? "Working..."
+					: isSignUp
+						? "Create account"
+						: "Sign in"}
 			</button>
 			<Link
 				href={isSignUp ? "/sign-in" : "/sign-up"}
 				className="block w-full text-center text-sm text-muted-foreground underline"
 			>
-				{isSignUp ? "Have an account? Sign in" : "Need an account? Sign up"}
+				{isSignUp
+					? "Have an account? Sign in"
+					: "Need an account? Sign up"}
 			</Link>
 		</form>
 	);

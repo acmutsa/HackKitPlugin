@@ -22,9 +22,12 @@ export default async function AdminUserDetailPage({
 	return (
 		<main className="space-y-6">
 			<div>
-				<h1 className="text-3xl font-bold tracking-tight">User Detail</h1>
+				<h1 className="text-3xl font-bold tracking-tight">
+					User Detail
+				</h1>
 				<p className="text-muted-foreground">
-					Account, registration, approval, suspension, and role details.
+					Account, registration, approval, suspension, and role
+					details.
 				</p>
 			</div>
 			<AdminUserDetail record={record} roles={roles} />

@@ -6,9 +6,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
 	const guards = await getPageGuards();
-	const principal = await guards.requirePermission(CorePermission.SettingsManage);
+	const principal = await guards.requirePermission(
+		CorePermission.SettingsManage,
+	);
 	const { hackkit } = await getRuntime();
-	const settings = await hackkit.settings.list({ actorAuthId: principal.user.authId });
+	const settings = await hackkit.settings.list({
+		actorAuthId: principal.user.authId,
+	});
 
 	return (
 		<main className="mx-auto max-w-4xl space-y-6 px-6 py-10">

@@ -8,9 +8,11 @@ async function callMutation<K extends keyof HackKitUIActions>(
 	...args: Parameters<HackKitUIActions[K]>
 ): Promise<Awaited<ReturnType<HackKitUIActions[K]>>> {
 	const mutations = (await getHackkitRuntime()).mutations;
-	return (mutations[name] as (...actionArgs: typeof args) => ReturnType<
-		HackKitUIActions[K]
-	>)(...args) as Awaited<ReturnType<HackKitUIActions[K]>>;
+	return (
+		mutations[name] as (
+			...actionArgs: typeof args
+		) => ReturnType<HackKitUIActions[K]>
+	)(...args) as Awaited<ReturnType<HackKitUIActions[K]>>;
 }
 
 export async function completeUserData(

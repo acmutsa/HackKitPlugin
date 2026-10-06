@@ -199,7 +199,10 @@ export function createHackkit<
 		plugins: pluginApis,
 		isPluginEnabled(pluginId: string): boolean {
 			const plugin = registry.plugins[pluginId];
-			return Object.hasOwn(registry.plugins, pluginId) && plugin.enabled !== false;
+			return (
+				Object.hasOwn(registry.plugins, pluginId) &&
+				plugin.enabled !== false
+			);
 		},
 		accessControl,
 		settings: settingsApi,

@@ -48,5 +48,7 @@ export async function getCompetitorOnboardingState(currentPath: string) {
 }
 
 export async function getRequireApproval(): Promise<boolean> {
-	return Boolean(await (await getRuntime()).getSettingValue(CoreSetting.RequireApproval));
+	return Boolean(
+		await (await getRuntime()).getSettingValue(CoreSetting.RequireApproval),
+	);
 }

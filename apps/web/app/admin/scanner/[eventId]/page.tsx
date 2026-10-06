@@ -27,7 +27,9 @@ export default async function EventScannerPage({
 		<main className="min-h-screen px-6 py-10">
 			<div className="mx-auto max-w-3xl space-y-6">
 				<div className="flex items-center justify-between gap-4">
-					<h1 className="text-2xl font-bold tracking-tight">Event scanner</h1>
+					<h1 className="text-2xl font-bold tracking-tight">
+						Event scanner
+					</h1>
 					<Link
 						href="/admin/events"
 						className="text-sm text-primary hover:underline"

@@ -18,23 +18,23 @@ Every comment or issue posted to the issue tracker during triage **must** start 
 
 ## Reference docs
 
-- [AGENT-BRIEF.md](AGENT-BRIEF.md) — how to write durable agent briefs
-- [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md) — how the `.out-of-scope/` knowledge base works
+-   [AGENT-BRIEF.md](AGENT-BRIEF.md) — how to write durable agent briefs
+-   [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md) — how the `.out-of-scope/` knowledge base works
 
 ## Roles
 
 Two **category** roles:
 
-- `bug` — something is broken
-- `enhancement` — new feature or improvement
+-   `bug` — something is broken
+-   `enhancement` — new feature or improvement
 
 Five **state** roles:
 
-- `needs-triage` — maintainer needs to evaluate
-- `needs-info` — waiting on reporter for more information
-- `ready-for-agent` — fully specified, ready for an AFK agent
-- `ready-for-human` — needs human implementation
-- `wontfix` — will not be actioned
+-   `needs-triage` — maintainer needs to evaluate
+-   `needs-info` — waiting on reporter for more information
+-   `ready-for-agent` — fully specified, ready for an AFK agent
+-   `ready-for-human` — needs human implementation
+-   `wontfix` — will not be actioned
 
 For a PR, the same states read against the attached code: `ready-for-agent` means a brief is attached and an agent should take the next step on the diff; `ready-for-human` means it's ready for a human to merge.
 
@@ -48,10 +48,10 @@ State transitions: an unlabeled issue normally goes to `needs-triage` first; fro
 
 The maintainer invokes `/triage` and describes what they want in natural language. Interpret the request and act. Examples:
 
-- "Show me anything that needs my attention"
-- "Let's look at #42" (issue or PR)
-- "Move #42 to ready-for-agent"
-- "What's ready for agents to pick up?"
+-   "Show me anything that needs my attention"
+-   "Let's look at #42" (issue or PR)
+-   "Move #42 to ready-for-agent"
+-   "What's ready for agents to pick up?"
 
 ## Show what needs attention
 
@@ -61,7 +61,7 @@ Query the issue tracker and present three buckets, oldest first:
 2. **`needs-triage`** — evaluation in progress.
 3. **`needs-info` with reporter activity since the last triage notes** — needs re-evaluation.
 
-When PRs are in scope, include external PRs in these buckets and tag each line `[PR]` or `[issue]`. Discovery surfaces only *external* PRs (the tracker config defines who counts as external) — a collaborator's in-flight PR is not triage work. This filter is discovery-only; an explicitly named PR is always triaged regardless of author.
+When PRs are in scope, include external PRs in these buckets and tag each line `[PR]` or `[issue]`. Discovery surfaces only _external_ PRs (the tracker config defines who counts as external) — a collaborator's in-flight PR is not triage work. This filter is discovery-only; an explicitly named PR is always triaged regardless of author.
 
 Show counts and a one-line summary per item. Let the maintainer pick.
 
@@ -76,14 +76,14 @@ Show counts and a one-line summary per item. Let the maintainer pick.
 4. **Grill (if needed).** If the request needs fleshing out, run the `/grilling` and `/domain-modeling` skills together — grill it into shape one question at a time, sharpening domain terms and updating `CONTEXT.md`/ADRs inline as decisions land.
 
 5. **Apply the outcome:**
-   - `ready-for-agent` — post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)).
-   - `ready-for-human` — same structure as an agent brief, but note why it can't be delegated (judgment calls, external access, design decisions, manual testing).
-   - `needs-info` — post triage notes (template below).
-   - `wontfix` — close, with the comment depending on *why*:
-     - **Already implemented** — the change already exists in the codebase. Point to where it lives; do **not** write to `.out-of-scope/` (that KB is for *rejected* requests, not built ones).
-     - **Rejected (bug)** — polite explanation, then close.
-     - **Rejected (enhancement)** — write to `.out-of-scope/`, link to it from a comment, then close ([OUT-OF-SCOPE.md](OUT-OF-SCOPE.md)).
-   - `needs-triage` — apply the role. Optional comment if there's partial progress.
+    - `ready-for-agent` — post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)).
+    - `ready-for-human` — same structure as an agent brief, but note why it can't be delegated (judgment calls, external access, design decisions, manual testing).
+    - `needs-info` — post triage notes (template below).
+    - `wontfix` — close, with the comment depending on _why_:
+        - **Already implemented** — the change already exists in the codebase. Point to where it lives; do **not** write to `.out-of-scope/` (that KB is for _rejected_ requests, not built ones).
+        - **Rejected (bug)** — polite explanation, then close.
+        - **Rejected (enhancement)** — write to `.out-of-scope/`, link to it from a comment, then close ([OUT-OF-SCOPE.md](OUT-OF-SCOPE.md)).
+    - `needs-triage` — apply the role. Optional comment if there's partial progress.
 
 ## Quick state override
 
@@ -96,13 +96,13 @@ If the maintainer says "move #42 to ready-for-agent", trust them and apply the r
 
 **What we've established so far:**
 
-- point 1
-- point 2
+-   point 1
+-   point 2
 
 **What we still need from you (@reporter):**
 
-- question 1
-- question 2
+-   question 1
+-   question 2
 ```
 
 Capture everything resolved during grilling under "established so far" so the work isn't lost. Questions must be specific and actionable, not "please provide more info".

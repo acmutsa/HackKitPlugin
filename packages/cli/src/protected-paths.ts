@@ -33,7 +33,9 @@ function matchesProtectedPrefix(
 	if (protectedPath.endsWith("/")) {
 		return hostPath.startsWith(protectedPath);
 	}
-	return hostPath === protectedPath || hostPath.startsWith(`${protectedPath}/`);
+	return (
+		hostPath === protectedPath || hostPath.startsWith(`${protectedPath}/`)
+	);
 }
 
 export function isProtectedPath(
