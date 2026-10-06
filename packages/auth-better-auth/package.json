@@ -4,7 +4,7 @@
   "description": "Better Auth adapter for HackKit",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "module": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,17 +19,20 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts src/session.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/session.ts --format cjs,esm --dts --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@hackkit/core": "workspace:*"
+    "@hackkit/core": "workspace:*",
+    "server-only": "^0.0.1"
   },
   "peerDependencies": {
     "better-auth": ">=1.6",
     "next": ">=14"
   },
   "devDependencies": {
+    "tsup": "^8.5.1",
     "typescript": "5.5.3"
   },
   "license": "MIT",

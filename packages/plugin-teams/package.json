@@ -27,7 +27,8 @@
     "app"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
+    "tsup": "^8.5.1",
     "typescript": "5.5.3",
     "vitest": "^3.2.4"
   },

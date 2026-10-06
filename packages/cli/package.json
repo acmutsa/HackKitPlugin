@@ -11,15 +11,19 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsup src/index.ts src/cli.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
@@ -31,8 +35,7 @@
     "jiti": "^2.4.2"
   },
   "devDependencies": {
-    "@types/node": "20.14.11",
-    "tsdown": "^0.22.0",
+    "tsup": "^8.5.1",
     "typescript": "5.5.3",
     "vitest": "^3.2.4"
   },

@@ -15,14 +15,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@hackkit/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "20.14.11",
+    "tsup": "^8.5.1",
     "typescript": "5.5.3"
   },
   "license": "MIT",
