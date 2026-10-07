@@ -20,11 +20,11 @@ async function canViewFile(key: string): Promise<boolean> {
 
 	const runtime = await getRuntime();
 	const currentUser = await runtime.getCurrentUser();
-	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.authId);
+	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.id);
 	if (hacker?.resumeUrl === storedFileReferenceForKey(key)) return true;
 
 	return runtime.hackkit.accessControl.hasPermission(
-		currentUser.authId,
+		currentUser.id,
 		CorePermission.HackersView,
 	);
 }

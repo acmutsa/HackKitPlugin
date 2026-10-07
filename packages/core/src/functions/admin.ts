@@ -1,5 +1,5 @@
 import { serialize } from "@mikro-orm/core";
-import { readUser, toUser } from "../mikro/user";
+import { readUser } from "../mikro/user";
 import type { HackkitRuntimeContext } from "../hackkit-context";
 import { coreModels } from "../models";
 import { CorePermission } from "../permissions";
@@ -42,13 +42,13 @@ export function createAdminApi(context: AdminApiContext) {
 		user: AdminUserRecord["user"],
 	): Promise<AdminUserRecord> {
 		const [userData, hacker, rsvp, role, ban] = await Promise.all([
-			em.findOne(coreModels.userData, { authId: user.authId }),
-			em.findOne(coreModels.hacker, { authId: user.authId }),
-			em.findOne(coreModels.rsvp, { authId: user.authId }),
+			em.findOne(coreModels.userData, { authId: user.id }),
+			em.findOne(coreModels.hacker, { userId: user.id }),
+			em.findOne(coreModels.rsvp, { authId: user.id }),
 			user.roleId
 				? em.findOne(coreModels.role, { id: user.roleId })
 				: null,
-			em.findOne(coreModels.userBan, { authId: user.authId }),
+			em.findOne(coreModels.userBan, { authId: user.id }),
 		]);
 
 		return {
@@ -70,7 +70,7 @@ export function createAdminApi(context: AdminApiContext) {
 			{},
 			{ orderBy: { createdAt: "desc" } },
 		);
-		return Promise.all(users.map((user) => hydrateUser(toUser(user))));
+		return Promise.all(serialize(users).map(hydrateUser));
 	}
 
 	async function getUser(input: {
@@ -140,7 +140,7 @@ export function createAdminApi(context: AdminApiContext) {
 	}): Promise<AdminUserExportRow[]> {
 		const records = await listUsers({ actorAuthId: input.actorAuthId });
 		return records.map(({ user, userData, hacker, rsvp, role, ban }) => ({
-			authId: user.authId,
+			id: user.id,
 			email: user.email,
 			name: user.name,
 			hackTag: user.hackTag ?? "",

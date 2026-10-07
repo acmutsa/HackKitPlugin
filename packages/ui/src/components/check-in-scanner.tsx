@@ -61,7 +61,7 @@ export function CheckInScanner({ className, onDone }: CheckInScannerProps) {
 		if (!targetUser) return;
 
 		setLoading(true);
-		const result = await actions.clearCheckIn(targetUser.authId);
+		const result = await actions.clearCheckIn(targetUser.id);
 		setLoading(false);
 
 		if (!result.ok) {

@@ -42,14 +42,14 @@ it("binds concurrent requests to separate users and never overwrites edited prof
 		bio: "Saved profile",
 	});
 	expect(await bob.getCurrentUser()).toMatchObject({
-		authId: bobId,
+		id: bobId,
 		name: "Bob",
 	});
 	requestHeaders.mockReturnValueOnce(new Headers({ cookie: cookies[0] }));
 	const nextRequest = await createHackkitRuntime({ core });
 	const profile = await nextRequest.getCurrentUser();
 	expect(profile).toMatchObject({
-		authId: aliceId,
+		id: aliceId,
 		name: "Alicia",
 		bio: "Saved profile",
 	});

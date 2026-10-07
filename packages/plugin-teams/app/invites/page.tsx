@@ -12,8 +12,8 @@ export default async function InvitesPage() {
 	const teams = runtime.hackkit.plugins.teams as TeamsApi;
 	const currentUser = await runtime.getCurrentUser();
 	const [hacker, invites] = await Promise.all([
-		runtime.hackkit.hackers.getHacker(currentUser.authId),
-		teams.listPendingInvites(currentUser.authId),
+		runtime.hackkit.hackers.getHacker(currentUser.id),
+		teams.listPendingInvites(currentUser.id),
 	]);
 
 	if (!hacker && invites.length === 0) {

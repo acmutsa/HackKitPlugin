@@ -56,7 +56,7 @@ async function seedApprovedHacker(
 		isEmailable: true,
 	});
 	await hackkit.hackers.registerHacker({
-		authId: "hacker-auth",
+		userId: "hacker-auth",
 		university: "Test U",
 		major: "CS",
 		levelOfStudy: "Undergraduate",

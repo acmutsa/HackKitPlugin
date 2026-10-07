@@ -14,8 +14,8 @@ export function EventPassShell({
 }) {
 	const [issuedAt, setIssuedAt] = React.useState(() => new Date());
 	const qrPayload = React.useMemo(
-		() => createEventPassQrPayload(user.authId, issuedAt),
-		[user.authId, issuedAt],
+		() => createEventPassQrPayload(user.id, issuedAt),
+		[user.id, issuedAt],
 	);
 
 	React.useEffect(() => {

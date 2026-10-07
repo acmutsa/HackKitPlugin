@@ -18,7 +18,7 @@ export default async function EventScannerPage({
 	const hackkit = await getHackkit();
 	const event = await hackkit.events.getEvent({
 		eventId: params.eventId,
-		actorAuthId: principal.user.authId,
+		actorAuthId: principal.user.id,
 	});
 
 	if (!event) notFound();

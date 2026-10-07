@@ -11,7 +11,7 @@ export default async function AdminSettingsPage() {
 	);
 	const { hackkit } = await getRuntime();
 	const settings = await hackkit.settings.list({
-		actorAuthId: principal.user.authId,
+		actorAuthId: principal.user.id,
 	});
 
 	return (

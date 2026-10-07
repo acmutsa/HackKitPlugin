@@ -17,7 +17,7 @@ async function getIsAdmin(authId: string) {
 export async function AppBar() {
 	const session = await getAuthSession();
 	const currentUser = session ? await getCurrentUser() : null;
-	const isAdmin = currentUser ? await getIsAdmin(currentUser.authId) : false;
+	const isAdmin = currentUser ? await getIsAdmin(currentUser.id) : false;
 
 	return (
 		<header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">

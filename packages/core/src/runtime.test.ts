@@ -33,6 +33,7 @@ it("shares auth and connections while isolating domain execution scopes", async 
 		});
 		const profile = await second.hackkit.users.getUser(signedUp.user.id);
 		expect(profile).toMatchObject({
+			id: signedUp.user.id,
 			email: "participant@example.com",
 			hackTag: "participant",
 			bio: "Building useful things",

@@ -96,10 +96,8 @@ export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
 					<CardContent className="space-y-3">
 						{overview.recentUsers.map((record) => (
 							<Link
-								key={record.user.authId}
-								href={routes.admin.userDetail(
-									record.user.authId,
-								)}
+								key={record.user.id}
+								href={routes.admin.userDetail(record.user.id)}
 								className="block rounded-md border p-3 hover:bg-muted"
 							>
 								<div className="font-medium">
@@ -153,11 +151,11 @@ export function AdminUsersTable({ users, exportHref }: AdminUsersTableProps) {
 					</thead>
 					<tbody>
 						{users.map((record) => (
-							<tr key={record.user.authId} className="border-t">
+							<tr key={record.user.id} className="border-t">
 								<td className="px-4 py-3">
 									<Link
 										href={routes.admin.userDetail(
-											record.user.authId,
+											record.user.id,
 										)}
 										className="font-medium hover:underline"
 									>
@@ -237,7 +235,7 @@ export function AdminUserDetail({ record, roles }: AdminUserDetailProps) {
 						<CardDescription>{record.user.email}</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-4 sm:grid-cols-2">
-						<Detail label="Auth ID" value={record.user.authId} />
+						<Detail label="User ID" value={record.user.id} />
 						<Detail
 							label="HackTag"
 							value={

@@ -30,9 +30,9 @@ export function createCompetitorRegistrationPolicy(
 		const approvedUsers = await em.find(coreModels.user, {
 			isApproved: true,
 		});
-		const approvedAuthIds = new Set(approvedUsers.map((user) => user.id));
+		const approvedUserIds = new Set(approvedUsers.map((user) => user.id));
 		return (await em.find(coreModels.hacker, {})).filter((hacker) =>
-			approvedAuthIds.has(hacker.authId),
+			approvedUserIds.has(hacker.userId),
 		).length;
 	}
 
@@ -87,7 +87,9 @@ export function createCompetitorRegistrationPolicy(
 		},
 
 		async assertCanApproveUser(authId: AuthId): Promise<void> {
-			const hacker = await em.findOne(coreModels.hacker, { authId });
+			const hacker = await em.findOne(coreModels.hacker, {
+				userId: authId,
+			});
 			if (!hacker) return;
 			await assertCapacityAvailable();
 		},

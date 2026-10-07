@@ -10,7 +10,7 @@ export default async function DiscordPage() {
 	if (!runtime.hackkit.isPluginEnabled("discord")) notFound();
 	const currentUser = await runtime.getCurrentUser();
 	const discord = runtime.hackkit.plugins.discord as DiscordApi;
-	const member = await discord.getMember(currentUser.authId);
+	const member = await discord.getMember(currentUser.id);
 
 	return (
 		<main className="min-h-screen bg-muted/30 px-6 py-10">

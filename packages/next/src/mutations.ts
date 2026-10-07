@@ -126,10 +126,10 @@ export function createHackKitMutations(
 
 		async registerHacker(values: HackerRegistrationFormValues) {
 			try {
-				const authId = await getAuthId();
+				const userId = await getAuthId();
 				await hackkit.hackers.registerHacker({
 					...values,
-					authId,
+					userId,
 				});
 				return actionSuccess();
 			} catch (error) {

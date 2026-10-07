@@ -41,7 +41,7 @@ it("rolls registration back when assigning the configured role fails", async () 
 	await expect(
 		hackkit.hackers.registerHacker({
 			...registration,
-			authId: "participant",
+			userId: "participant",
 		}),
 	).rejects.toMatchObject({ code: "NOT_FOUND" });
 	const fresh = hackkit.runtime.createScope().hackkit;
@@ -63,7 +63,10 @@ it("admits only one concurrent registration into the final place", async () => {
 		["one", "two"].map((authId) =>
 			hackkit.runtime
 				.createScope()
-				.hackkit.hackers.registerHacker({ ...registration, authId }),
+				.hackkit.hackers.registerHacker({
+					...registration,
+					userId: authId,
+				}),
 		),
 	);
 	expect(

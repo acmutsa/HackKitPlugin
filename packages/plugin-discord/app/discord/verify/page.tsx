@@ -18,12 +18,12 @@ export default async function DiscordVerifyPage({
 	if (!runtime.hackkit.isPluginEnabled("discord")) notFound();
 	const currentUser = await runtime.getCurrentUser();
 	const [hacker, discord] = await Promise.all([
-		runtime.hackkit.hackers.getHacker(currentUser.authId),
+		runtime.hackkit.hackers.getHacker(currentUser.id),
 		Promise.resolve(runtime.hackkit.plugins.discord as DiscordApi),
 	]);
 	if (!currentUser.isApproved || !hacker) redirect("/i/approval");
 
-	const existingMember = await discord.getMember(currentUser.authId);
+	const existingMember = await discord.getMember(currentUser.id);
 	if (existingMember) redirect("/discord");
 
 	const verification = await discord.getVerification(code);

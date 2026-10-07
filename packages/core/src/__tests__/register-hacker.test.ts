@@ -70,7 +70,7 @@ async function seedUserWithData(
 
 async function registerHacker(hackkit: TestHackkit, authId = "hacker-auth") {
 	return hackkit.hackers.registerHacker({
-		authId,
+		userId: authId,
 		university: "Test U",
 		major: "CS",
 		levelOfStudy: "undergraduate",
@@ -89,7 +89,7 @@ describe("registerHacker onboarding side effects", () => {
 		await seedUserWithData(hackkit);
 
 		await hackkit.hackers.registerHacker({
-			authId: "hacker-auth",
+			userId: "hacker-auth",
 			university: "Test U",
 			major: "CS",
 			levelOfStudy: "undergraduate",
@@ -100,6 +100,9 @@ describe("registerHacker onboarding side effects", () => {
 		const user = await hackkit.users.getUser("hacker-auth");
 		expect(user?.roleId).toBe("core.participant");
 		expect(user?.isApproved).toBe(true);
+		expect((await hackkit.hackers.getHacker("hacker-auth"))?.userId).toBe(
+			user?.id,
+		);
 	});
 
 	it("persists app-relative stored file references as resumeUrl", async () => {
@@ -112,7 +115,7 @@ describe("registerHacker onboarding side effects", () => {
 
 		const resumeUrl = "/api/files/view?key=resumes%2Fabc.pdf";
 		await hackkit.hackers.registerHacker({
-			authId: "hacker-auth",
+			userId: "hacker-auth",
 			university: "Test U",
 			major: "CS",
 			levelOfStudy: "undergraduate",
@@ -135,7 +138,7 @@ describe("registerHacker onboarding side effects", () => {
 		await seedUserWithData(hackkit);
 
 		await hackkit.hackers.registerHacker({
-			authId: "hacker-auth",
+			userId: "hacker-auth",
 			university: "Test U",
 			major: "CS",
 			levelOfStudy: "undergraduate",
@@ -162,7 +165,7 @@ describe("registerHacker onboarding side effects", () => {
 		await registerHacker(hackkit);
 		await setSetting(hackkit, CoreSetting.RegistrationOpen, false);
 		await hackkit.hackers.registerHacker({
-			authId: "hacker-auth",
+			userId: "hacker-auth",
 			university: "Updated U",
 			major: "CS",
 			levelOfStudy: "undergraduate",

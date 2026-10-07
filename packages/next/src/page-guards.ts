@@ -80,20 +80,20 @@ export function createPageGuards(
 
 	async function requireApprovedUser(): Promise<User> {
 		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.authId);
+		await requireNotBannedForAuthId(user.id);
 		if (!user.isApproved) redirect(approvalRedirectTo);
 		return user;
 	}
 
 	async function requireCompletedOnboarding(): Promise<CompetitorOnboardingState> {
 		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.authId);
+		await requireNotBannedForAuthId(user.id);
 
 		if (!user.hackTag) redirect(onboardingRedirectTo);
 
 		const [userData, hacker] = await Promise.all([
-			hackkit.userData.getUserData(user.authId),
-			hackkit.hackers.getHacker(user.authId),
+			hackkit.userData.getUserData(user.id),
+			hackkit.hackers.getHacker(user.id),
 		]);
 
 		if (!userData) redirect("/onboarding/user-data");
@@ -116,12 +116,12 @@ export function createPageGuards(
 
 	async function requireOnboardingAccess(): Promise<User> {
 		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.authId);
+		await requireNotBannedForAuthId(user.id);
 
 		if (!user.hackTag) return user;
 		const [userData, hacker] = await Promise.all([
-			hackkit.userData.getUserData(user.authId),
-			hackkit.hackers.getHacker(user.authId),
+			hackkit.userData.getUserData(user.id),
+			hackkit.hackers.getHacker(user.id),
 		]);
 
 		if (!userData || !hacker) return user;

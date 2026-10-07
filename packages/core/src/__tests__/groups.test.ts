@@ -30,7 +30,7 @@ async function seedHacker(
 		isEmailable: true,
 	});
 	await hackkit.hackers.registerHacker({
-		authId,
+		userId: authId,
 		university: "Test U",
 		major: "CS",
 		levelOfStudy: "Undergraduate",

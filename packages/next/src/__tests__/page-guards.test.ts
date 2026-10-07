@@ -102,7 +102,7 @@ async function completeUserData(hackkit: TestHackkit, authId: string) {
 
 async function registerHacker(hackkit: TestHackkit, authId: string) {
 	await hackkit.hackers.registerHacker({
-		authId,
+		userId: authId,
 		university: "Test U",
 		major: "CS",
 		levelOfStudy: "undergraduate",
@@ -174,9 +174,9 @@ describe("createPageGuards", () => {
 
 		const guards = createPageGuards(hackkit, async () => "user-3");
 		const state = await guards.requireParticipantAccess();
-		expect(state.user.authId).toBe("user-3");
+		expect(state.user.id).toBe("user-3");
 		expect(state.user.isApproved).toBe(true);
-		expect(state.hacker.authId).toBe("user-3");
+		expect(state.hacker.userId).toBe("user-3");
 	});
 
 	it("redirects banned users to suspended", async () => {
@@ -217,7 +217,7 @@ describe("createPageGuards", () => {
 		});
 
 		const user = await guards.requireApprovedUser();
-		expect(user.authId).toBe("user-6");
+		expect(user.id).toBe("user-6");
 		expect(getCurrentUser).toHaveBeenCalled();
 	});
 

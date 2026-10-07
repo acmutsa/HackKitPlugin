@@ -24,7 +24,7 @@ async function seedUser(hackkit: TestHackkit) {
 		isEmailable: true,
 	});
 	await hackkit.hackers.registerHacker({
-		authId: "hacker-auth",
+		userId: "hacker-auth",
 		university: "Test U",
 		major: "Computer Science",
 		levelOfStudy: "Senior",
@@ -53,6 +53,7 @@ describe("public profiles", () => {
 		const profile =
 			await hackkit.users.getPublicProfileByHackTag("hackerone");
 
+		expect(profile?.user.id).toBe("hacker-auth");
 		expect(profile?.user.hackTag).toBe("hackerone");
 		expect(profile?.user.skills).toEqual(["typescript", "design"]);
 		expect(profile?.user.bio).toBe("I like building useful things.");

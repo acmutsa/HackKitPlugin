@@ -22,7 +22,9 @@ async function requireHacker(
 	authId: AuthId,
 	message = "Only Hackers can participate in teams.",
 ): Promise<void> {
-	const hacker = await context.em.findOne(coreModels.hacker, { authId });
+	const hacker = await context.em.findOne(coreModels.hacker, {
+		userId: authId,
+	});
 	if (!hacker) {
 		throw new HackKitError("INVALID_OPERATION", message);
 	}

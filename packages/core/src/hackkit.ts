@@ -28,6 +28,7 @@ import type {
 	RoleId,
 	User,
 	UserData,
+	UserId,
 } from "./types";
 import { createUsersApi } from "./functions/users";
 import { createEventsApi } from "./functions/events";
@@ -145,11 +146,11 @@ export function createHackkit<
 			return withDomainLog(
 				logger,
 				"hackers.register",
-				{ targetAuthId: parsed.authId },
+				{ targetAuthId: parsed.userId },
 				async () => {
-					await getUserOrThrow(parsed.authId);
+					await getUserOrThrow(parsed.userId);
 					const userData = await em.findOne(coreModels.userData, {
-						authId: parsed.authId,
+						authId: parsed.userId,
 					});
 					if (!userData)
 						throw new HackKitError(
@@ -157,7 +158,7 @@ export function createHackkit<
 							"User Data must be completed before registering as a Hacker.",
 						);
 					const existing = await em.findOne(coreModels.hacker, {
-						authId: parsed.authId,
+						userId: parsed.userId,
 					});
 					const timestamp = now();
 					const value: Hacker = {
@@ -175,7 +176,7 @@ export function createHackkit<
 						await registrationPolicy.assertCanRegisterNewHacker();
 					const hacker = em.create(coreModels.hacker, value);
 					const profile = await em.findOneOrFail(coreModels.user, {
-						id: parsed.authId,
+						id: parsed.userId,
 					});
 					if (defaultCompetitorRoleId) {
 						await getRoleOrThrow(defaultCompetitorRoleId);
@@ -252,8 +253,8 @@ export function createHackkit<
 		hackers: {
 			registerHacker,
 
-			async getHacker(authId: AuthId): Promise<Hacker | null> {
-				const record = await em.findOne(coreModels.hacker, { authId });
+			async getHacker(userId: UserId): Promise<Hacker | null> {
+				const record = await em.findOne(coreModels.hacker, { userId });
 				return record ? serialize(record) : null;
 			},
 		},

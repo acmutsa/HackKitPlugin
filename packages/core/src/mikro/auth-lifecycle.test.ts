@@ -112,7 +112,7 @@ describe("Core auth lifecycle", () => {
 					logger: { disabled: true },
 				}).users.getUser(id),
 			).toMatchObject({
-				authId: id,
+				id,
 				name: "Josh",
 				profilePhotoUrl: "https://example.com/avatar.png",
 				bio: "Hello",

@@ -93,10 +93,11 @@ export const CoreHacker = defineEntity({
 	name: "CoreHacker",
 	tableName: "core_hacker",
 	properties: {
-		authId: () =>
+		userId: () =>
 			p
 				.manyToOne(HackKitUser)
 				.mapToPk()
+				// Preserve the column name used by committed migrations.
 				.fieldName("auth_id")
 				.primary()
 				.deleteRule("cascade"),

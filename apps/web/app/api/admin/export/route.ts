@@ -36,7 +36,7 @@ export async function GET() {
 	const actor = await runtime.getCurrentUser();
 	const rows = await runtime.hackkit.admin
 		.exportUsers({
-			actorAuthId: actor.authId,
+			actorAuthId: actor.id,
 		})
 		.catch((error: unknown) => {
 			if (error instanceof HackKitError && error.code === "FORBIDDEN")

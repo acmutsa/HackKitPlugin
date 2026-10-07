@@ -14,8 +14,8 @@ async function loadCompetitorOnboardingInput(currentPath: string) {
 	const hackkit = await getHackkit();
 	const runtime = await getRuntime();
 	const [userData, hacker, requireApproval] = await Promise.all([
-		hackkit.userData.getUserData(user.authId),
-		hackkit.hackers.getHacker(user.authId),
+		hackkit.userData.getUserData(user.id),
+		hackkit.hackers.getHacker(user.id),
 		runtime.getSettingValue(CoreSetting.RequireApproval),
 	]);
 	return {

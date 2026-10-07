@@ -12,7 +12,7 @@ export default async function AdminEventsPage() {
 	);
 	const hackkit = await getHackkit();
 	const events = await hackkit.events.listEvents({
-		actorAuthId: principal.user.authId,
+		actorAuthId: principal.user.id,
 	});
 
 	return (

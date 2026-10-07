@@ -35,7 +35,7 @@ export function createGroupsApi(context: GroupsApiContext) {
 		if (!group) {
 			throw new HackKitError("NOT_FOUND", "Group not found.");
 		}
-		const updated = await em.findOne(coreModels.hacker, { authId });
+		const updated = await em.findOne(coreModels.hacker, { userId: authId });
 		if (updated) {
 			em.assign(
 				updated,
@@ -56,7 +56,9 @@ export function createGroupsApi(context: GroupsApiContext) {
 		},
 
 		async getGroupForAuthId(authId: AuthId): Promise<HackkitGroup | null> {
-			const hacker = await em.findOne(coreModels.hacker, { authId });
+			const hacker = await em.findOne(coreModels.hacker, {
+				userId: authId,
+			});
 			if (!hacker?.group) return null;
 			return groups.find((group) => group.id === hacker.group) ?? null;
 		},
@@ -72,7 +74,9 @@ export function createGroupsApi(context: GroupsApiContext) {
 
 		async assignNextGroup(authId: AuthId): Promise<Hacker | null> {
 			return withOperationLock(em, "groups", async () => {
-				const hacker = await em.findOne(coreModels.hacker, { authId });
+				const hacker = await em.findOne(coreModels.hacker, {
+					userId: authId,
+				});
 				if (!hacker) return null;
 				if (hacker.group) return serialize(hacker);
 

@@ -46,7 +46,7 @@ describe("admin console reads", () => {
 			hackTag: "Pat",
 		});
 		await hackkit.hackers.registerHacker({
-			authId: "participant-auth",
+			userId: "participant-auth",
 			university: "Hack University",
 			major: "Computer Science",
 			levelOfStudy: "Undergraduate",
@@ -63,7 +63,7 @@ describe("admin console reads", () => {
 			actorAuthId: "owner-auth",
 			hackTag: "PAT",
 		});
-		expect(byTag?.user.authId).toBe("participant-auth");
+		expect(byTag?.user.id).toBe("participant-auth");
 		expect(byTag?.role?.name).toBe("Hacker");
 		expect(byTag?.hacker?.university).toBe("Hack University");
 
@@ -79,7 +79,7 @@ describe("admin console reads", () => {
 			actorAuthId: "owner-auth",
 		});
 		const participantRow = rows.find(
-			(row) => row.authId === "participant-auth",
+			(row) => row.id === "participant-auth",
 		);
 		expect(participantRow).toMatchObject({
 			email: "participant@example.com",

@@ -96,7 +96,7 @@ export function AdminUserActions({
 								"approval",
 								() =>
 									actions.approveUser({
-										targetAuthId: record.user.authId,
+										targetAuthId: record.user.id,
 										approved: !record.user.isApproved,
 									}),
 								record.user.isApproved
@@ -134,7 +134,7 @@ export function AdminUserActions({
 									"assignRole",
 									() =>
 										actions.assignRoleToUser({
-											targetAuthId: record.user.authId,
+											targetAuthId: record.user.id,
 											roleId,
 										}),
 									"Role assigned.",
@@ -160,10 +160,7 @@ export function AdminUserActions({
 								onClick={() =>
 									run(
 										"unban",
-										() =>
-											actions.unbanUser(
-												record.user.authId,
-											),
+										() => actions.unbanUser(record.user.id),
 										"User reinstated.",
 									)
 								}
@@ -190,8 +187,7 @@ export function AdminUserActions({
 										"ban",
 										() =>
 											actions.banUser({
-												targetAuthId:
-													record.user.authId,
+												targetAuthId: record.user.id,
 												reason:
 													banReason.trim() ||
 													undefined,
@@ -221,7 +217,7 @@ export function AdminUserActions({
 									"rsvpConfirm",
 									() =>
 										actions.setRsvpStatus({
-											targetAuthId: record.user.authId,
+											targetAuthId: record.user.id,
 											status: "confirmed",
 										}),
 									"RSVP marked confirmed.",
@@ -239,7 +235,7 @@ export function AdminUserActions({
 									"rsvpWaitlist",
 									() =>
 										actions.setRsvpStatus({
-											targetAuthId: record.user.authId,
+											targetAuthId: record.user.id,
 											status: "waitlisted",
 										}),
 									"RSVP moved to waitlist.",
@@ -258,8 +254,7 @@ export function AdminUserActions({
 							onClick={() =>
 								run(
 									"rsvpPromote",
-									() =>
-										actions.promoteRsvp(record.user.authId),
+									() => actions.promoteRsvp(record.user.id),
 									"Waitlisted RSVP promoted.",
 								)
 							}
@@ -275,8 +270,7 @@ export function AdminUserActions({
 							onClick={() =>
 								run(
 									"rsvpCancel",
-									() =>
-										actions.cancelRsvp(record.user.authId),
+									() => actions.cancelRsvp(record.user.id),
 									"RSVP cancelled.",
 								)
 							}

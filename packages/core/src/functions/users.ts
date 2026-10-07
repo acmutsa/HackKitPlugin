@@ -1,6 +1,6 @@
 import { serialize } from "@mikro-orm/core";
 import { withOperationLock } from "../mikro/operation";
-import { readUser, toUser } from "../mikro/user";
+import { readUser } from "../mikro/user";
 import type { HackkitRuntimeContext } from "../hackkit-context";
 import { HackKitError, parseInput } from "../errors";
 import { withDomainLog } from "../domain-log";
@@ -64,14 +64,14 @@ export function createUsersApi(context: UsersApiContext) {
 			const user = await this.getUserByHackTag(hackTag);
 			if (!user || !user.isProfileSearchable) return null;
 			const [hacker, role] = await Promise.all([
-				em.findOne(coreModels.hacker, { authId: user.authId }),
+				em.findOne(coreModels.hacker, { userId: user.id }),
 				user.roleId
 					? em.findOne(coreModels.role, { id: user.roleId })
 					: null,
 			]);
 			return {
 				user: {
-					authId: user.authId,
+					id: user.id,
 					name: user.name,
 					profilePhotoUrl: user.profilePhotoUrl,
 					hackTag: user.hackTag,
@@ -110,7 +110,7 @@ export function createUsersApi(context: UsersApiContext) {
 				{},
 				{ orderBy: { createdAt: "desc" } },
 			);
-			return users.map(toUser);
+			return serialize(users);
 		},
 
 		async claimHackTag(input: unknown): Promise<User> {

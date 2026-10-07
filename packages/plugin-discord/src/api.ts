@@ -124,7 +124,7 @@ export function createDiscordApi(
 		const [member, user, hacker] = await Promise.all([
 			getMember(authId),
 			em.findOne(coreModels.user, { id: authId }),
-			em.findOne(coreModels.hacker, { authId }),
+			em.findOne(coreModels.hacker, { userId: authId }),
 		]);
 		if (!member) {
 			throw new HackKitError(
@@ -252,7 +252,7 @@ export function createDiscordApi(
 					}
 					const [user, hacker] = await Promise.all([
 						em.findOne(coreModels.user, { id: input.authId }),
-						em.findOne(coreModels.hacker, { authId: input.authId }),
+						em.findOne(coreModels.hacker, { userId: input.authId }),
 					]);
 					if (!user)
 						throw new HackKitError("NOT_FOUND", "User not found.");

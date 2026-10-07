@@ -221,7 +221,7 @@ for (const target of targets) {
 								core
 									.createScope(authId)
 									.hackkit.hackers.registerHacker({
-										authId,
+										userId: authId,
 										university: "UTSA",
 										major: "Computer Science",
 										levelOfStudy: "undergraduate",
@@ -245,11 +245,11 @@ for (const target of targets) {
 						const hacker = await core
 							.createScope()
 							.em.findOneOrFail(coreModels.hacker, {
-								authId: { $in: ids },
+								userId: { $in: ids },
 							});
-						const participant = core.createScope(hacker.authId);
+						const participant = core.createScope(hacker.userId);
 						const profile = await participant.hackkit.users.getUser(
-							hacker.authId,
+							hacker.userId,
 						);
 						expect(profile).toMatchObject({
 							roleId: "core.participant",
@@ -257,10 +257,10 @@ for (const target of targets) {
 							checkedInAt: null,
 						});
 						const headers = new Headers({
-							cookie: cookies.get(hacker.authId)!,
+							cookie: cookies.get(hacker.userId)!,
 						});
 						await participant.hackkit.users.updateProfile({
-							authId: hacker.authId,
+							authId: hacker.userId,
 							name: "Edited Name",
 							profilePhotoUrl: "/api/files/view/photo.png",
 						});
@@ -281,7 +281,7 @@ for (const target of targets) {
 						expect(
 							await core
 								.createScope()
-								.hackkit.users.getUser(hacker.authId),
+								.hackkit.users.getUser(hacker.userId),
 						).toMatchObject({
 							name: "Auth Edit",
 							profilePhotoUrl: "https://example.com/photo.png",
@@ -294,7 +294,7 @@ for (const target of targets) {
 						);
 						const data =
 							await participant.hackkit.userData.getUserData(
-								hacker.authId,
+								hacker.userId,
 							);
 						expect(data).toMatchObject({
 							dietaryRestrictions: ["none"],
@@ -305,7 +305,7 @@ for (const target of targets) {
 							core.createScope().em.transactional(async (em) => {
 								const record = await em.findOneOrFail(
 									coreModels.user,
-									{ id: hacker.authId },
+									{ id: hacker.userId },
 								);
 								record.bio = "must roll back";
 								await em.flush();
@@ -316,18 +316,16 @@ for (const target of targets) {
 							(
 								await core
 									.createScope()
-									.hackkit.users.getUser(hacker.authId)
+									.hackkit.users.getUser(hacker.userId)
 							)?.bio,
 						).toBeNull();
 						const team =
 							await participant.hackkit.plugins.teams.createTeam({
-								actorAuthId: hacker.authId,
+								actorAuthId: hacker.userId,
 								name: "Typed team",
 								tag: "typed",
 							});
-						expect(team.members[0]?.user.authId).toBe(
-							hacker.authId,
-						);
+						expect(team.members[0]?.user.id).toBe(hacker.userId);
 						expect(Object.getPrototypeOf(team)).toBe(
 							Object.prototype,
 						);
@@ -342,21 +340,21 @@ for (const target of targets) {
 							core.createScope().em.transactional(async (em) => {
 								await em.nativeUpdate(
 									coreModels.userData,
-									{ authId: hacker.authId },
+									{ authId: hacker.userId },
 									{ authId: "missing-user" },
 								);
 							}),
 						).rejects.toThrow();
 						const cleanup = core.createScope().em;
 						cleanup.create(discordModels.member, {
-							authId: hacker.authId,
+							authId: hacker.userId,
 							discordUserId: "discord-hacker",
 							guildId: "guild",
 							username: "hacker",
 						});
 						cleanup.create(discordModels.verification, {
 							code: "matrix-code",
-							authId: hacker.authId,
+							authId: hacker.userId,
 							discordUserId: "discord-hacker",
 							guildId: "guild",
 							username: "hacker",
@@ -364,7 +362,7 @@ for (const target of targets) {
 						});
 						await cleanup.flush();
 						await cleanup.nativeDelete(HackKitUser, {
-							id: ids.find((id) => id !== hacker.authId)!,
+							id: ids.find((id) => id !== hacker.userId)!,
 						});
 						expect(
 							await core
@@ -378,17 +376,17 @@ for (const target of targets) {
 						const deleted = core.createScope().em;
 						expect(
 							await deleted.count(HackKitUser, {
-								id: hacker.authId,
+								id: hacker.userId,
 							}),
 						).toBe(0);
 						expect(
 							await deleted.count(AuthSession, {
-								userId: hacker.authId,
+								userId: hacker.userId,
 							}),
 						).toBe(0);
 						expect(
 							await deleted.count(AuthAccount, {
-								userId: hacker.authId,
+								userId: hacker.userId,
 							}),
 						).toBe(0);
 						expect(await deleted.count(coreModels.userData)).toBe(

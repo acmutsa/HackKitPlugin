@@ -48,7 +48,7 @@ export function TeamDashboard({
 	const router = useRouter();
 	const [hackTag, setHackTag] = React.useState("");
 	const [pending, setPending] = React.useState<string | null>(null);
-	const isOwner = team.ownerAuthId === currentUser.authId;
+	const isOwner = team.ownerAuthId === currentUser.id;
 
 	async function handleInvite(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();

@@ -58,7 +58,7 @@ export const storedFileReferenceSchema = z.union([
 ]);
 
 export const registerHackerSchema = z.object({
-	authId: authIdSchema,
+	userId: authIdSchema,
 	university: z.string().min(1),
 	major: z.string().min(1),
 	schoolId: z.string().optional(),

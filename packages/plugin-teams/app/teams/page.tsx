@@ -17,17 +17,17 @@ export default async function TeamsPage() {
 	if (!runtime.hackkit.isPluginEnabled("teams")) notFound();
 	const teams = runtime.hackkit.plugins.teams as TeamsApi;
 	const currentUser = await runtime.getCurrentUser();
-	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.authId);
+	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.id);
 
 	if (!hacker) {
 		redirect("/register");
 	}
 
-	const team = await teams.getTeamForAuthId(currentUser.authId);
+	const team = await teams.getTeamForAuthId(currentUser.id);
 	const teamInvites =
-		team && team.ownerAuthId === currentUser.authId
+		team && team.ownerAuthId === currentUser.id
 			? await teams.listTeamInvites({
-					actorAuthId: currentUser.authId,
+					actorAuthId: currentUser.id,
 					teamId: team.id,
 				})
 			: [];

@@ -105,7 +105,7 @@ export function createRsvpApi(context: RsvpApiContext) {
 				"Only approved hackers can RSVP.",
 			);
 		}
-		const hacker = await em.findOne(coreModels.hacker, { authId });
+		const hacker = await em.findOne(coreModels.hacker, { userId: authId });
 		if (!hacker) {
 			throw new HackKitError(
 				"INVALID_OPERATION",

@@ -16,12 +16,12 @@ export default async function HackerOnboardingPage() {
 	}
 
 	const hackkit = await getHackkit();
-	const userData = await hackkit.userData.getUserData(currentUser.authId);
+	const userData = await hackkit.userData.getUserData(currentUser.id);
 	if (!userData) {
 		redirect("/onboarding/user-data");
 	}
 
-	const hacker = await hackkit.hackers.getHacker(currentUser.authId);
+	const hacker = await hackkit.hackers.getHacker(currentUser.id);
 	const steps = await getOnboardingSteps("/onboarding/hacker");
 
 	return (

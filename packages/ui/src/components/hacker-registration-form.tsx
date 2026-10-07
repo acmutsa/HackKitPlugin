@@ -29,7 +29,7 @@ import {
 } from "./ui/select";
 
 const hackerRegistrationFormSchema = registerHackerSchema
-	.omit({ authId: true, group: true })
+	.omit({ userId: true, group: true })
 	.extend({
 		githubUrl: z
 			.union([z.string().url(), z.literal("")])

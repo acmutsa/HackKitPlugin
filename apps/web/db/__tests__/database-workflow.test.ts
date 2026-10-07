@@ -56,7 +56,7 @@ it("runs Core, plugins, and Better Auth against committed app migrations", async
 			expect(
 				await scope.hackkit.users.getUser(signup.response.user.id),
 			).toMatchObject({
-				authId: signup.response.user.id,
+				id: signup.response.user.id,
 				name: "Schema Test",
 				email: "schema@example.com",
 			});

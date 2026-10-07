@@ -17,7 +17,7 @@ export default async function EditEventPage({
 	const hackkit = await getHackkit();
 	const event = await hackkit.events.getEvent({
 		eventId: params.id,
-		actorAuthId: principal.user.authId,
+		actorAuthId: principal.user.id,
 	});
 
 	if (!event) notFound();
