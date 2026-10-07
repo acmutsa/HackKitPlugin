@@ -23,8 +23,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/client.ts src/testing.ts --format cjs,esm --dts --external vitest",
-    "dev": "tsup src/index.ts src/client.ts src/testing.ts --format cjs,esm --dts --external vitest --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

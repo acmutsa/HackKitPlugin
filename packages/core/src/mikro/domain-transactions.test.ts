@@ -61,12 +61,10 @@ it("admits only one concurrent registration into the final place", async () => {
 	await prepareParticipant(hackkit, "two");
 	const results = await Promise.allSettled(
 		["one", "two"].map((authId) =>
-			hackkit.runtime
-				.createScope()
-				.hackkit.hackers.registerHacker({
-					...registration,
-					userId: authId,
-				}),
+			hackkit.runtime.createScope().hackkit.hackers.registerHacker({
+				...registration,
+				userId: authId,
+			}),
 		),
 	);
 	expect(

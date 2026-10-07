@@ -32,8 +32,8 @@
     "app"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/actions.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts src/actions.ts --format cjs,esm --dts --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
