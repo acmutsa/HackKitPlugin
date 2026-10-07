@@ -26,6 +26,8 @@ Auth fields and plugin tables must have native entity metadata before startup. C
 
 Multi-step domain changes run in transactions. A portable operation-lock row serializes capacity and membership decisions before reads. Unique constraints provide additional protection. These locks trade some write concurrency for consistent behavior across supported SQL drivers.
 
+Profile updates and HackTag claims share a lock key for the target user. PostgreSQL and MySQL can update unrelated profiles independently. The HackTag unique constraint arbitrates competing claims from different users. SQLite and libSQL retain their database-level single-writer limitation.
+
 Notification intents persist with the domain change. Workers claim pending intents with an atomic conditional update before contacting providers. Discord verification commits its linked account and consumed code before external role synchronization. External delivery is not part of a database transaction; provider failures are recorded by existing attempt tracking. An interrupted worker can leave a processing intent requiring operational recovery.
 
 ## Migrations and releases

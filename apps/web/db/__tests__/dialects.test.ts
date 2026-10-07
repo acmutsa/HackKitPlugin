@@ -21,6 +21,7 @@ import { teamsModels } from "@hackkit/plugin-teams";
 import { discordModels } from "@hackkit/plugin-discord";
 import appConfig from "../../hackkit.config";
 import { verifyMigrationUpgrade } from "./migration-workflow";
+import { verifyProfileConcurrency } from "./profile-concurrency";
 
 const externalTargets = [
 	{
@@ -106,6 +107,11 @@ for (const target of targets) {
 					await runDatabaseCommand(config, { command: "seed" });
 					const core = await initializeHackkit(config);
 					try {
+						await verifyProfileConcurrency(
+							core,
+							target.driver === PostgreSqlDriver ||
+								target.driver === MySqlDriver,
+						);
 						expect(await core.orm.schema.getUpdateSchemaSQL()).toBe(
 							"",
 						);

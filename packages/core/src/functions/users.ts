@@ -114,8 +114,9 @@ export function createUsersApi(context: UsersApiContext) {
 		},
 
 		async claimHackTag(input: unknown): Promise<User> {
-			return withOperationLock(em, "profiles", async () => {
-				const parsed = parseInput(claimHackTagSchema, input);
+			const parsed = parseInput(claimHackTagSchema, input);
+			const profileKey = `profile:${parsed.authId}`;
+			return withOperationLock(em, profileKey, async () => {
 				return withDomainLog(
 					logger,
 					"users.claimHackTag",
@@ -157,8 +158,9 @@ export function createUsersApi(context: UsersApiContext) {
 		},
 
 		async updateProfile(input: unknown): Promise<User> {
-			return withOperationLock(em, "profiles", async () => {
-				const parsed = parseInput(updateUserProfileSchema, input);
+			const parsed = parseInput(updateUserProfileSchema, input);
+			const profileKey = `profile:${parsed.authId}`;
+			return withOperationLock(em, profileKey, async () => {
 				return withDomainLog(
 					logger,
 					"users.updateProfile",
