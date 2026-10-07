@@ -8,6 +8,8 @@ Core and server plugins use native MikroORM `defineEntity` definitions and `Enti
 
 `initializeHackkit` collects Core entities, Better Auth entities, installed plugin entities, including disabled plugins, and app entities before initializing the ORM. Application migration scripts use `createOrmOptions` with this same collection. Plugin table names start with the plugin ID converted to snake_case plus an underscore. Duplicate entity names and table names fail initialization.
 
+Core's `src/runtime.ts` owns HackKit initialization, shared authentication, logging, and execution scopes. `src/mikro/options.ts` owns native ORM options and driver types. Both remain available through the `@hackkit/core` package entrypoint.
+
 One ORM owns shared connections. Each request, action, job, or CLI operation gets a fresh EntityManager. `runtime.createScope(actorAuthId)` binds domain and plugin APIs; `runtime.run(callback, actorAuthId)` also provides MikroORM RequestContext. Transactions use a fresh identity map and clear the parent map on completion. Domain responses are plain DTOs; managed entities and authentication secrets stay on the server. Browser code imports `@hackkit/core/client`.
 
 ## Authentication

@@ -156,13 +156,13 @@ export {
 } from "./schemas";
 export type { CompleteUserDataInput } from "./schemas";
 
-export { initializeHackkit, createOrmOptions } from "./mikro/runtime";
+export { initializeHackkit } from "./runtime";
+export { createOrmOptions } from "./mikro/options";
 export type {
 	InitializeHackkitOptions,
-	HackKitDatabaseOptions,
-	HackKitDriver,
 	HackKitScope,
 	HackKitRuntime,
-} from "./mikro/runtime";
+} from "./runtime";
+export type { HackKitDatabaseOptions, HackKitDriver } from "./mikro/options";
 
 export { withOperationLock } from "./mikro/operation";

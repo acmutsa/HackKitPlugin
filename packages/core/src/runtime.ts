@@ -1,44 +1,22 @@
-import {
-	MikroORM,
-	RequestContext,
-	type Options,
-	type EntitySchema,
-	type EntityManager,
-} from "@mikro-orm/core";
-import { createLogger } from "../adapters/logger";
-import type { SqliteDriver } from "@mikro-orm/sqlite";
-import type { LibSqlDriver } from "@mikro-orm/libsql";
-import type { MySqlDriver } from "@mikro-orm/mysql";
-import type { PostgreSqlDriver } from "@mikro-orm/postgresql";
-import { Migrator } from "@mikro-orm/migrations";
-import { createHackkit, type CreateHackkitOptions } from "../hackkit";
+import { MikroORM, RequestContext, type EntityManager } from "@mikro-orm/core";
+import { createLogger } from "./adapters/logger";
+import { createHackkit, type CreateHackkitOptions } from "./hackkit";
 import {
 	createPluginRegistry,
 	type HackKitPlugin,
 	type HackKitRegistry,
-} from "../plugins";
+} from "./plugins";
+import { createHackKitAuth, type HackKitAuthOptions } from "./mikro/auth";
 import {
-	assertAuthEntitySchema,
-	createHackKitAuth,
-	type HackKitAuthOptions,
-} from "./auth";
+	createOrmOptions,
+	type CreateOrmOptionsInput,
+	type HackKitDriver,
+} from "./mikro/options";
 
-export type HackKitDriver =
-	| SqliteDriver
-	| LibSqlDriver
-	| MySqlDriver
-	| PostgreSqlDriver;
-export type HackKitDatabaseOptions = Omit<
-	Partial<Options<HackKitDriver>>,
-	"entities" | "entitiesTs"
-> & { driver: NonNullable<Options<HackKitDriver>["driver"]> };
 export type InitializeHackkitOptions<
 	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
-> = Omit<CreateHackkitOptions<TPlugins>, "em" | "registry" | "actorAuthId"> & {
-	database: HackKitDatabaseOptions;
-	auth: HackKitAuthOptions;
-	entities?: readonly EntitySchema[];
-};
+> = Omit<CreateHackkitOptions<TPlugins>, "em" | "registry" | "actorAuthId"> &
+	Omit<CreateOrmOptionsInput, "plugins">;
 
 export type HackKitScope<
 	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
@@ -59,27 +37,6 @@ export type HackKitRuntime<
 		actorAuthId?: string,
 	): Promise<T>;
 };
-
-/** Runtime and application migrations discover exactly the same entity collection. */
-export function createOrmOptions(
-	options: Pick<
-		InitializeHackkitOptions,
-		"database" | "plugins" | "entities" | "auth"
-	>,
-): Partial<Options<HackKitDriver>> {
-	const registry = createPluginRegistry(options.plugins, options.entities);
-	assertAuthEntitySchema(
-		registry.entities.map((entity) => entity.meta),
-		options.auth,
-	);
-	return {
-		...options.database,
-		entities: registry.entities,
-		extensions: [
-			...new Set([...(options.database.extensions ?? []), Migrator]),
-		],
-	};
-}
 
 /** Initialize shared connections and authentication once, then fork per execution. */
 export async function initializeHackkit<

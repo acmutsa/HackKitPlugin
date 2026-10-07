@@ -5,7 +5,7 @@ import {
 	type InitializeHackkitOptions,
 	type HackKitScope,
 	type HackKitRuntime,
-} from "./mikro/runtime";
+} from "./runtime";
 import { HackKitUser } from "./models";
 import type { HackKitPlugin } from "./plugins";
 import type { EntityManager } from "@mikro-orm/core";
