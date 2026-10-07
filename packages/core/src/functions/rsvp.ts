@@ -1,19 +1,19 @@
 import { serialize } from "@mikro-orm/core";
-import { withOperationLock } from "../mikro/operation.js";
-import type { HackkitRuntimeContext } from "../hackkit-context.js";
-import { CoreNotificationKind } from "../notifications.js";
-import { HackKitError, parseInput } from "../errors.js";
-import { withDomainLog } from "../domain-log.js";
-import { coreModels } from "../models.js";
-import { CorePermission } from "../permissions.js";
+import { withOperationLock } from "../mikro/operation";
+import type { HackkitRuntimeContext } from "../hackkit-context";
+import { CoreNotificationKind } from "../notifications";
+import { HackKitError, parseInput } from "../errors";
+import { withDomainLog } from "../domain-log";
+import { coreModels } from "../models";
+import { CorePermission } from "../permissions";
 import {
 	adminCancelRsvpSchema,
 	adminPromoteRsvpSchema,
 	adminSetRsvpStatusSchema,
 	confirmRsvpSchema,
-} from "../schemas.js";
-import { CoreSetting } from "../settings.js";
-import type { AuthId, Rsvp } from "../types.js";
+} from "../schemas";
+import { CoreSetting } from "../settings";
+import type { AuthId, Rsvp } from "../types";
 
 export type RsvpSummary = {
 	isOpen: boolean;

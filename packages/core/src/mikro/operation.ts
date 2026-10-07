@@ -3,8 +3,8 @@ import {
 	UniqueConstraintViolationException,
 	type EntityManager,
 } from "@mikro-orm/core";
-import { CoreOperationLock } from "../models.js";
-import { HackKitError } from "../errors.js";
+import { CoreOperationLock } from "../models";
+import { HackKitError } from "../errors";
 
 /** Serialize a read/check/write decision across connections, including SQLite.
  * The upsert writes before any reads, acquiring the database's write/row lock.

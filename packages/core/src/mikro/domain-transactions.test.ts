@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { createTestHackkit, createTestUser } from "../testing.js";
-import { CoreSetting } from "../settings.js";
-import { seedTestOwner } from "../__tests__/seed-test-owner.js";
+import { createTestHackkit, createTestUser } from "../testing";
+import { CoreSetting } from "../settings";
+import { seedTestOwner } from "../__tests__/seed-test-owner";
 
 const registration = {
 	university: "UTSA",

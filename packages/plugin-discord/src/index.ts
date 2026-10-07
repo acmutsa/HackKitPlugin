@@ -1,6 +1,6 @@
 import type { HackKitPlugin } from "@hackkit/core";
-import { createDiscordApi, type DiscordPluginOptions } from "./api.js";
-import { discordModels } from "./models.js";
+import { createDiscordApi, type DiscordPluginOptions } from "./api";
+import { discordModels } from "./models";
 
 export function discordPlugin(
 	options: DiscordPluginOptions | (() => DiscordPluginOptions),
@@ -20,13 +20,13 @@ export function discordPlugin(
 	};
 }
 
-export { createDiscordApi } from "./api.js";
-export { discordModels } from "./models.js";
-export { createDiscordHttpRoleSyncProvider } from "./providers.js";
+export { createDiscordApi } from "./api";
+export { discordModels } from "./models";
+export { createDiscordHttpRoleSyncProvider } from "./providers";
 export type {
 	ConfirmDiscordVerificationInput,
 	DiscordActions,
-} from "./actions.js";
+} from "./actions";
 export type {
 	CreateDiscordVerificationInput,
 	DiscordApi,
@@ -35,10 +35,10 @@ export type {
 	DiscordRoleSyncInput,
 	DiscordRoleSyncPlan,
 	DiscordRoleSyncProvider,
-} from "./api.js";
+} from "./api";
 export type {
 	DiscordMember,
 	DiscordRoleSyncAttempt,
 	DiscordVerification,
-} from "./models.js";
-export type { DiscordHttpRoleSyncProviderOptions } from "./providers.js";
+} from "./models";
+export type { DiscordHttpRoleSyncProviderOptions } from "./providers";

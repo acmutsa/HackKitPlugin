@@ -2,10 +2,10 @@ import {
 	createTestHackkit,
 	createTestUser,
 	type TestHackkit,
-} from "../testing.js";
+} from "../testing";
 import { describe, expect, it } from "vitest";
-import { CorePermission } from "../permissions.js";
-import { seedTestOwner } from "./seed-test-owner.js";
+import { CorePermission } from "../permissions";
+import { seedTestOwner } from "./seed-test-owner";
 
 describe("admin console reads", () => {
 	it("hydrates admin user records and exports flattened rows", async () => {

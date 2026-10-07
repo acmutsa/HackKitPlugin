@@ -5,64 +5,60 @@ export type {
 	BlobUploadTargetInput,
 	BlobViewInput,
 	BlobViewResult,
-} from "./adapters/blob.js";
+} from "./adapters/blob";
 export {
 	createDefaultLogger,
 	createLogger,
 	logDomain,
 	resolveDefaultLogLevel,
-} from "./adapters/logger.js";
+} from "./adapters/logger";
 export type {
 	DomainLogContext,
 	HackKitLogger,
 	HackKitLoggerOptions,
 	LogLevel,
-} from "./adapters/logger.js";
-export { createHackKitAuth } from "./mikro/auth.js";
-export type { HackKitAuthOptions } from "./mikro/auth.js";
+} from "./adapters/logger";
+export { createHackKitAuth } from "./mikro/auth";
+export type { HackKitAuthOptions } from "./mikro/auth";
 export {
 	authEntities,
 	AuthSession,
 	AuthAccount,
 	AuthVerification,
-} from "./mikro/auth-entities.js";
-export { HackKitUser } from "./models.js";
-export type { HackKit } from "./hackkit.js";
-export { seedRoles } from "./seed.js";
-export type {
-	SeedRoleInput,
-	SeedRolesOptions,
-	SeedRolesResult,
-} from "./seed.js";
+} from "./mikro/auth-entities";
+export { HackKitUser } from "./models";
+export type { HackKit } from "./hackkit";
+export { seedRoles } from "./seed";
+export type { SeedRoleInput, SeedRolesOptions, SeedRolesResult } from "./seed";
 export {
 	createCompleteUserDataSchema,
 	defaultUserDataOptions,
 	resolveUserDataOptions,
-} from "./user-data-options.js";
+} from "./user-data-options";
 export {
 	defaultEventTypes,
 	eventTypeValueSchema,
 	resolveEventTypes,
-} from "./event-types.js";
-export { getEnabledGroups, resolveGroups } from "./groups.js";
+} from "./event-types";
+export { getEnabledGroups, resolveGroups } from "./groups";
 export {
 	CoreSetting,
 	coreSettings,
 	defineSetting,
 	validateSettingValue,
-} from "./settings.js";
-export { createAccessControl } from "./access-control.js";
-export type { AccessControl, AccessPrincipal } from "./access-control.js";
-export type { HackkitRuntimeContext } from "./hackkit-context.js";
+} from "./settings";
+export { createAccessControl } from "./access-control";
+export type { AccessControl, AccessPrincipal } from "./access-control";
+export type { HackkitRuntimeContext } from "./hackkit-context";
 export {
 	CoreNotificationKind,
 	coreNotificationPayloadSchemas,
 	createNotificationsApi,
-} from "./notifications.js";
-export { createRsvpApi } from "./functions/rsvp.js";
-export type { RsvpApi, RsvpSummary } from "./functions/rsvp.js";
-export { createGroupsApi } from "./functions/groups.js";
-export type { GroupsApi } from "./functions/groups.js";
+} from "./notifications";
+export { createRsvpApi } from "./functions/rsvp";
+export type { RsvpApi, RsvpSummary } from "./functions/rsvp";
+export { createGroupsApi } from "./functions/groups";
+export type { GroupsApi } from "./functions/groups";
 export type {
 	CoreNotificationPayloadMap,
 	DeliverPendingNotificationsInput,
@@ -76,18 +72,18 @@ export type {
 	NotificationsApi,
 	NotificationsApiContext,
 	QueueNotificationIntentInput,
-} from "./notifications.js";
+} from "./notifications";
 export type {
 	EventTypeOption,
 	EventTypes,
 	EventTypesInput,
-} from "./event-types.js";
-export type { GroupsInput, HackkitGroup, HackkitGroupInput } from "./groups.js";
+} from "./event-types";
+export type { GroupsInput, HackkitGroup, HackkitGroupInput } from "./groups";
 export type {
 	UserDataOption,
 	UserDataOptions,
 	UserDataOptionsInput,
-} from "./user-data-options.js";
+} from "./user-data-options";
 export type {
 	BooleanSettingDefinition,
 	HackathonSettingDefinition,
@@ -96,18 +92,18 @@ export type {
 	SettingKey,
 	SettingValue,
 	SettingValueType,
-} from "./settings.js";
-export { HackKitError, hackKitErrorCodes } from "./errors.js";
-export type { HackKitErrorCode } from "./errors.js";
-export { coreModels } from "./models.js";
-export { CorePermission, hasPermission, hasSuperAdmin } from "./permissions.js";
-export { createPluginRegistry, setupPluginApis } from "./plugins.js";
+} from "./settings";
+export { HackKitError, hackKitErrorCodes } from "./errors";
+export type { HackKitErrorCode } from "./errors";
+export { coreModels } from "./models";
+export { CorePermission, hasPermission, hasSuperAdmin } from "./permissions";
+export { createPluginRegistry, setupPluginApis } from "./plugins";
 export type {
 	HackKitPlugin,
 	HackKitPluginContext,
 	HackKitRegistry,
 	PluginApiMap,
-} from "./plugins.js";
+} from "./plugins";
 export type {
 	AuthId,
 	Event,
@@ -128,7 +124,7 @@ export type {
 	PublicUserProfile,
 	NotificationDeliveryAttempt,
 	NotificationIntent,
-} from "./types.js";
+} from "./types";
 export {
 	adminCancelRsvpSchema,
 	adminPromoteRsvpSchema,
@@ -157,16 +153,16 @@ export {
 	updateEventSchemaFactory,
 	updateRoleSchema,
 	updateUserProfileSchema,
-} from "./schemas.js";
-export type { CompleteUserDataInput } from "./schemas.js";
+} from "./schemas";
+export type { CompleteUserDataInput } from "./schemas";
 
-export { initializeHackkit, createOrmOptions } from "./mikro/runtime.js";
+export { initializeHackkit, createOrmOptions } from "./mikro/runtime";
 export type {
 	InitializeHackkitOptions,
 	HackKitDatabaseOptions,
 	HackKitDriver,
 	HackKitScope,
 	HackKitRuntime,
-} from "./mikro/runtime.js";
+} from "./mikro/runtime";
 
-export { withOperationLock } from "./mikro/operation.js";
+export { withOperationLock } from "./mikro/operation";

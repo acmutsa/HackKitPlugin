@@ -1,6 +1,6 @@
 import type { HackkitRuntime } from "@hackkit/next";
 import { actionFailure, actionSuccess } from "@hackkit/next";
-import type { DiscordApi } from "./api.js";
+import type { DiscordApi } from "./api";
 
 export type ConfirmDiscordVerificationInput = {
 	code: string;

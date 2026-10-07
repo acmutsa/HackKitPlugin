@@ -1,12 +1,12 @@
 import { serialize } from "@mikro-orm/core";
-import { withOperationLock } from "../mikro/operation.js";
-import { readUser, toUser } from "../mikro/user.js";
-import type { HackkitRuntimeContext } from "../hackkit-context.js";
-import { HackKitError, parseInput } from "../errors.js";
-import { withDomainLog } from "../domain-log.js";
-import { coreModels } from "../models.js";
-import { CorePermission } from "../permissions.js";
-import type { CompetitorRegistrationPolicy } from "./registration-policy.js";
+import { withOperationLock } from "../mikro/operation";
+import { readUser, toUser } from "../mikro/user";
+import type { HackkitRuntimeContext } from "../hackkit-context";
+import { HackKitError, parseInput } from "../errors";
+import { withDomainLog } from "../domain-log";
+import { coreModels } from "../models";
+import { CorePermission } from "../permissions";
+import type { CompetitorRegistrationPolicy } from "./registration-policy";
 import {
 	approveUserSchema,
 	banUserSchema,
@@ -15,8 +15,8 @@ import {
 	clearCheckInUserSchema,
 	unbanUserSchema,
 	updateUserProfileSchema,
-} from "../schemas.js";
-import type { AuthId, PublicUserProfile, User, UserBan } from "../types.js";
+} from "../schemas";
+import type { AuthId, PublicUserProfile, User, UserBan } from "../types";
 
 export type UsersApiContext = Pick<
 	HackkitRuntimeContext,

@@ -7,8 +7,8 @@ import {
 	type Team,
 	type TeamInvite,
 	type TeamMember,
-} from "./models.js";
-import { TeamsSetting } from "./settings.js";
+} from "./models";
+import { TeamsSetting } from "./settings";
 
 export type TeamWithMembers = Team & {
 	members: (TeamMember & { user: User })[];

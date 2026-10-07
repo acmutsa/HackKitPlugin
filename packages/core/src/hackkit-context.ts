@@ -1,12 +1,12 @@
-import type { HackKitLogger } from "./adapters/logger.js";
+import type { HackKitLogger } from "./adapters/logger";
 import type { EntityManager } from "@mikro-orm/core";
-import type { EventTypes } from "./event-types.js";
-import type { SettingKey, SettingValue } from "./settings.js";
-import type { UserDataOptions } from "./user-data-options.js";
-import type { AccessControl, AccessPrincipal } from "./access-control.js";
-import type { NotificationsApi } from "./notifications.js";
-import type { AuthId, PermissionKey, Role, User } from "./types.js";
-import type { HackkitGroup } from "./groups.js";
+import type { EventTypes } from "./event-types";
+import type { SettingKey, SettingValue } from "./settings";
+import type { UserDataOptions } from "./user-data-options";
+import type { AccessControl, AccessPrincipal } from "./access-control";
+import type { NotificationsApi } from "./notifications";
+import type { AuthId, PermissionKey, Role, User } from "./types";
+import type { HackkitGroup } from "./groups";
 
 export type HackkitRuntimeContext = {
 	em: EntityManager;

@@ -1,9 +1,9 @@
 import { defineSetting } from "@hackkit/core";
 import type { HackKitPlugin } from "@hackkit/core";
-import { createTeamsApi } from "./api.js";
-import { teamsModels } from "./models.js";
-import { TeamsPermission } from "./permissions.js";
-import { TeamsSetting } from "./settings.js";
+import { createTeamsApi } from "./api";
+import { teamsModels } from "./models";
+import { TeamsPermission } from "./permissions";
+import { TeamsSetting } from "./settings";
 
 export function teamsPlugin(): HackKitPlugin<
 	"teams",
@@ -45,15 +45,15 @@ export function teamsPlugin(): HackKitPlugin<
 	};
 }
 
-export { createTeamsApi } from "./api.js";
-export { teamsModels } from "./models.js";
-export { TeamsPermission } from "./permissions.js";
-export { TeamsSetting } from "./settings.js";
-export type { Team, TeamInvite, TeamMember } from "./models.js";
+export { createTeamsApi } from "./api";
+export { teamsModels } from "./models";
+export { TeamsPermission } from "./permissions";
+export { TeamsSetting } from "./settings";
+export type { Team, TeamInvite, TeamMember } from "./models";
 export type {
 	TeamsApi,
 	TeamWithMembers,
 	PendingTeamInvite,
 	TeamInviteWithInvitee,
-} from "./api.js";
-export type { TeamsActions } from "./actions.js";
+} from "./api";
+export type { TeamsActions } from "./actions";

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HackKitError } from "./errors.js";
+import { HackKitError } from "./errors";
 
 export type SettingKey = `${string}.${string}`;
 export type SettingValueType = "boolean" | "number";

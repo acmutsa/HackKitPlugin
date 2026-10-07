@@ -5,9 +5,9 @@ import {
 	type InitializeHackkitOptions,
 	type HackKitScope,
 	type HackKitRuntime,
-} from "./mikro/runtime.js";
-import { HackKitUser } from "./models.js";
-import type { HackKitPlugin } from "./plugins.js";
+} from "./mikro/runtime";
+import { HackKitUser } from "./models";
+import type { HackKitPlugin } from "./plugins";
 import type { EntityManager } from "@mikro-orm/core";
 
 const cleanups = new Set<() => Promise<void>>();

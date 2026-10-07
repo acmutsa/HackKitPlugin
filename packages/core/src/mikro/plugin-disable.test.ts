@@ -1,6 +1,6 @@
 import { defineEntity, p } from "@mikro-orm/core";
 import { expect, it } from "vitest";
-import { createTestHackkit } from "../testing.js";
+import { createTestHackkit } from "../testing";
 
 it("retains disabled plugin schema and data without activating its API", async () => {
 	const Entry = defineEntity({

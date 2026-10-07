@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { MikroORM, RequestContext } from "@mikro-orm/core";
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { LibSqlDriver } from "@mikro-orm/libsql";
-import { authEntities } from "./auth-entities.js";
-import { createHackKitAuth } from "./auth.js";
-import { HackKitUser } from "../models.js";
+import { authEntities } from "./auth-entities";
+import { createHackKitAuth } from "./auth";
+import { HackKitUser } from "../models";
 
 describe.each([
 	[

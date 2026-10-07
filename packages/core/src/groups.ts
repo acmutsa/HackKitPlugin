@@ -1,4 +1,4 @@
-import { HackKitError } from "./errors.js";
+import { HackKitError } from "./errors";
 
 export type HackkitGroupInput = {
 	id: string;

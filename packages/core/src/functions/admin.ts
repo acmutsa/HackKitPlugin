@@ -1,15 +1,15 @@
 import { serialize } from "@mikro-orm/core";
-import { readUser, toUser } from "../mikro/user.js";
-import type { HackkitRuntimeContext } from "../hackkit-context.js";
-import { coreModels } from "../models.js";
-import { CorePermission } from "../permissions.js";
+import { readUser, toUser } from "../mikro/user";
+import type { HackkitRuntimeContext } from "../hackkit-context";
+import { coreModels } from "../models";
+import { CorePermission } from "../permissions";
 import type {
 	AdminOverview,
 	AdminUserExportRow,
 	AdminUserRecord,
 	AuthId,
 	Role,
-} from "../types.js";
+} from "../types";
 
 export type AdminApiContext = Pick<
 	HackkitRuntimeContext,

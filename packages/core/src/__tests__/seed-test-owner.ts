@@ -1,9 +1,9 @@
-import { createTestUser, type TestHackkit } from "../testing.js";
-import { coreModels } from "../models.js";
-import { CorePermission } from "../permissions.js";
-import { seedRoles } from "../seed.js";
+import { createTestUser, type TestHackkit } from "../testing";
+import { coreModels } from "../models";
+import { CorePermission } from "../permissions";
+import { seedRoles } from "../seed";
 
-export type { TestHackkit } from "../testing.js";
+export type { TestHackkit } from "../testing";
 
 export async function seedTestOwner(
 	hackkit: TestHackkit,

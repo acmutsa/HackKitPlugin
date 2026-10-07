@@ -43,3 +43,5 @@ The [migration guide](../guides/database-migrations.md) specifies staged upgrade
 The app database matrix applies committed migrations and tests real SQLite, local libSQL, PostgreSQL, MySQL, and HTTP libSQL. It checks schema agreement, signup/session/profile behavior, native JSON/date/boolean/null values, rollback, concurrent registration capacity, teams, uniqueness, and foreign-key cleanup. Package tests cover domain authorization, request isolation, notification claims, and membership conflicts. CI requires external service URLs so those cases cannot silently skip.
 
 Use Node.js 22.17 or newer and TypeScript 5.9.3. Production validation must also cover the deployment's credentials, TLS, OAuth providers, and external email/Discord services.
+
+Packages built with `tsup` use extensionless relative imports in TypeScript source, with `module: ESNext`, `moduleResolution: Bundler`, and `noEmit: true`. `tsup` emits JavaScript and bundled declarations; native Node loads these built package entrypoints. Generated imports between output chunks retain the extensions Node requires. The UI package still uses `tsc` and is consumed through the application bundler.

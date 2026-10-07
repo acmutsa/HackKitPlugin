@@ -1,4 +1,4 @@
-import type { DiscordRoleSyncProvider } from "./api.js";
+import type { DiscordRoleSyncProvider } from "./api";
 
 export type DiscordHttpRoleSyncProviderOptions = {
 	baseUrl: string;

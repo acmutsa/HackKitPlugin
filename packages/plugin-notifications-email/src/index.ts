@@ -2,7 +2,7 @@ import type { HackKitPlugin } from "@hackkit/core";
 import {
 	createEmailNotificationsApi,
 	type EmailNotificationsPluginOptions,
-} from "./api.js";
+} from "./api";
 
 export function emailNotificationsPlugin(
 	options:
@@ -33,7 +33,7 @@ export {
 	type EmailProviderResult,
 	type EmailRecipient,
 	type EmailRecipientResolver,
-} from "./api.js";
+} from "./api";
 export {
 	defaultEmailTemplates,
 	mergeEmailTemplates,
@@ -41,10 +41,10 @@ export {
 	type EmailTemplateContext,
 	type EmailTemplateMap,
 	type EmailTemplateRenderer,
-} from "./templates.js";
+} from "./templates";
 export {
 	createResendEmailProvider,
 	createSmtpEmailProvider,
 	type ResendEmailProviderOptions,
 	type SmtpEmailProviderOptions,
-} from "./providers.js";
+} from "./providers";

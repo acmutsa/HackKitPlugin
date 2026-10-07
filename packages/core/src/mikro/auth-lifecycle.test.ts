@@ -1,10 +1,10 @@
 import { MikroORM } from "@mikro-orm/core";
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { describe, expect, it } from "vitest";
-import { createHackKitAuth } from "./auth.js";
-import { authEntities, AuthSession, AuthAccount } from "./auth-entities.js";
-import { coreModels, HackKitUser } from "../models.js";
-import { createHackkit } from "../hackkit.js";
+import { createHackKitAuth } from "./auth";
+import { authEntities, AuthSession, AuthAccount } from "./auth-entities";
+import { coreModels, HackKitUser } from "../models";
+import { createHackkit } from "../hackkit";
 
 const options = {
 	secret: "local-test-secret-with-at-least-32-characters",

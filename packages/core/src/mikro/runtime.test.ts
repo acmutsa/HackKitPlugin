@@ -1,6 +1,6 @@
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { expect, it } from "vitest";
-import { initializeHackkit } from "./runtime.js";
+import { initializeHackkit } from "./runtime";
 
 it("shares auth and connections while isolating domain execution scopes", async () => {
 	const runtime = await initializeHackkit({

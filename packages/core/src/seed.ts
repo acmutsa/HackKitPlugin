@@ -1,6 +1,6 @@
 import type { EntityManager } from "@mikro-orm/core";
-import { coreModels } from "./models.js";
-import type { PermissionKey } from "./types.js";
+import { coreModels } from "./models";
+import type { PermissionKey } from "./types";
 
 export type SeedRoleInput = {
 	id: string;

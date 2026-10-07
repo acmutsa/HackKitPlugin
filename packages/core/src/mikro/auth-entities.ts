@@ -1,6 +1,6 @@
 import { defineEntity, p } from "@mikro-orm/core";
 
-import { HackKitUser } from "../models.js";
+import { HackKitUser } from "../models";
 
 export const AuthSession = defineEntity({
 	name: "AuthSession",

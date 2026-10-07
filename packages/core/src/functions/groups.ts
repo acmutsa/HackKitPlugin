@@ -1,11 +1,11 @@
 import { serialize } from "@mikro-orm/core";
-import { withOperationLock } from "../mikro/operation.js";
-import { HackKitError } from "../errors.js";
-import type { HackkitRuntimeContext } from "../hackkit-context.js";
-import { coreModels } from "../models.js";
-import type { AuthId, Hacker } from "../types.js";
-import type { HackkitGroup } from "../groups.js";
-import { getEnabledGroups } from "../groups.js";
+import { withOperationLock } from "../mikro/operation";
+import { HackKitError } from "../errors";
+import type { HackkitRuntimeContext } from "../hackkit-context";
+import { coreModels } from "../models";
+import type { AuthId, Hacker } from "../types";
+import type { HackkitGroup } from "../groups";
+import { getEnabledGroups } from "../groups";
 
 export type GroupsApiContext = Pick<
 	HackkitRuntimeContext,

@@ -12,7 +12,7 @@ import {
 	type DiscordMember,
 	type DiscordRoleSyncAttempt,
 	type DiscordVerification,
-} from "./models.js";
+} from "./models";
 
 export type DiscordRoleRef = {
 	id?: string;

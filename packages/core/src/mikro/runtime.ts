@@ -5,23 +5,23 @@ import {
 	type EntitySchema,
 	type EntityManager,
 } from "@mikro-orm/core";
-import { createLogger } from "../adapters/logger.js";
+import { createLogger } from "../adapters/logger";
 import type { SqliteDriver } from "@mikro-orm/sqlite";
 import type { LibSqlDriver } from "@mikro-orm/libsql";
 import type { MySqlDriver } from "@mikro-orm/mysql";
 import type { PostgreSqlDriver } from "@mikro-orm/postgresql";
 import { Migrator } from "@mikro-orm/migrations";
-import { createHackkit, type CreateHackkitOptions } from "../hackkit.js";
+import { createHackkit, type CreateHackkitOptions } from "../hackkit";
 import {
 	createPluginRegistry,
 	type HackKitPlugin,
 	type HackKitRegistry,
-} from "../plugins.js";
+} from "../plugins";
 import {
 	assertAuthEntitySchema,
 	createHackKitAuth,
 	type HackKitAuthOptions,
-} from "./auth.js";
+} from "./auth";
 
 export type HackKitDriver =
 	| SqliteDriver

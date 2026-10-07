@@ -2,7 +2,7 @@ import type { EntityMetadata, MikroORM } from "@mikro-orm/core";
 import { mikroOrmAdapter } from "@a77ay/better-auth-mikro-orm";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { getAuthTables } from "better-auth/db";
-import { HackKitUser } from "../models.js";
+import { HackKitUser } from "../models";
 
 export type HackKitAuthOptions = Omit<
 	BetterAuthOptions,

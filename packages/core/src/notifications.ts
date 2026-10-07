@@ -1,13 +1,13 @@
 import { serialize } from "@mikro-orm/core";
 import { z } from "zod";
 import type { EntityManager } from "@mikro-orm/core";
-import { HackKitError, parseInput } from "./errors.js";
-import { coreModels } from "./models.js";
+import { HackKitError, parseInput } from "./errors";
+import { coreModels } from "./models";
 import type {
 	AuthId,
 	NotificationDeliveryAttempt,
 	NotificationIntent,
-} from "./types.js";
+} from "./types";
 
 export const CoreNotificationKind = {
 	UserApproved: "core.user.approved",

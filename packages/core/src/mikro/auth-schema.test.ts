@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
-import { createTestHackkit } from "../testing.js";
-import { createHackKitAuth } from "./auth.js";
+import { createTestHackkit } from "../testing";
+import { createHackKitAuth } from "./auth";
 
 it("rejects auth options that need undeclared columns before serving requests", async () => {
 	const { runtime } = await createTestHackkit();

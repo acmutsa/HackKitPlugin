@@ -2,10 +2,10 @@ import {
 	createTestHackkit,
 	createTestUser,
 	type TestHackkit,
-} from "../testing.js";
+} from "../testing";
 import { describe, expect, it } from "vitest";
-import { CoreNotificationKind, CoreSetting } from "../index.js";
-import { seedTestOwner } from "./seed-test-owner.js";
+import { CoreNotificationKind, CoreSetting } from "../index";
+import { seedTestOwner } from "./seed-test-owner";
 
 async function setSetting(
 	hackkit: TestHackkit,

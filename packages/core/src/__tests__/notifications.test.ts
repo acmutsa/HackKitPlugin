@@ -2,9 +2,9 @@ import {
 	createTestHackkit,
 	createTestUser,
 	type TestHackkit,
-} from "../testing.js";
+} from "../testing";
 import { describe, expect, it } from "vitest";
-import { CoreNotificationKind, type NotificationChannel } from "../index.js";
+import { CoreNotificationKind, type NotificationChannel } from "../index";
 
 describe("notifications", () => {
 	it("queues typed core intents and reuses idempotent requests", async () => {

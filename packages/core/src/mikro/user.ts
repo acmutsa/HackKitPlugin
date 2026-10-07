@@ -4,8 +4,8 @@ import {
 	type FilterQuery,
 	type InferEntity,
 } from "@mikro-orm/core";
-import { HackKitUser } from "../models.js";
-import type { User } from "../types.js";
+import { HackKitUser } from "../models";
+import type { User } from "../types";
 
 /** Keep the domain Auth ID API while serializing the single native user row. */
 export function toUser(user: InferEntity<typeof HackKitUser>): User {

@@ -1,6 +1,6 @@
 import net from "node:net";
 import tls from "node:tls";
-import type { EmailMessage, EmailProvider } from "./api.js";
+import type { EmailMessage, EmailProvider } from "./api";
 
 export type ResendEmailProviderOptions = {
 	apiKey: string;

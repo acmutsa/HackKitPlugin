@@ -1,4 +1,4 @@
-import { createTeamsActions } from "../actions.js";
+import { createTeamsActions } from "../actions";
 import {
 	createTestHackkit,
 	createTestUser,
@@ -6,8 +6,8 @@ import {
 } from "@hackkit/core/testing";
 import { describe, expect, it } from "vitest";
 
-import { teamsModels } from "../models.js";
-import { teamsPlugin } from "../index.js";
+import { teamsModels } from "../models";
+import { teamsPlugin } from "../index";
 
 async function createTeamsHackkit() {
 	const plugin = teamsPlugin();

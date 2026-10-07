@@ -1,24 +1,24 @@
 import type { EntityManager, EntitySchema } from "@mikro-orm/core";
-import { authEntities } from "./mikro/auth-entities.js";
-import { HackKitError } from "./errors.js";
-import { coreModels } from "./models.js";
-import type { NotificationsApi } from "./notifications.js";
-import { CorePermission } from "./permissions.js";
+import { authEntities } from "./mikro/auth-entities";
+import { HackKitError } from "./errors";
+import { coreModels } from "./models";
+import type { NotificationsApi } from "./notifications";
+import { CorePermission } from "./permissions";
 import type {
 	HackathonSettingDefinition,
 	SettingKey,
 	SettingValue,
-} from "./settings.js";
-import { coreSettings } from "./settings.js";
-import type { PermissionKey } from "./types.js";
-import type { HackkitGroup } from "./groups.js";
+} from "./settings";
+import { coreSettings } from "./settings";
+import type { PermissionKey } from "./types";
+import type { HackkitGroup } from "./groups";
 
 type PermissionMap = Record<string, PermissionKey>;
 
 export type HackKitPluginContext = {
 	em: EntityManager;
 	actorAuthId?: string;
-	getUser: (authId: string) => Promise<import("./types.js").User | null>;
+	getUser: (authId: string) => Promise<import("./types").User | null>;
 	registry: HackKitRegistry;
 	getSettingValue: (key: SettingKey) => Promise<SettingValue>;
 	notifications: NotificationsApi;

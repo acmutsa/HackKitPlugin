@@ -1,8 +1,8 @@
 import type { EntityManager } from "@mikro-orm/core";
-import { HackKitError } from "../errors.js";
-import { coreModels } from "../models.js";
-import { CoreSetting, type SettingValue } from "../settings.js";
-import type { AuthId, Hacker } from "../types.js";
+import { HackKitError } from "../errors";
+import { coreModels } from "../models";
+import { CoreSetting, type SettingValue } from "../settings";
+import type { AuthId, Hacker } from "../types";
 
 type RegistrationPolicyContext = {
 	em: EntityManager;

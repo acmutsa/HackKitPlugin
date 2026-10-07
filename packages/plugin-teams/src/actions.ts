@@ -20,7 +20,7 @@ export type RemoveMemberInput = {
 	memberAuthId: string;
 };
 
-import type { TeamsApi } from "./api.js";
+import type { TeamsApi } from "./api";
 
 export function createTeamsActions(
 	runtime: Pick<HackkitRuntime, "hackkit" | "getAuthId">,

@@ -9,7 +9,7 @@ import {
 	emailNotificationsPlugin,
 	type EmailMessage,
 	type EmailNotificationsApi,
-} from "../index.js";
+} from "../index";
 
 async function createEmailHackkit() {
 	const sent: EmailMessage[] = [];

@@ -1,5 +1,5 @@
 import type { InferEntity, EntityDTO } from "@mikro-orm/core";
-import type { coreModels } from "./models.js";
+import type { coreModels } from "./models";
 
 export type AuthId = string;
 export type UserId = AuthId;

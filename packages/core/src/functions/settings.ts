@@ -1,18 +1,18 @@
-import { withOperationLock } from "../mikro/operation.js";
-import type { HackKitLogger } from "../adapters/logger.js";
+import { withOperationLock } from "../mikro/operation";
+import type { HackKitLogger } from "../adapters/logger";
 import type { EntityManager } from "@mikro-orm/core";
-import { HackKitError } from "../errors.js";
-import { coreModels } from "../models.js";
-import { CorePermission } from "../permissions.js";
+import { HackKitError } from "../errors";
+import { coreModels } from "../models";
+import { CorePermission } from "../permissions";
 import type {
 	CoreSettingValueMap,
 	HackathonSettingDefinition,
 	ResolvedHackathonSetting,
 	SettingKey,
 	SettingValue,
-} from "../settings.js";
-import { validateSettingValue } from "../settings.js";
-import type { AuthId, PermissionKey } from "../types.js";
+} from "../settings";
+import { validateSettingValue } from "../settings";
+import type { AuthId, PermissionKey } from "../types";
 
 type SettingsApiContext = {
 	em: EntityManager;
@@ -25,7 +25,7 @@ type SettingsApiContext = {
 	) => Promise<unknown>;
 };
 
-type SettingRow = import("../types.js").HackathonSetting;
+type SettingRow = import("../types").HackathonSetting;
 
 export type SetHackathonSettingInput = {
 	actorAuthId: AuthId;

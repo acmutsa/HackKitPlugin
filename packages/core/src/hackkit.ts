@@ -1,25 +1,25 @@
 import { serialize } from "@mikro-orm/core";
-import { withOperationLock } from "./mikro/operation.js";
+import { withOperationLock } from "./mikro/operation";
 import type { EntityManager } from "@mikro-orm/core";
-import { readUser } from "./mikro/user.js";
-import { createAccessControl } from "./access-control.js";
-import { HackKitError, parseInput } from "./errors.js";
-import type { HackkitRuntimeContext } from "./hackkit-context.js";
-import { coreModels } from "./models.js";
-import { CorePermission } from "./permissions.js";
+import { readUser } from "./mikro/user";
+import { createAccessControl } from "./access-control";
+import { HackKitError, parseInput } from "./errors";
+import type { HackkitRuntimeContext } from "./hackkit-context";
+import { coreModels } from "./models";
+import { CorePermission } from "./permissions";
 import {
 	createPluginRegistry,
 	setupPluginApis,
 	type HackKitPlugin,
 	type PluginApiMap,
-} from "./plugins.js";
+} from "./plugins";
 import {
 	assignRoleSchema,
 	createRoleSchema,
 	deleteRoleSchema,
 	registerHackerSchema,
 	updateRoleSchema,
-} from "./schemas.js";
+} from "./schemas";
 import type {
 	AuthId,
 	Hacker,
@@ -28,30 +28,30 @@ import type {
 	RoleId,
 	User,
 	UserData,
-} from "./types.js";
-import { createUsersApi } from "./functions/users.js";
-import { createEventsApi } from "./functions/events.js";
-import { createSettingsApi } from "./functions/settings.js";
-import { createAdminApi } from "./functions/admin.js";
-import { createCompetitorRegistrationPolicy } from "./functions/registration-policy.js";
+} from "./types";
+import { createUsersApi } from "./functions/users";
+import { createEventsApi } from "./functions/events";
+import { createSettingsApi } from "./functions/settings";
+import { createAdminApi } from "./functions/admin";
+import { createCompetitorRegistrationPolicy } from "./functions/registration-policy";
 import {
 	createCompleteUserDataSchema,
 	resolveUserDataOptions,
 	type UserDataOptionsInput,
-} from "./user-data-options.js";
-import { resolveEventTypes, type EventTypesInput } from "./event-types.js";
-import { resolveGroups, type GroupsInput } from "./groups.js";
-import { createLogger, type HackKitLoggerOptions } from "./adapters/logger.js";
-import { withDomainLog } from "./domain-log.js";
-import { createNotificationsApi } from "./notifications.js";
-import { createRsvpApi } from "./functions/rsvp.js";
-import { createGroupsApi } from "./functions/groups.js";
+} from "./user-data-options";
+import { resolveEventTypes, type EventTypesInput } from "./event-types";
+import { resolveGroups, type GroupsInput } from "./groups";
+import { createLogger, type HackKitLoggerOptions } from "./adapters/logger";
+import { withDomainLog } from "./domain-log";
+import { createNotificationsApi } from "./notifications";
+import { createRsvpApi } from "./functions/rsvp";
+import { createGroupsApi } from "./functions/groups";
 
 export type CreateHackkitOptions<
 	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
 > = {
 	em: EntityManager;
-	registry?: import("./plugins.js").HackKitRegistry;
+	registry?: import("./plugins").HackKitRegistry;
 	actorAuthId?: string;
 	plugins?: TPlugins;
 	clock?: () => Date;

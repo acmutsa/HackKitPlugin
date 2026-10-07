@@ -4,7 +4,7 @@ import type {
 	NotificationDeliveryResult,
 	NotificationIntent,
 } from "@hackkit/core";
-import { mergeEmailTemplates, type EmailTemplateMap } from "./templates.js";
+import { mergeEmailTemplates, type EmailTemplateMap } from "./templates";
 
 export type EmailMessage = {
 	to: string;

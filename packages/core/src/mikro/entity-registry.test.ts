@@ -1,6 +1,6 @@
 import { defineEntity, p } from "@mikro-orm/core";
 import { expect, it } from "vitest";
-import { createPluginRegistry } from "../plugins.js";
+import { createPluginRegistry } from "../plugins";
 
 function entity(name: string, tableName: string) {
 	return defineEntity({

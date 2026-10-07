@@ -2,11 +2,11 @@ import {
 	createTestHackkit,
 	createTestUser,
 	type TestHackkit,
-} from "../testing.js";
+} from "../testing";
 import { describe, expect, it } from "vitest";
-import { CorePermission } from "../permissions.js";
-import { CoreSetting } from "../settings.js";
-import { seedTestOwner } from "./seed-test-owner.js";
+import { CorePermission } from "../permissions";
+import { CoreSetting } from "../settings";
+import { seedTestOwner } from "./seed-test-owner";
 
 async function seedParticipantRole(
 	hackkit: TestHackkit,

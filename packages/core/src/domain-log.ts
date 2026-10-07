@@ -1,10 +1,10 @@
-import { HackKitError } from "./errors.js";
+import { HackKitError } from "./errors";
 import type {
 	DomainLogContext,
 	HackKitLogger,
 	LogLevel,
-} from "./adapters/logger.js";
-import { logDomain } from "./adapters/logger.js";
+} from "./adapters/logger";
+import { logDomain } from "./adapters/logger";
 
 export async function withDomainLog<T>(
 	logger: HackKitLogger,

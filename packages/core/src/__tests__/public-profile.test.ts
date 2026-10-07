@@ -2,7 +2,7 @@ import {
 	createTestHackkit,
 	createTestUser,
 	type TestHackkit,
-} from "../testing.js";
+} from "../testing";
 import { describe, expect, it } from "vitest";
 
 async function seedUser(hackkit: TestHackkit) {

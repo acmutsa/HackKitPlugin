@@ -9,7 +9,7 @@ import {
 	discordPlugin,
 	type DiscordApi,
 	type DiscordRoleSyncInput,
-} from "../index.js";
+} from "../index";
 
 async function createDiscordHackkit() {
 	const syncInputs: DiscordRoleSyncInput[] = [];
