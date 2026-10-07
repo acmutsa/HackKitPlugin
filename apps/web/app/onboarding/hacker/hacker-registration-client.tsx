@@ -32,7 +32,7 @@ export function HackerRegistrationClient({
 		<HackerRegistrationForm
 			currentUser={currentUser}
 			defaultValues={defaultValues}
-			localStorageKey={`web:onboarding:${currentUser.authId}:hacker`}
+			localStorageKey={`web:onboarding:${currentUser.id}:hacker`}
 			successRedirectTo={successRedirectTo}
 			schoolOptions={registrationOptions?.schools}
 			majorOptions={registrationOptions?.majors}

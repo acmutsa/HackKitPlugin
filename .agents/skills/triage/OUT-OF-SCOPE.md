@@ -20,7 +20,7 @@ One file per **concept**, not per issue. Multiple issues requesting the same thi
 
 The file should be written in a relaxed, readable style — more like a short design document than a database entry. Use paragraphs, code samples, and examples to make the reasoning clear and useful to someone encountering it for the first time.
 
-```markdown
+````markdown
 # Dark Mode
 
 This project does not support dark mode or user-facing theming.
@@ -30,9 +30,9 @@ This project does not support dark mode or user-facing theming.
 The rendering pipeline assumes a single color palette defined in
 `ThemeConfig`. Supporting multiple themes would require:
 
-- A theme context provider wrapping the entire component tree
-- Per-component theme-aware style resolution
-- A persistence layer for user theme preferences
+-   A theme context provider wrapping the entire component tree
+-   Per-component theme-aware style resolution
+-   A persistence layer for user theme preferences
 
 This is a significant architectural change that doesn't align with the
 project's focus on content authoring. Theming is a concern for downstream
@@ -41,16 +41,18 @@ consumers who embed or redistribute the output.
 ```ts
 // The current ThemeConfig interface is not designed for runtime switching:
 interface ThemeConfig {
-  colors: ColorPalette; // single palette, resolved at build time
-  fonts: FontStack;
+	colors: ColorPalette; // single palette, resolved at build time
+	fonts: FontStack;
 }
 ```
+````
 
 ## Prior requests
 
-- #42 — "Add dark mode support"
-- #87 — "Night theme for accessibility"
-- #134 — "Dark theme option"
+-   #42 — "Add dark mode support"
+-   #87 — "Night theme for accessibility"
+-   #134 — "Dark theme option"
+
 ```
 
 ### Naming the file
@@ -103,3 +105,4 @@ If the maintainer changes their mind about a previously rejected concept:
 - Delete the `.out-of-scope/` file
 - The skill does not need to reopen old issues — they're historical records
 - The new issue that triggered the reconsideration proceeds through normal triage
+```

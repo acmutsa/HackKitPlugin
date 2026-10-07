@@ -9,24 +9,40 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@a77ay/better-auth-mikro-orm": "0.1.1",
+    "@mikro-orm/core": "7.2.1",
+    "@mikro-orm/libsql": "7.2.1",
+    "@mikro-orm/migrations": "7.2.1",
+    "@mikro-orm/mysql": "7.2.1",
+    "@mikro-orm/postgresql": "7.2.1",
+    "@mikro-orm/sqlite": "7.2.1",
+    "better-auth": "1.7.6",
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "tsup": "^8.5.1",
-    "typescript": "5.5.3",
-    "vitest": "^3.2.4"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.4",
+    "tsup": "^8.5.1"
   },
   "license": "MIT",
   "private": true

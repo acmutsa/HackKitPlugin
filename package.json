@@ -6,16 +6,17 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "preinstall": "npx only-allow pnpm",
-    "schema:generate": "pnpm --filter=web schema:generate",
     "db:generate": "pnpm --filter=web db:generate",
     "db:migrate": "pnpm --filter=web db:migrate",
     "db:seed": "pnpm --filter=web db:seed",
     "db:reset": "pnpm --filter=web db:reset",
-    "db:studio": "pnpm --filter=web db:studio",
     "deploy-discord:dev": "pnpm --filter=bot deploy:dev",
     "deploy-discord:prod": "pnpm --filter=bot deploy:prod",
     "format": "prettier --write .",
-    "format-check": "prettier --check ."
+    "format-check": "prettier --check .",
+    "db:status": "pnpm --filter=web db:status",
+    "db:check": "pnpm --filter=web db:check",
+    "db:rollback": "pnpm --filter=web db:rollback"
   },
   "devDependencies": {
     "@turbo/gen": "^2.0.9",
@@ -28,7 +29,9 @@
   "packageManager": "pnpm@8.3.1+sha512.d264f6640bf4f09de7cfcc547568515bcf0613cf485a03e8ff16616fa69c4172b6f9a0a2925ee44fb060df565c9c9a8eaf061749e77af318cb77f6684a7051f3",
   "name": "hackkit",
   "dependencies": {
-    "@libsql/client": "^0.14.0",
     "prettier-plugin-tailwindcss": "^0.6.5"
+  },
+  "engines": {
+    "node": ">=22.17.0"
   }
 }

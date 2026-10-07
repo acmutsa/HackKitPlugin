@@ -1,3 +1,5 @@
+import { serialize } from "@mikro-orm/core";
+import { withOperationLock } from "../mikro/operation";
 import { HackKitError } from "../errors";
 import type { HackkitRuntimeContext } from "../hackkit-context";
 import { coreModels } from "../models";
@@ -5,7 +7,10 @@ import type { AuthId, Hacker } from "../types";
 import type { HackkitGroup } from "../groups";
 import { getEnabledGroups } from "../groups";
 
-export type GroupsApiContext = Pick<HackkitRuntimeContext, "db" | "now" | "groups">;
+export type GroupsApiContext = Pick<
+	HackkitRuntimeContext,
+	"em" | "now" | "groups"
+>;
 
 function countAssignments(
 	hackers: readonly Hacker[],
@@ -20,7 +25,7 @@ function countAssignments(
 }
 
 export function createGroupsApi(context: GroupsApiContext) {
-	const { db, now, groups } = context;
+	const { em, now, groups } = context;
 
 	async function assignGroupToHacker(
 		authId: AuthId,
@@ -30,15 +35,19 @@ export function createGroupsApi(context: GroupsApiContext) {
 		if (!group) {
 			throw new HackKitError("NOT_FOUND", "Group not found.");
 		}
-		const [updated] = await db.update(
-			coreModels.hacker,
-			{ authId },
-			{ group: group.id, updatedAt: now() },
-		);
+		const updated = await em.findOne(coreModels.hacker, { userId: authId });
+		if (updated) {
+			em.assign(
+				updated,
+				{ group: group.id, updatedAt: now() },
+				{ ignoreUndefined: true },
+			);
+			await em.flush();
+		}
 		if (!updated) {
 			throw new HackKitError("NOT_FOUND", "Hacker not found.");
 		}
-		return updated;
+		return serialize(updated);
 	}
 
 	return {
@@ -47,7 +56,9 @@ export function createGroupsApi(context: GroupsApiContext) {
 		},
 
 		async getGroupForAuthId(authId: AuthId): Promise<HackkitGroup | null> {
-			const hacker = await db.findOne(coreModels.hacker, { authId });
+			const hacker = await em.findOne(coreModels.hacker, {
+				userId: authId,
+			});
 			if (!hacker?.group) return null;
 			return groups.find((group) => group.id === hacker.group) ?? null;
 		},
@@ -56,30 +67,41 @@ export function createGroupsApi(context: GroupsApiContext) {
 			authId: AuthId;
 			groupId: string;
 		}): Promise<Hacker> {
-			return assignGroupToHacker(input.authId, input.groupId);
+			return withOperationLock(em, "groups", async () => {
+				return assignGroupToHacker(input.authId, input.groupId);
+			});
 		},
 
 		async assignNextGroup(authId: AuthId): Promise<Hacker | null> {
-			const hacker = await db.findOne(coreModels.hacker, { authId });
-			if (!hacker) return null;
-			if (hacker.group) return hacker;
+			return withOperationLock(em, "groups", async () => {
+				const hacker = await em.findOne(coreModels.hacker, {
+					userId: authId,
+				});
+				if (!hacker) return null;
+				if (hacker.group) return serialize(hacker);
 
-			const enabledGroups = getEnabledGroups(groups);
-			if (enabledGroups.length === 0) return hacker;
+				const enabledGroups = getEnabledGroups(groups);
+				if (enabledGroups.length === 0) return serialize(hacker);
 
-			const hackers = await db.findMany(coreModels.hacker);
-			const counts = countAssignments(hackers, enabledGroups);
-			const [nextGroup] = [...enabledGroups].sort((left, right) => {
-				const countDelta =
-					(counts.get(left.id) ?? 0) - (counts.get(right.id) ?? 0);
-				if (countDelta !== 0) return countDelta;
-				return (
-					enabledGroups.findIndex((group) => group.id === left.id) -
-					enabledGroups.findIndex((group) => group.id === right.id)
-				);
+				const hackers = await em.find(coreModels.hacker, {});
+				const counts = countAssignments(hackers, enabledGroups);
+				const [nextGroup] = [...enabledGroups].sort((left, right) => {
+					const countDelta =
+						(counts.get(left.id) ?? 0) -
+						(counts.get(right.id) ?? 0);
+					if (countDelta !== 0) return countDelta;
+					return (
+						enabledGroups.findIndex(
+							(group) => group.id === left.id,
+						) -
+						enabledGroups.findIndex(
+							(group) => group.id === right.id,
+						)
+					);
+				});
+				if (!nextGroup) return serialize(hacker);
+				return assignGroupToHacker(authId, nextGroup.id);
 			});
-			if (!nextGroup) return hacker;
-			return assignGroupToHacker(authId, nextGroup.id);
 		},
 	};
 }

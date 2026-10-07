@@ -1,6 +1,6 @@
 "use client";
 
-import type { Event, EventTypes } from "@hackkit/core";
+import type { Event, EventTypes } from "@hackkit/core/client";
 import { cn } from "../lib/cn";
 import { useHackKitNavigation } from "../provider";
 
@@ -63,7 +63,9 @@ export function EventAdminList({
 										Edit
 									</Link>
 									<Link
-										href={routes.admin.eventScanner(event.id)}
+										href={routes.admin.eventScanner(
+											event.id,
+										)}
 										className="text-primary hover:underline"
 									>
 										Scanner

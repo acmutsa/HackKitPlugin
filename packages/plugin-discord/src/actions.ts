@@ -7,11 +7,13 @@ export type ConfirmDiscordVerificationInput = {
 };
 
 export function createDiscordActions(runtime: HackkitRuntime) {
-	const discord = runtime.hackkit.plugins.discord as unknown as DiscordApi;
-
 	return {
-		async confirmDiscordVerification(values: ConfirmDiscordVerificationInput) {
+		async confirmDiscordVerification(
+			values: ConfirmDiscordVerificationInput,
+		) {
 			try {
+				const discord = runtime.hackkit.plugins
+					.discord as unknown as DiscordApi;
 				const authId = await runtime.getAuthId();
 				const member = await discord.confirmVerification({
 					authId,
@@ -25,6 +27,8 @@ export function createDiscordActions(runtime: HackkitRuntime) {
 
 		async syncDiscordMemberRoles() {
 			try {
+				const discord = runtime.hackkit.plugins
+					.discord as unknown as DiscordApi;
 				const authId = await runtime.getAuthId();
 				const attempt = await discord.syncMemberRoles({ authId });
 				return actionSuccess(attempt);

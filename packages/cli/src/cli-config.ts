@@ -9,9 +9,7 @@ export async function loadConfig(
 	const cwd = options.cwd ?? process.cwd();
 	const nodeEnv = process.env.NODE_ENV ?? "development";
 	const localFiles =
-		nodeEnv === "test"
-			? []
-			: [`.env.${nodeEnv}.local`, ".env.local"];
+		nodeEnv === "test" ? [] : [`.env.${nodeEnv}.local`, ".env.local"];
 	loadEnv({
 		path: [
 			...localFiles.map((file) => join(cwd, file)),

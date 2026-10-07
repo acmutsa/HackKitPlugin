@@ -5,11 +5,17 @@ import type { User } from "@hackkit/core";
 import { EventPass } from "@hackkit/ui";
 import * as React from "react";
 
-export function EventPassShell({ user, eventPassQrTtlMs }: { user: User; eventPassQrTtlMs: number }) {
+export function EventPassShell({
+	user,
+	eventPassQrTtlMs,
+}: {
+	user: User;
+	eventPassQrTtlMs: number;
+}) {
 	const [issuedAt, setIssuedAt] = React.useState(() => new Date());
 	const qrPayload = React.useMemo(
-		() => createEventPassQrPayload(user.authId, issuedAt),
-		[user.authId, issuedAt],
+		() => createEventPassQrPayload(user.id, issuedAt),
+		[user.id, issuedAt],
 	);
 
 	React.useEffect(() => {

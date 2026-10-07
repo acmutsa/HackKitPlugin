@@ -1,4 +1,4 @@
-import type { PublicUserProfile } from "@hackkit/core";
+import type { PublicUserProfile } from "@hackkit/core/client";
 import { cn } from "../lib/cn";
 import {
 	Card,
@@ -17,11 +17,16 @@ function formatUrlLabel(url: string) {
 	return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
-export function PublicProfileCard({ profile, className }: PublicProfileCardProps) {
+export function PublicProfileCard({
+	profile,
+	className,
+}: PublicProfileCardProps) {
 	const { user, hacker, role } = profile;
 	const links = [
 		hacker?.githubUrl ? { label: "GitHub", href: hacker.githubUrl } : null,
-		hacker?.linkedInUrl ? { label: "LinkedIn", href: hacker.linkedInUrl } : null,
+		hacker?.linkedInUrl
+			? { label: "LinkedIn", href: hacker.linkedInUrl }
+			: null,
 		hacker?.personalWebsiteUrl
 			? { label: "Website", href: hacker.personalWebsiteUrl }
 			: null,
@@ -39,16 +44,15 @@ export function PublicProfileCard({ profile, className }: PublicProfileCardProps
 					/>
 				) : (
 					<div className="grid h-24 w-24 place-items-center rounded-full bg-muted text-2xl font-semibold">
-						{user.firstName[0]}
-						{user.lastName[0]}
+						{user.name.slice(0, 2).toUpperCase()}
 					</div>
 				)}
 				<div>
-					<CardTitle className="text-3xl">
-						{user.firstName} {user.lastName}
-					</CardTitle>
+					<CardTitle className="text-3xl">{user.name}</CardTitle>
 					<CardDescription>
-						{user.hackTag ? `@${user.hackTag}` : "HackKit participant"}
+						{user.hackTag
+							? `@${user.hackTag}`
+							: "HackKit participant"}
 						{user.pronouns ? `, ${user.pronouns}` : ""}
 						{role ? `, ${role.name}` : ""}
 					</CardDescription>

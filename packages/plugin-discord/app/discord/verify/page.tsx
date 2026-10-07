@@ -15,14 +15,15 @@ export default async function DiscordVerifyPage({
 	if (!code || Array.isArray(code)) notFound();
 
 	const runtime = await getHackkitRuntime();
+	if (!runtime.hackkit.isPluginEnabled("discord")) notFound();
 	const currentUser = await runtime.getCurrentUser();
 	const [hacker, discord] = await Promise.all([
-		runtime.hackkit.hackers.getHacker(currentUser.authId),
+		runtime.hackkit.hackers.getHacker(currentUser.id),
 		Promise.resolve(runtime.hackkit.plugins.discord as DiscordApi),
 	]);
 	if (!currentUser.isApproved || !hacker) redirect("/i/approval");
 
-	const existingMember = await discord.getMember(currentUser.authId);
+	const existingMember = await discord.getMember(currentUser.id);
 	if (existingMember) redirect("/discord");
 
 	const verification = await discord.getVerification(code);
@@ -31,9 +32,12 @@ export default async function DiscordVerifyPage({
 		return (
 			<main className="flex min-h-screen items-center justify-center px-6">
 				<div className="max-w-md rounded-lg border bg-card p-6 text-center shadow-sm">
-					<h1 className="text-xl font-semibold">Verification expired</h1>
+					<h1 className="text-xl font-semibold">
+						Verification expired
+					</h1>
 					<p className="mt-2 text-sm text-muted-foreground">
-						Use the Discord verification button again to generate a new link.
+						Use the Discord verification button again to generate a
+						new link.
 					</p>
 				</div>
 			</main>

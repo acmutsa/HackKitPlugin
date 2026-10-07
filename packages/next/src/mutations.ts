@@ -52,10 +52,11 @@ export type CreateHackKitMutationsOptions = {
 	hackkit: HackKit;
 	getAuthId: () => Promise<string>;
 	getSettingValue: (key: SettingKey) => Promise<SettingValue>;
-	invalidateSettingsCache?: () => void;
 };
 
-export function createHackKitMutations(runtime: HackkitRuntime): HackKitUIActions;
+export function createHackKitMutations(
+	runtime: HackkitRuntime,
+): HackKitUIActions;
 export function createHackKitMutations(
 	options: CreateHackKitMutationsOptions,
 ): HackKitUIActions;
@@ -67,15 +68,20 @@ export function createHackKitMutations(
 				hackkit: optionsOrRuntime.hackkit,
 				getAuthId: optionsOrRuntime.getAuthId,
 				getSettingValue: optionsOrRuntime.getSettingValue,
-				invalidateSettingsCache: optionsOrRuntime.invalidateSettingsCache,
 			}
 		: optionsOrRuntime;
-	const { hackkit, getAuthId, getSettingValue, invalidateSettingsCache } = options;
+	const { hackkit, getAuthId, getSettingValue } = options;
 	const now = () => new Date();
 
 	async function resolveTargetFromQr(rawQr: string) {
-		const eventPassQrTtlMs = await getSettingValue(CoreSetting.EventPassQrTtlMs);
-		return resolveEventPassTargetAuthId(rawQr, now(), Number(eventPassQrTtlMs));
+		const eventPassQrTtlMs = await getSettingValue(
+			CoreSetting.EventPassQrTtlMs,
+		);
+		return resolveEventPassTargetAuthId(
+			rawQr,
+			now(),
+			Number(eventPassQrTtlMs),
+		);
 	}
 
 	return {
@@ -120,14 +126,17 @@ export function createHackKitMutations(
 
 		async registerHacker(values: HackerRegistrationFormValues) {
 			try {
-				const authId = await getAuthId();
+				const userId = await getAuthId();
 				await hackkit.hackers.registerHacker({
 					...values,
-					authId,
+					userId,
 				});
 				return actionSuccess();
 			} catch (error) {
-				return actionFailure(error, "Could not complete hacker registration.");
+				return actionFailure(
+					error,
+					"Could not complete hacker registration.",
+				);
 			}
 		},
 
@@ -200,7 +209,10 @@ export function createHackKitMutations(
 
 				return actionSuccess({ user, priorScans });
 			} catch (error) {
-				return actionFailure(error, "Could not read Event Pass QR code.");
+				return actionFailure(
+					error,
+					"Could not read Event Pass QR code.",
+				);
 			}
 		},
 
@@ -246,8 +258,10 @@ export function createHackKitMutations(
 		async setSettings(values) {
 			try {
 				const actorAuthId = await getAuthId();
-				const settings = await hackkit.settings.setMany({ actorAuthId, values });
-				invalidateSettingsCache?.();
+				const settings = await hackkit.settings.setMany({
+					actorAuthId,
+					values,
+				});
 				return actionSuccess(settings);
 			} catch (error) {
 				return actionFailure(error, "Could not save settings.");
@@ -257,8 +271,10 @@ export function createHackKitMutations(
 		async resetSetting(key) {
 			try {
 				const actorAuthId = await getAuthId();
-				const setting = await hackkit.settings.reset({ actorAuthId, key });
-				invalidateSettingsCache?.();
+				const setting = await hackkit.settings.reset({
+					actorAuthId,
+					key,
+				});
 				return actionSuccess(setting);
 			} catch (error) {
 				return actionFailure(error, "Could not reset setting.");
@@ -291,7 +307,10 @@ export function createHackKitMutations(
 		async cancelRsvp(targetAuthId: string) {
 			try {
 				const actorAuthId = await getAuthId();
-				const rsvp = await hackkit.rsvp.cancel({ actorAuthId, targetAuthId });
+				const rsvp = await hackkit.rsvp.cancel({
+					actorAuthId,
+					targetAuthId,
+				});
 				return actionSuccess(rsvp);
 			} catch (error) {
 				return actionFailure(error, "Could not cancel RSVP.");
@@ -302,8 +321,8 @@ export function createHackKitMutations(
 			try {
 				const actorAuthId = await getAuthId();
 				const rsvp = await hackkit.rsvp.setStatus({
-					actorAuthId,
 					...input,
+					actorAuthId,
 				});
 				return actionSuccess(rsvp);
 			} catch (error) {
@@ -314,7 +333,10 @@ export function createHackKitMutations(
 		async promoteRsvp(targetAuthId?: string) {
 			try {
 				const actorAuthId = await getAuthId();
-				const rsvp = await hackkit.rsvp.promote({ actorAuthId, targetAuthId });
+				const rsvp = await hackkit.rsvp.promote({
+					actorAuthId,
+					targetAuthId,
+				});
 				return actionSuccess(rsvp);
 			} catch (error) {
 				return actionFailure(error, "Could not promote RSVP.");
@@ -377,8 +399,8 @@ export function createHackKitMutations(
 			try {
 				const actorAuthId = await getAuthId();
 				const role = await hackkit.roles.createRole({
-					actorAuthId,
 					...input,
+					actorAuthId,
 				});
 				return actionSuccess(role);
 			} catch (error) {
@@ -390,8 +412,8 @@ export function createHackKitMutations(
 			try {
 				const actorAuthId = await getAuthId();
 				const role = await hackkit.roles.updateRole({
-					actorAuthId,
 					...input,
+					actorAuthId,
 				});
 				return actionSuccess(role);
 			} catch (error) {

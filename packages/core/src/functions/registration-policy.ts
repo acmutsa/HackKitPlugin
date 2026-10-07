@@ -1,11 +1,11 @@
-import type { DatabaseAdapter } from "../database";
+import type { EntityManager } from "@mikro-orm/core";
 import { HackKitError } from "../errors";
 import { coreModels } from "../models";
 import { CoreSetting, type SettingValue } from "../settings";
 import type { AuthId, Hacker } from "../types";
 
 type RegistrationPolicyContext = {
-	db: DatabaseAdapter;
+	em: EntityManager;
 	getSettingValue: (key: CoreSetting) => Promise<SettingValue>;
 };
 
@@ -20,40 +20,52 @@ function isLimitReached(limit: number, count: number): boolean {
 export function createCompetitorRegistrationPolicy(
 	context: RegistrationPolicyContext,
 ) {
-	const { db, getSettingValue } = context;
+	const { em, getSettingValue } = context;
 
 	async function countHackers(where?: Partial<Hacker>): Promise<number> {
-		return (await db.findMany(coreModels.hacker, where ? { where } : undefined)).length;
+		return await em.count(coreModels.hacker, where ?? {});
 	}
 
 	async function countApprovedHackers(): Promise<number> {
-		const approvedUsers = await db.findMany(coreModels.user, {
-			where: { isApproved: true },
+		const approvedUsers = await em.find(coreModels.user, {
+			isApproved: true,
 		});
-		const approvedAuthIds = new Set(approvedUsers.map((user) => user.authId));
-		return (await db.findMany(coreModels.hacker)).filter((hacker) =>
-			approvedAuthIds.has(hacker.authId),
+		const approvedUserIds = new Set(approvedUsers.map((user) => user.id));
+		return (await em.find(coreModels.hacker, {})).filter((hacker) =>
+			approvedUserIds.has(hacker.userId),
 		).length;
 	}
 
 	async function assertCapacityAvailable(): Promise<void> {
-		const hackathonCapacity = await getSettingValue(CoreSetting.HackathonCapacity);
+		const hackathonCapacity = await getSettingValue(
+			CoreSetting.HackathonCapacity,
+		);
 		if (
 			typeof hackathonCapacity === "number" &&
 			isLimitReached(hackathonCapacity, await countApprovedHackers())
 		) {
-			throw new HackKitError("INVALID_OPERATION", "Hackathon capacity has been reached.");
+			throw new HackKitError(
+				"INVALID_OPERATION",
+				"Hackathon capacity has been reached.",
+			);
 		}
 	}
 
 	return {
 		async assertCanRegisterNewHacker(): Promise<RegisterNewHackerPolicyResult> {
-			const registrationOpen = await getSettingValue(CoreSetting.RegistrationOpen);
+			const registrationOpen = await getSettingValue(
+				CoreSetting.RegistrationOpen,
+			);
 			if (!registrationOpen) {
-				throw new HackKitError("INVALID_OPERATION", "Hacker registration is closed.");
+				throw new HackKitError(
+					"INVALID_OPERATION",
+					"Hacker registration is closed.",
+				);
 			}
 
-			const maximumRegistrations = await getSettingValue(CoreSetting.MaximumRegistrations);
+			const maximumRegistrations = await getSettingValue(
+				CoreSetting.MaximumRegistrations,
+			);
 			if (
 				typeof maximumRegistrations === "number" &&
 				isLimitReached(maximumRegistrations, await countHackers())
@@ -75,7 +87,9 @@ export function createCompetitorRegistrationPolicy(
 		},
 
 		async assertCanApproveUser(authId: AuthId): Promise<void> {
-			const hacker = await db.findOne(coreModels.hacker, { authId });
+			const hacker = await em.findOne(coreModels.hacker, {
+				userId: authId,
+			});
 			if (!hacker) return;
 			await assertCapacityAvailable();
 		},

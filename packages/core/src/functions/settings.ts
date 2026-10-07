@@ -1,5 +1,6 @@
+import { withOperationLock } from "../mikro/operation";
 import type { HackKitLogger } from "../adapters/logger";
-import type { DatabaseAdapter } from "../database";
+import type { EntityManager } from "@mikro-orm/core";
 import { HackKitError } from "../errors";
 import { coreModels } from "../models";
 import { CorePermission } from "../permissions";
@@ -14,7 +15,7 @@ import { validateSettingValue } from "../settings";
 import type { AuthId, PermissionKey } from "../types";
 
 type SettingsApiContext = {
-	db: DatabaseAdapter;
+	em: EntityManager;
 	now: () => Date;
 	logger: HackKitLogger;
 	settings: readonly HackathonSettingDefinition[];
@@ -24,11 +25,7 @@ type SettingsApiContext = {
 	) => Promise<unknown>;
 };
 
-type SettingRow = typeof coreModels.setting extends infer TModel
-	? TModel extends import("../database").Model
-		? import("../database").InferSelect<TModel>
-		: never
-	: never;
+type SettingRow = import("../types").HackathonSetting;
 
 export type SetHackathonSettingInput = {
 	actorAuthId: AuthId;
@@ -51,8 +48,12 @@ export type ResetManyHackathonSettingsInput = {
 	keys: readonly SettingKey[];
 };
 
-function createDefinitionMap(definitions: readonly HackathonSettingDefinition[]) {
-	return new Map(definitions.map((definition) => [definition.key, definition]));
+function createDefinitionMap(
+	definitions: readonly HackathonSettingDefinition[],
+) {
+	return new Map(
+		definitions.map((definition) => [definition.key, definition]),
+	);
 }
 
 function getDefinition(
@@ -61,7 +62,10 @@ function getDefinition(
 ): HackathonSettingDefinition {
 	const definition = definitions.get(key);
 	if (!definition) {
-		throw new HackKitError("NOT_FOUND", `Hackathon setting '${key}' is not registered.`);
+		throw new HackKitError(
+			"NOT_FOUND",
+			`Hackathon setting '${key}' is not registered.`,
+		);
 	}
 	return definition;
 }
@@ -92,11 +96,14 @@ export function createSettingsApi(context: SettingsApiContext) {
 	const definitions = createDefinitionMap(context.settings);
 
 	async function requireManage(actorAuthId: AuthId) {
-		await context.requirePermission(actorAuthId, CorePermission.SettingsManage);
+		await context.requirePermission(
+			actorAuthId,
+			CorePermission.SettingsManage,
+		);
 	}
 
 	async function getRow(key: SettingKey): Promise<SettingRow | null> {
-		return context.db.findOne(coreModels.setting, { key });
+		return context.em.findOne(coreModels.setting, { key });
 	}
 
 	async function getValue(key: SettingKey): Promise<SettingValue> {
@@ -112,20 +119,34 @@ export function createSettingsApi(context: SettingsApiContext) {
 		const timestamp = context.now();
 		const existing = await getRow(key);
 		if (existing) {
-			await context.db.update(
-				coreModels.setting,
-				{ key },
-				{ value, updatedAt: timestamp, updatedByAuthId: actorAuthId },
-			);
+			{
+				const updatedRows = await context.em.find(coreModels.setting, {
+					key,
+				});
+				for (const row of updatedRows)
+					context.em.assign(
+						row,
+						{
+							value,
+							updatedAt: timestamp,
+							updatedByAuthId: actorAuthId,
+						},
+						{ ignoreUndefined: true },
+					);
+				await context.em.flush();
+			}
 		} else {
-			await context.db.insert(coreModels.setting, {
-				key,
-				value,
-				createdAt: timestamp,
-				createdByAuthId: actorAuthId,
-				updatedAt: timestamp,
-				updatedByAuthId: actorAuthId,
-			});
+			{
+				context.em.create(coreModels.setting, {
+					key,
+					value,
+					createdAt: timestamp,
+					createdByAuthId: actorAuthId,
+					updatedAt: timestamp,
+					updatedByAuthId: actorAuthId,
+				});
+				await context.em.flush();
+			}
 		}
 		context.logger.log("info", "hackathon setting changed", {
 			action: "settings.set",
@@ -135,8 +156,11 @@ export function createSettingsApi(context: SettingsApiContext) {
 		});
 	}
 
-	async function resetSetting(actorAuthId: AuthId, key: SettingKey): Promise<void> {
-		await context.db.delete(coreModels.setting, { key });
+	async function resetSetting(
+		actorAuthId: AuthId,
+		key: SettingKey,
+	): Promise<void> {
+		await context.em.nativeDelete(coreModels.setting, { key });
 		context.logger.log("info", "hackathon setting reset", {
 			action: "settings.reset",
 			actorAuthId,
@@ -147,27 +171,39 @@ export function createSettingsApi(context: SettingsApiContext) {
 
 	return {
 		getValue: getValue as {
-			<TKey extends keyof CoreSettingValueMap>(key: TKey): Promise<CoreSettingValueMap[TKey]>;
+			<TKey extends keyof CoreSettingValueMap>(
+				key: TKey,
+			): Promise<CoreSettingValueMap[TKey]>;
 			(key: SettingKey): Promise<SettingValue>;
 		},
 
-		async get(input: { actorAuthId: AuthId; key: SettingKey }): Promise<ResolvedHackathonSetting> {
+		async get(input: {
+			actorAuthId: AuthId;
+			key: SettingKey;
+		}): Promise<ResolvedHackathonSetting> {
 			await requireManage(input.actorAuthId);
 			const definition = getDefinition(definitions, input.key);
 			return resolveSetting(definition, await getRow(input.key));
 		},
 
-		async list(input: { actorAuthId: AuthId }): Promise<ResolvedHackathonSetting[]> {
+		async list(input: {
+			actorAuthId: AuthId;
+		}): Promise<ResolvedHackathonSetting[]> {
 			await requireManage(input.actorAuthId);
 			const rows = new Map(
-				(await context.db.findMany(coreModels.setting)).map((row) => [row.key, row]),
+				(await context.em.find(coreModels.setting, {})).map((row) => [
+					row.key,
+					row,
+				]),
 			);
 			return context.settings.map((definition) =>
 				resolveSetting(definition, rows.get(definition.key) ?? null),
 			);
 		},
 
-		async set(input: SetHackathonSettingInput): Promise<ResolvedHackathonSetting> {
+		async set(
+			input: SetHackathonSettingInput,
+		): Promise<ResolvedHackathonSetting> {
 			const [setting] = await this.setMany({
 				actorAuthId: input.actorAuthId,
 				values: [{ key: input.key, value: input.value }],
@@ -175,23 +211,37 @@ export function createSettingsApi(context: SettingsApiContext) {
 			return setting;
 		},
 
-		async setMany(input: SetManyHackathonSettingsInput): Promise<ResolvedHackathonSetting[]> {
-			await requireManage(input.actorAuthId);
-			const parsed = input.values.map(({ key, value }) => {
-				const definition = getDefinition(definitions, key);
-				return { key, definition, value: validateSettingValue(definition, value) };
+		async setMany(
+			input: SetManyHackathonSettingsInput,
+		): Promise<ResolvedHackathonSetting[]> {
+			return withOperationLock(context.em, "settings", async () => {
+				await requireManage(input.actorAuthId);
+				const parsed = input.values.map(({ key, value }) => {
+					const definition = getDefinition(definitions, key);
+					return {
+						key,
+						definition,
+						value: validateSettingValue(definition, value),
+					};
+				});
+				for (const update of parsed) {
+					await writeSetting(
+						input.actorAuthId,
+						update.key,
+						update.value,
+					);
+				}
+				return Promise.all(
+					parsed.map(async ({ key, definition }) =>
+						resolveSetting(definition, await getRow(key)),
+					),
+				);
 			});
-			for (const update of parsed) {
-				await writeSetting(input.actorAuthId, update.key, update.value);
-			}
-			return Promise.all(
-				parsed.map(async ({ key, definition }) =>
-					resolveSetting(definition, await getRow(key)),
-				),
-			);
 		},
 
-		async reset(input: ResetHackathonSettingInput): Promise<ResolvedHackathonSetting> {
+		async reset(
+			input: ResetHackathonSettingInput,
+		): Promise<ResolvedHackathonSetting> {
 			const [setting] = await this.resetMany({
 				actorAuthId: input.actorAuthId,
 				keys: [input.key],
@@ -199,13 +249,21 @@ export function createSettingsApi(context: SettingsApiContext) {
 			return setting;
 		},
 
-		async resetMany(input: ResetManyHackathonSettingsInput): Promise<ResolvedHackathonSetting[]> {
-			await requireManage(input.actorAuthId);
-			const definitionsToReset = input.keys.map((key) => getDefinition(definitions, key));
-			for (const definition of definitionsToReset) {
-				await resetSetting(input.actorAuthId, definition.key);
-			}
-			return definitionsToReset.map((definition) => resolveSetting(definition, null));
+		async resetMany(
+			input: ResetManyHackathonSettingsInput,
+		): Promise<ResolvedHackathonSetting[]> {
+			return withOperationLock(context.em, "settings", async () => {
+				await requireManage(input.actorAuthId);
+				const definitionsToReset = input.keys.map((key) =>
+					getDefinition(definitions, key),
+				);
+				for (const definition of definitionsToReset) {
+					await resetSetting(input.actorAuthId, definition.key);
+				}
+				return definitionsToReset.map((definition) =>
+					resolveSetting(definition, null),
+				);
+			});
 		},
 	};
 }

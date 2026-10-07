@@ -1,41 +1,28 @@
 import {
-	createHackkit,
-	type AuthAdapter,
-	type DatabaseAdapterInput,
+	initializeHackkit,
+	HackKitError,
 	type HackKit,
-	type HackKitPlugin,
+	type HackKitRuntime as CoreRuntime,
 	type SettingKey,
 	type SettingValue,
 	type User,
 } from "@hackkit/core";
 import { resolveHackkitConfig, type HackkitConfig } from "@hackkit/config";
-import type { EventTypesInput, UserDataOptionsInput } from "@hackkit/core";
-import type { GroupsInput } from "@hackkit/core";
-import type { HackKitLoggerOptions } from "@hackkit/core";
 import type { HackKitUIActions } from "@hackkit/ui";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { nextCookies } from "better-auth/next-js";
+import { cache } from "react";
 import { createHackKitMutations } from "./mutations";
 import { createPageGuards, type PageGuards } from "./page-guards";
 
 export type CreateHackkitRuntimeOptions = {
-	database: DatabaseAdapterInput;
-	auth: AuthAdapter;
-	plugins?: readonly HackKitPlugin[];
-	userDataOptions?: UserDataOptionsInput;
-	eventTypes?: EventTypesInput;
-	groups?: GroupsInput;
-	logger?: HackKitLoggerOptions;
-	defaultCompetitorRoleId?: string;
-	/**
-	 * App-specific work after the runtime resolves the current user.
-	 * Runs for both `runtime.getCurrentUser` and the runtime-owned page guards.
-	 */
+	core: CoreRuntime;
 	afterCurrentUser?: (user: User, hackkit: HackKit) => Promise<void>;
 };
 
 export type CreateHackkitRuntimeFromConfigOptions = {
 	config: HackkitConfig;
-	auth: AuthAdapter;
 	afterCurrentUser?: CreateHackkitRuntimeOptions["afterCurrentUser"];
 };
 
@@ -43,72 +30,50 @@ export type HackkitRuntime = {
 	hackkit: HackKit;
 	mutations: HackKitUIActions;
 	pageGuards: PageGuards;
-	getAuthId: () => Promise<string>;
-	getCurrentUser: () => Promise<User>;
-	getSettingValue: (key: SettingKey) => Promise<SettingValue>;
-	invalidateSettingsCache: () => void;
+	getAuthId(): Promise<string>;
+	getCurrentUser(): Promise<User>;
+	getSettingValue(key: SettingKey): Promise<SettingValue>;
 };
 
+export type HackkitRuntimeHost = {
+	core: Promise<CoreRuntime>;
+	getRuntime(): Promise<HackkitRuntime>;
+};
+
+/** Bind domain operations to this request's session and fresh EntityManager. */
 export async function createHackkitRuntime(
 	options: CreateHackkitRuntimeOptions,
 ): Promise<HackkitRuntime> {
-	const hackkit = createHackkit({
-		database: options.database,
-		plugins: options.plugins,
-		userDataOptions: options.userDataOptions,
-		eventTypes: options.eventTypes,
-		groups: options.groups,
-		logger: options.logger,
-		defaultCompetitorRoleId: options.defaultCompetitorRoleId,
+	const session = await options.core.auth.api.getSession({
+		headers: await headers(),
 	});
-
-	async function requireSession() {
-		const session = await options.auth.getSession();
-		if (!session) redirect("/sign-in");
-		return session;
-	}
+	const { hackkit } = options.core.createScope(session?.user.id);
 
 	async function getAuthId(): Promise<string> {
-		return options.auth.toAuthId(await requireSession());
+		if (!session) redirect("/sign-in");
+		return session.user.id;
 	}
 
 	async function getCurrentUser(): Promise<User> {
-		const session = await requireSession();
-		const identity = options.auth.getIdentity(session);
-		const user = await hackkit.users.ensureUser({
-			authId: options.auth.toAuthId(session),
-			...identity,
-		});
-		if (options.afterCurrentUser) {
-			await options.afterCurrentUser(user, hackkit);
-		}
+		const user = await hackkit.users.getUser(await getAuthId());
+		if (!user)
+			throw new HackKitError("NOT_FOUND", "User profile not found.");
+		await options.afterCurrentUser?.(user, hackkit);
 		return user;
 	}
 
-	const settingsCache = new Map<SettingKey, Promise<SettingValue>>();
-	function invalidateSettingsCache() {
-		settingsCache.clear();
+	function getSettingValue(key: SettingKey) {
+		return hackkit.settings.getValue(key);
 	}
-	function getSettingValue(key: SettingKey): Promise<SettingValue> {
-		const cached = settingsCache.get(key);
-		if (cached) return cached;
-		const value = hackkit.settings.getValue(key);
-		settingsCache.set(key, value);
-		return value;
-	}
-
 	const mutations = createHackKitMutations({
 		hackkit,
 		getAuthId,
 		getSettingValue,
-		invalidateSettingsCache,
 	});
-
 	const pageGuards = createPageGuards(hackkit, getAuthId, {
 		getCurrentUser,
 		getSettingValue,
 	});
-
 	return {
 		hackkit,
 		mutations,
@@ -116,38 +81,43 @@ export async function createHackkitRuntime(
 		getAuthId,
 		getCurrentUser,
 		getSettingValue,
-		invalidateSettingsCache,
 	};
 }
 
+/** Initialize shared resources once; React caches only within a server render. */
 export function createHackkitRuntimeFromConfig(
 	options: CreateHackkitRuntimeFromConfigOptions,
-): Promise<HackkitRuntime> {
+): HackkitRuntimeHost {
 	const config = resolveHackkitConfig(options.config);
-	return createHackkitRuntime({
-		database: config.database,
-		auth: options.auth,
-		plugins: config.plugins,
-		userDataOptions: config.userDataOptions,
-		eventTypes: config.eventTypes,
-		groups: config.groups,
-		logger: config.logger,
-		defaultCompetitorRoleId: config.defaultCompetitorRoleId,
-		afterCurrentUser: options.afterCurrentUser,
+	const core = initializeHackkit({
+		...config,
+		auth: {
+			...config.auth,
+			plugins: [...(config.auth.plugins ?? []), nextCookies()],
+		},
 	});
+	const getRuntime = cache(async () =>
+		createHackkitRuntime({
+			core: await core,
+			afterCurrentUser: options.afterCurrentUser,
+		}),
+	);
+	return { core, getRuntime };
 }
 
-let runtimePromise: Promise<HackkitRuntime> | null = null;
+let runtimeProvider: (() => Promise<HackkitRuntime>) | undefined;
 
-export function setHackkitRuntime(promise: Promise<HackkitRuntime>): void {
-	runtimePromise = promise;
+/** Register a factory, never a request's runtime or EntityManager. */
+export function setHackkitRuntime(
+	provider: () => Promise<HackkitRuntime>,
+): void {
+	runtimeProvider = provider;
 }
 
 export async function getHackkitRuntime(): Promise<HackkitRuntime> {
-	if (!runtimePromise) {
+	if (!runtimeProvider)
 		throw new Error(
 			"HackKit runtime is not initialized. Call setHackkitRuntime() from your app runtime module.",
 		);
-	}
-	return runtimePromise;
+	return runtimeProvider();
 }

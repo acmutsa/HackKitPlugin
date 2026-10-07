@@ -3,6 +3,7 @@ import { CorePermission } from "@hackkit/core";
 import { getAuthSession } from "@/lib/auth";
 import { getCurrentUser, getRuntime } from "@/lib/runtime";
 import { publicSiteConfig } from "@/lib/public-site-config";
+import { getEnabledSiteLinks } from "@/lib/plugin-navigation";
 import { ProfileMenu } from "./profile-menu";
 
 async function getIsAdmin(authId: string) {
@@ -16,7 +17,7 @@ async function getIsAdmin(authId: string) {
 export async function AppBar() {
 	const session = await getAuthSession();
 	const currentUser = session ? await getCurrentUser() : null;
-	const isAdmin = currentUser ? await getIsAdmin(currentUser.authId) : false;
+	const isAdmin = currentUser ? await getIsAdmin(currentUser.id) : false;
 
 	return (
 		<header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -26,10 +27,10 @@ export async function AppBar() {
 				</Link>
 				{session ? (
 					<nav className="flex flex-wrap items-center justify-end gap-4 text-sm">
-						{[
+						{getEnabledSiteLinks([
 							...publicSiteConfig.nav.public,
 							...publicSiteConfig.nav.participant,
-						].map((item) => (
+						]).map((item) => (
 							<Link
 								key={item.href}
 								href={item.href}
@@ -41,7 +42,10 @@ export async function AppBar() {
 						<ProfileMenu
 							name={session.user.name}
 							email={session.user.email}
-							image={currentUser?.profilePhotoUrl ?? session.user.image}
+							image={
+								currentUser?.profilePhotoUrl ??
+								session.user.image
+							}
 							isAdmin={isAdmin}
 						/>
 					</nav>
@@ -56,7 +60,10 @@ export async function AppBar() {
 								{item.label}
 							</Link>
 						))}
-						<Link href="/sign-in" className="text-muted-foreground hover:text-foreground">
+						<Link
+							href="/sign-in"
+							className="text-muted-foreground hover:text-foreground"
+						>
 							Sign in
 						</Link>
 						<Link

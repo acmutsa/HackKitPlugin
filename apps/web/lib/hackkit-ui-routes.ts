@@ -1,7 +1,4 @@
-import {
-	DEFAULT_HACKKIT_UI_ROUTES,
-	type HackKitUIRoutes,
-} from "@hackkit/ui";
+import { DEFAULT_HACKKIT_UI_ROUTES, type HackKitUIRoutes } from "@hackkit/ui";
 
 /**
  * Single place for HackKit UI route policy in this HackKit Web App.

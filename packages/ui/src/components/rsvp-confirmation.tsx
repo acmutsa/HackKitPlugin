@@ -54,13 +54,15 @@ export function RsvpConfirmation({
 			<CardHeader>
 				<CardTitle>RSVP</CardTitle>
 				<CardDescription>
-					Confirm that you plan to attend. RSVP is separate from organiser
-					approval and event check-in.
+					Confirm that you plan to attend. RSVP is separate from
+					organiser approval and event check-in.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<div className="rounded-md border p-4">
-					<p className="font-medium">{statusTitle(currentRsvp, summary)}</p>
+					<p className="font-medium">
+						{statusTitle(currentRsvp, summary)}
+					</p>
 					<p className="mt-1 text-sm text-muted-foreground">
 						{statusDescription(currentRsvp, summary)}
 					</p>
@@ -68,7 +70,10 @@ export function RsvpConfirmation({
 
 				<div className="grid gap-3 text-sm sm:grid-cols-3">
 					<Metric label="Confirmed" value={summary.confirmedCount} />
-					<Metric label="Waitlisted" value={summary.waitlistedCount} />
+					<Metric
+						label="Waitlisted"
+						value={summary.waitlistedCount}
+					/>
 					<Metric
 						label="Available"
 						value={

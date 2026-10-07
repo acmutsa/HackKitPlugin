@@ -25,7 +25,10 @@ export type EmailTemplateMap = Partial<
 	Record<NotificationKind, EmailTemplateRenderer>
 >;
 
-function getString(payload: Record<string, unknown>, key: string): string | undefined {
+function getString(
+	payload: Record<string, unknown>,
+	key: string,
+): string | undefined {
 	const value = payload[key];
 	return typeof value === "string" ? value : undefined;
 }
@@ -50,7 +53,9 @@ export const defaultEmailTemplates: EmailTemplateMap = {
 	[CoreNotificationKind.RsvpWaitlisted]: ({ appName, payload }) => {
 		const position = payload.position;
 		const positionText =
-			typeof position === "number" ? ` You are currently #${position} on the waitlist.` : "";
+			typeof position === "number"
+				? ` You are currently #${position} on the waitlist.`
+				: "";
 		return {
 			subject: `You're on the ${appName} waitlist`,
 			text: `You have been added to the ${appName} RSVP waitlist.${positionText}`,

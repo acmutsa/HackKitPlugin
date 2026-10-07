@@ -1,5 +1,7 @@
 import type {
-	DatabaseAdapterFactory,
+	HackKitDatabaseOptions,
+	HackKitAuthOptions,
+	InitializeHackkitOptions,
 	EventTypesInput,
 	HackKitLoggerOptions,
 	GroupsInput,
@@ -47,7 +49,9 @@ export type HackerRegistrationOptions = {
 
 export type HackkitConfig = {
 	plugins?: readonly HackKitPlugin[];
-	database: DatabaseAdapterFactory;
+	database: HackKitDatabaseOptions;
+	auth: HackKitAuthOptions;
+	entities?: InitializeHackkitOptions["entities"];
 	userDataOptions?: UserDataOptionsInput;
 	hackerRegistrationOptions?: HackerRegistrationOptions;
 	eventTypes?: EventTypesInput;
@@ -75,9 +79,13 @@ export function defineHackkitConfig<const TConfig extends HackkitConfig>(
 export function resolveHackkitConfig(
 	config: HackkitConfig,
 ): NormalizedHackkitConfig {
-	if (!config?.database) {
-		throw new Error("HackKit config must include a database adapter.");
+	if (!config?.database?.driver) {
+		throw new Error(
+			"HackKit config must include native MikroORM database options and a driver.",
+		);
 	}
+	if (!config.auth)
+		throw new Error("HackKit config must include Better Auth options.");
 	return {
 		...config,
 		plugins: config.plugins ?? [],

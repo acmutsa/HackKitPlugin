@@ -11,8 +11,8 @@ export default async function RegistrationSettingsPage() {
 	const currentUser = await getCurrentUser();
 	const hackkit = await getHackkit();
 	const [userData, hacker] = await Promise.all([
-		hackkit.userData.getUserData(currentUser.authId),
-		hackkit.hackers.getHacker(currentUser.authId),
+		hackkit.userData.getUserData(currentUser.id),
+		hackkit.hackers.getHacker(currentUser.id),
 	]);
 
 	return (
@@ -28,16 +28,18 @@ export default async function RegistrationSettingsPage() {
 					Registration Settings
 				</h1>
 				<p className="text-muted-foreground">
-					Update registration details that organizers use for logistics and
-					participant review.
+					Update registration details that organizers use for
+					logistics and participant review.
 				</p>
 			</div>
 
 			<UserDataForm
 				currentUser={currentUser}
 				userDataOptions={hackkit.userData.options}
-				defaultValues={userData ? toUserDataFormDefaultValues(userData) : undefined}
-				localStorageKey={`web:settings:${currentUser.authId}:user-data`}
+				defaultValues={
+					userData ? toUserDataFormDefaultValues(userData) : undefined
+				}
+				localStorageKey={`web:settings:${currentUser.id}:user-data`}
 				successRedirectTo="/settings/registration"
 			/>
 

@@ -1,28 +1,19 @@
-import { describe, expect, it } from "vitest";
 import {
-	CoreNotificationKind,
-	createHackkit,
-	createInMemoryDatabaseAdapterFromStorage,
-	createPluginRegistry,
-	type NotificationChannel,
-} from "../index";
-
-function createTestHackkit() {
-	const registry = createPluginRegistry();
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return createHackkit({ database: db, clock: now, id });
-}
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "../testing";
+import { describe, expect, it } from "vitest";
+import { CoreNotificationKind, type NotificationChannel } from "../index";
 
 describe("notifications", () => {
 	it("queues typed core intents and reuses idempotent requests", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
+		await createTestUser(hackkit, {
+			authId: "hacker-auth",
+			email: "hacker@example.com",
+			name: "Test Hacker",
+		});
 
 		const intent = await hackkit.notifications.queueIntent({
 			kind: CoreNotificationKind.UserApproved,
@@ -51,7 +42,12 @@ describe("notifications", () => {
 	});
 
 	it("records one delivery attempt per channel and updates intent status", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
+		await createTestUser(hackkit, {
+			authId: "hacker-auth",
+			email: "hacker@example.com",
+			name: "Test Hacker",
+		});
 		const intent = await hackkit.notifications.queueIntent({
 			kind: "sample.custom",
 			payload: { authId: "hacker-auth" },
@@ -80,11 +76,49 @@ describe("notifications", () => {
 			status: "delivered",
 			externalId: "message-1",
 		});
-		await expect(hackkit.notifications.getIntent(intent.id)).resolves.toMatchObject({
+		await expect(
+			hackkit.notifications.getIntent(intent.id),
+		).resolves.toMatchObject({
 			status: "delivered",
 		});
 		await expect(
 			hackkit.notifications.listDeliveryAttempts(intent.id),
 		).resolves.toHaveLength(1);
+	});
+});
+
+it("claims each pending intent once across concurrent delivery workers", async () => {
+	const hackkit = await createTestHackkit();
+	const intent = await hackkit.notifications.queueIntent({
+		kind: "test.delivery",
+		payload: {},
+	});
+	let sends = 0;
+	const channels = [
+		{
+			id: "test",
+			async deliver() {
+				sends++;
+				return { status: "delivered" as const };
+			},
+		},
+	];
+	const results = await Promise.all(
+		[1, 2].map(() =>
+			hackkit.runtime
+				.createScope()
+				.hackkit.notifications.deliverPending({ channels }),
+		),
+	);
+	expect(sends).toBe(1);
+	expect(
+		results.reduce((sum, result) => sum + result.intentsProcessed, 0),
+	).toBe(1);
+	const fresh = hackkit.runtime.createScope().hackkit;
+	expect(
+		await fresh.notifications.listDeliveryAttempts(intent.id),
+	).toHaveLength(1);
+	expect(await fresh.notifications.getIntent(intent.id)).toMatchObject({
+		status: "delivered",
 	});
 });

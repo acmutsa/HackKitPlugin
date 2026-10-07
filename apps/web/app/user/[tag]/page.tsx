@@ -10,7 +10,9 @@ export default async function PublicUserProfilePage({
 	params: { tag: string };
 }) {
 	const tag = decodeURIComponent(params.tag);
-	const profile = await (await getHackkit()).users.getPublicProfileByHackTag(tag);
+	const profile = await (
+		await getHackkit()
+	).users.getPublicProfileByHackTag(tag);
 	if (!profile) notFound();
 
 	return (

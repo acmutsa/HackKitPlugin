@@ -1,3 +1,4 @@
+import { serialize } from "@mikro-orm/core";
 import type { HackkitRuntimeContext } from "../hackkit-context";
 import { eventTypeValueSchema } from "../event-types";
 import { HackKitError, parseInput } from "../errors";
@@ -16,7 +17,7 @@ import type { AuthId, Event, EventScan } from "../types";
 
 export type EventsApiContext = Pick<
 	HackkitRuntimeContext,
-	| "db"
+	| "em"
 	| "now"
 	| "id"
 	| "logger"
@@ -52,28 +53,28 @@ export function createEventsApi(context: EventsApiContext) {
 		eventTypeValueSchema(context.eventTypes),
 	);
 
-	const { db, now, id, logger, getUserOrThrow, requirePermission } = context;
+	const { em, now, id, logger, getUserOrThrow, requirePermission } = context;
 
 	async function getEventOrThrow(eventId: string): Promise<Event> {
-		const event = await db.findOne(coreModels.event, { id: eventId });
+		const event = await em.findOne(coreModels.event, { id: eventId });
 		if (!event) throw new HackKitError("NOT_FOUND", "Event not found.");
-		return event;
+		return serialize(event);
 	}
 
 	return {
 		options: context.eventTypes,
 
-		async listEvents(input?: {
-			actorAuthId?: AuthId;
-		}): Promise<Event[]> {
-			const events = await db.findMany(coreModels.event, {
-				orderBy: { field: "startTime", direction: "asc" },
-			});
+		async listEvents(input?: { actorAuthId?: AuthId }): Promise<Event[]> {
+			const events = await em.find(
+				coreModels.event,
+				{},
+				{ orderBy: { startTime: "asc" } },
+			);
 			const includeHidden = await canViewHiddenEvents(
 				context,
 				input?.actorAuthId,
 			);
-			return filterVisibleEvents(events, includeHidden);
+			return serialize(filterVisibleEvents(events, includeHidden));
 		},
 
 		async getEvent(input: unknown): Promise<Event | null> {
@@ -99,19 +100,23 @@ export function createEventsApi(context: EventsApiContext) {
 						CorePermission.EventsCreate,
 					);
 					const timestamp = now();
-					return db.insert(coreModels.event, {
-						id: id(),
-						title: parsed.title,
-						description: parsed.description,
-						startTime: parsed.startTime,
-						endTime: parsed.endTime,
-						location: parsed.location,
-						type: parsed.type,
-						host: parsed.host,
-						hidden: parsed.hidden,
-						createdAt: timestamp,
-						updatedAt: timestamp,
-					});
+					{
+						const created = em.create(coreModels.event, {
+							id: id(),
+							title: parsed.title,
+							description: parsed.description,
+							startTime: parsed.startTime,
+							endTime: parsed.endTime,
+							location: parsed.location,
+							type: parsed.type,
+							host: parsed.host,
+							hidden: parsed.hidden,
+							createdAt: timestamp,
+							updatedAt: timestamp,
+						});
+						await em.flush();
+						return serialize(created);
+					}
 				},
 			);
 		},
@@ -131,24 +136,30 @@ export function createEventsApi(context: EventsApiContext) {
 						CorePermission.EventsUpdate,
 					);
 					await getEventOrThrow(parsed.eventId);
-					const [updated] = await db.update(
-						coreModels.event,
-						{ id: parsed.eventId },
-						{
-							title: parsed.title,
-							description: parsed.description,
-							startTime: parsed.startTime,
-							endTime: parsed.endTime,
-							location: parsed.location,
-							type: parsed.type,
-							host: parsed.host ?? undefined,
-							hidden: parsed.hidden,
-							updatedAt: now(),
-						},
-					);
+					const updated = await em.findOne(coreModels.event, {
+						id: parsed.eventId,
+					});
+					if (updated) {
+						em.assign(
+							updated,
+							{
+								title: parsed.title,
+								description: parsed.description,
+								startTime: parsed.startTime,
+								endTime: parsed.endTime,
+								location: parsed.location,
+								type: parsed.type,
+								host: parsed.host ?? undefined,
+								hidden: parsed.hidden,
+								updatedAt: now(),
+							},
+							{ ignoreUndefined: true },
+						);
+						await em.flush();
+					}
 					if (!updated)
 						throw new HackKitError("NOT_FOUND", "Event not found.");
-					return updated;
+					return serialize(updated);
 				},
 			);
 		},
@@ -167,7 +178,7 @@ export function createEventsApi(context: EventsApiContext) {
 						parsed.actorAuthId,
 						CorePermission.EventsDelete,
 					);
-					const deleted = await db.delete(coreModels.event, {
+					const deleted = await em.nativeDelete(coreModels.event, {
 						id: parsed.eventId,
 					});
 					if (deleted === 0)
@@ -183,15 +194,18 @@ export function createEventsApi(context: EventsApiContext) {
 				CorePermission.EventsScan,
 			);
 			await getEventOrThrow(parsed.eventId);
-			return db.findMany(coreModels.eventScan, {
-				where: {
-					eventId: parsed.eventId,
-					...(parsed.targetAuthId
-						? { authId: parsed.targetAuthId }
-						: {}),
-				},
-				orderBy: { field: "scannedAt", direction: "desc" },
-			});
+			return serialize(
+				await em.find(
+					coreModels.eventScan,
+					{
+						eventId: parsed.eventId,
+						...(parsed.targetAuthId
+							? { authId: parsed.targetAuthId }
+							: {}),
+					},
+					{ orderBy: { scannedAt: "desc" } },
+				),
+			);
 		},
 
 		async recordEventScan(input: unknown): Promise<{
@@ -216,25 +230,27 @@ export function createEventsApi(context: EventsApiContext) {
 					await getUserOrThrow(parsed.targetAuthId);
 					await getEventOrThrow(parsed.eventId);
 
-					const priorScans = await db.findMany(coreModels.eventScan, {
-						where: {
+					const priorScans = await em.find(
+						coreModels.eventScan,
+						{
 							eventId: parsed.eventId,
 							authId: parsed.targetAuthId,
 						},
-						orderBy: { field: "scannedAt", direction: "desc" },
-					});
+						{ orderBy: { scannedAt: "desc" } },
+					);
 
-					const scan = await db.insert(coreModels.eventScan, {
+					const scan = em.create(coreModels.eventScan, {
 						id: id(),
 						eventId: parsed.eventId,
 						authId: parsed.targetAuthId,
 						scannedByAuthId: parsed.actorAuthId,
 						scannedAt: now(),
 					});
+					await em.flush();
 
 					return {
-						scan,
-						priorScans,
+						scan: serialize(scan),
+						priorScans: serialize(priorScans),
 						hadPriorScans: priorScans.length > 0,
 					};
 				},

@@ -34,9 +34,9 @@ Build the right feedback loop, and the bug is 90% fixed.
 
 Treat the loop as a product. Once you have _a_ loop, **tighten** it:
 
-- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
-- Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
-- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)
+-   Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
+-   Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
+-   Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)
 
 A 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight — a debugging superpower.
 
@@ -52,10 +52,10 @@ Stop and say so explicitly. List what you tried. Ask the user for: (a) access to
 
 Phase 1 is done when the loop is **tight** and **red-capable**: you can name **one command** — a script path, a test invocation, a curl — that you have **already run at least once** (paste the invocation and its output), and that is:
 
-- [ ] **Red-capable** — it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring" — it must be able to _catch this specific bug_.
-- [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).
-- [ ] **Fast** — seconds, not minutes.
-- [ ] **Agent-runnable** — you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.
+-   [ ] **Red-capable** — it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring" — it must be able to _catch this specific bug_.
+-   [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).
+-   [ ] **Fast** — seconds, not minutes.
+-   [ ] **Agent-runnable** — you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.
 
 If you catch yourself reading code to build a theory before this command exists, **stop — jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
 
@@ -65,9 +65,9 @@ Run the loop. Watch it go red — the bug appears.
 
 Confirm:
 
-- [ ] The loop produces the failure mode the **user** described — not a different failure that happens to be nearby. Wrong bug = wrong fix.
-- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).
-- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.
+-   [ ] The loop produces the failure mode the **user** described — not a different failure that happens to be nearby. Wrong bug = wrong fix.
+-   [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).
+-   [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.
 
 ### Minimise
 
@@ -125,10 +125,10 @@ If a correct seam exists:
 
 Required before declaring done:
 
-- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
-- [ ] Regression test passes (or absence of seam is documented)
-- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
-- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
-- [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns
+-   [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
+-   [ ] Regression test passes (or absence of seam is documented)
+-   [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
+-   [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
+-   [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns
 
 **Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) hand off to the `/improve-codebase-architecture` skill with the specifics. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.

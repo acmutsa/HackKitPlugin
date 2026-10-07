@@ -1,18 +1,17 @@
-import { describe, expect, it } from "vitest";
 import {
-	CoreNotificationKind,
-	createHackkit,
-	createInMemoryDatabaseAdapterFromStorage,
-	createPluginRegistry,
-	type HackKitPlugin,
-} from "@hackkit/core";
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "@hackkit/core/testing";
+import { describe, expect, it } from "vitest";
+import { CoreNotificationKind } from "@hackkit/core";
 import {
 	emailNotificationsPlugin,
 	type EmailMessage,
 	type EmailNotificationsApi,
 } from "../index";
 
-function createTestHackkit() {
+async function createEmailHackkit() {
 	const sent: EmailMessage[] = [];
 	const plugin = emailNotificationsPlugin({
 		from: "HackKit <hello@example.com>",
@@ -26,37 +25,24 @@ function createTestHackkit() {
 			},
 		},
 	});
-	const registry = createPluginRegistry([plugin as unknown as HackKitPlugin]);
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	const hackkit = createHackkit({
-		database: db,
-		plugins: [plugin as unknown as HackKitPlugin],
-		clock: now,
-		id,
+	const hackkit = await createTestHackkit({
+		plugins: [plugin],
 	});
 	return {
 		hackkit,
-		notificationsEmail:
-			hackkit.plugins.notificationsEmail as unknown as EmailNotificationsApi,
+		notificationsEmail: hackkit.plugins.notificationsEmail,
 		sent,
 	};
 }
 
 describe("email notifications plugin", () => {
 	it("delivers pending intents to resolved user email addresses", async () => {
-		const { hackkit, notificationsEmail, sent } = createTestHackkit();
-		await hackkit.users.ensureUser({
+		const { hackkit, notificationsEmail, sent } =
+			await createEmailHackkit();
+		await createTestUser(hackkit, {
 			authId: "hacker-auth",
 			email: "hacker@example.com",
-			firstName: "Hack",
-			lastName: "Er",
+			name: "Hack Er",
 		});
 		const intent = await hackkit.notifications.queueIntent({
 			kind: CoreNotificationKind.UserApproved,
@@ -83,4 +69,24 @@ describe("email notifications plugin", () => {
 			}),
 		]);
 	});
+});
+
+it("lazily resolves provider options once and skips them while disabled", async () => {
+	let resolutions = 0;
+	const plugin = emailNotificationsPlugin(() => {
+		resolutions++;
+		return {
+			from: "HackKit <test@example.com>",
+			baseUrl: "http://localhost:3000",
+		};
+	});
+	const disabled = await createTestHackkit({
+		plugins: [{ ...plugin, enabled: false }],
+	});
+	expect(disabled.isPluginEnabled("notificationsEmail")).toBe(false);
+	expect(resolutions).toBe(0);
+	const enabled = await createTestHackkit({ plugins: [plugin] });
+	enabled.runtime.createScope();
+	expect(enabled.isPluginEnabled("notificationsEmail")).toBe(true);
+	expect(resolutions).toBe(1);
 });

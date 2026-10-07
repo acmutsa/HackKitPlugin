@@ -17,7 +17,7 @@ export default async function EditEventPage({
 	const hackkit = await getHackkit();
 	const event = await hackkit.events.getEvent({
 		eventId: params.id,
-		actorAuthId: principal.user.authId,
+		actorAuthId: principal.user.id,
 	});
 
 	if (!event) notFound();
@@ -25,7 +25,9 @@ export default async function EditEventPage({
 	return (
 		<main className="min-h-screen px-6 py-10">
 			<div className="mx-auto max-w-3xl space-y-6">
-				<h1 className="text-3xl font-bold tracking-tight">Edit event</h1>
+				<h1 className="text-3xl font-bold tracking-tight">
+					Edit event
+				</h1>
 				<EventAdminForm
 					eventId={event.id}
 					eventTypes={hackkit.events.options}

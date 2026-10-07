@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { registerHackerSchema, type User } from "@hackkit/core";
+import { registerHackerSchema, type User } from "@hackkit/core/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ import {
 } from "./ui/select";
 
 const hackerRegistrationFormSchema = registerHackerSchema
-	.omit({ authId: true, group: true })
+	.omit({ userId: true, group: true })
 	.extend({
 		githubUrl: z
 			.union([z.string().url(), z.literal("")])
@@ -190,8 +190,7 @@ export function HackerRegistrationForm({
 			<CardHeader>
 				<CardTitle>Hacker Registration</CardTitle>
 				<CardDescription>
-					Competitor details for {currentUser.firstName}{" "}
-					{currentUser.lastName}
+					Competitor details for {currentUser.name}
 					{currentUser.hackTag ? ` (@${currentUser.hackTag})` : ""}.
 				</CardDescription>
 			</CardHeader>

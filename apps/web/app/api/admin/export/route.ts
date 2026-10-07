@@ -1,3 +1,4 @@
+import { HackKitError } from "@hackkit/core";
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
 import { getRuntime } from "@/lib/runtime";
@@ -33,9 +34,17 @@ export async function GET() {
 
 	const runtime = await getRuntime();
 	const actor = await runtime.getCurrentUser();
-	const rows = await runtime.hackkit.admin.exportUsers({
-		actorAuthId: actor.authId,
-	});
+	const rows = await runtime.hackkit.admin
+		.exportUsers({
+			actorAuthId: actor.id,
+		})
+		.catch((error: unknown) => {
+			if (error instanceof HackKitError && error.code === "FORBIDDEN")
+				return null;
+			throw error;
+		});
+	if (!rows)
+		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 	const csv = toCsv(rows);
 	const timestamp = new Date().toISOString().replaceAll(":", "-");
 

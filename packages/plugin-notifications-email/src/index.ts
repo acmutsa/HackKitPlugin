@@ -5,12 +5,22 @@ import {
 } from "./api";
 
 export function emailNotificationsPlugin(
-	options: EmailNotificationsPluginOptions,
-): HackKitPlugin<"notificationsEmail", ReturnType<typeof createEmailNotificationsApi>> {
+	options:
+		| EmailNotificationsPluginOptions
+		| (() => EmailNotificationsPluginOptions),
+): HackKitPlugin<
+	"notificationsEmail",
+	ReturnType<typeof createEmailNotificationsApi>
+> {
+	let resolvedOptions: EmailNotificationsPluginOptions | undefined;
 	return {
 		id: "notificationsEmail",
 		packageName: "@hackkit/plugin-notifications-email",
-		setup: (context) => createEmailNotificationsApi(context, options),
+		setup: (context) => {
+			resolvedOptions ??=
+				typeof options === "function" ? options() : options;
+			return createEmailNotificationsApi(context, resolvedOptions);
+		},
 	};
 }
 

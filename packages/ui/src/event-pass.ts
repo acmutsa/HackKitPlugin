@@ -1,5 +1,5 @@
-import { HackKitError } from "@hackkit/core";
-import type { AuthId } from "@hackkit/core";
+import { HackKitError } from "@hackkit/core/client";
+import type { AuthId } from "@hackkit/core/client";
 
 export const DEFAULT_EVENT_PASS_QR_TTL_MS = 5 * 60 * 1000;
 
@@ -27,7 +27,10 @@ export function parseEventPassQrPayload(raw: string): {
 	try {
 		parsed = JSON.parse(raw);
 	} catch {
-		throw new HackKitError("VALIDATION_ERROR", "Invalid Event Pass QR code.");
+		throw new HackKitError(
+			"VALIDATION_ERROR",
+			"Invalid Event Pass QR code.",
+		);
 	}
 
 	if (
@@ -38,7 +41,10 @@ export function parseEventPassQrPayload(raw: string): {
 		typeof (parsed as EventPassQrPayload).authId !== "string" ||
 		typeof (parsed as EventPassQrPayload).qrIssuedAt !== "number"
 	) {
-		throw new HackKitError("VALIDATION_ERROR", "Invalid Event Pass QR code.");
+		throw new HackKitError(
+			"VALIDATION_ERROR",
+			"Invalid Event Pass QR code.",
+		);
 	}
 
 	const payload = parsed as EventPassQrPayload;
@@ -54,7 +60,10 @@ export function validateEventPassQrIssuedAt(
 	ttlMs: number,
 ): void {
 	if (Number.isNaN(qrIssuedAt.getTime())) {
-		throw new HackKitError("VALIDATION_ERROR", "Invalid Event Pass QR code.");
+		throw new HackKitError(
+			"VALIDATION_ERROR",
+			"Invalid Event Pass QR code.",
+		);
 	}
 
 	if (now.getTime() - qrIssuedAt.getTime() > ttlMs) {
@@ -65,7 +74,10 @@ export function validateEventPassQrIssuedAt(
 	}
 
 	if (qrIssuedAt.getTime() > now.getTime() + 60_000) {
-		throw new HackKitError("VALIDATION_ERROR", "Invalid Event Pass QR code.");
+		throw new HackKitError(
+			"VALIDATION_ERROR",
+			"Invalid Event Pass QR code.",
+		);
 	}
 }
 

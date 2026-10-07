@@ -1,96 +1,69 @@
-import { readFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { runDbSeed } from "@hackkit/cli";
-import { CorePermission, createHackkit } from "@hackkit/core";
-import { createDrizzleLibsqlAdapter } from "@hackkit/db-drizzle/libsql";
-import { createClient } from "@libsql/client";
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { drizzle } from "drizzle-orm/libsql";
-import { migrate } from "drizzle-orm/libsql/migrator";
-import { afterEach, describe, expect, it } from "vitest";
-import { appJob } from "./fixtures/app-schema";
-import { account, session, user, verification } from "../schema/auth";
+import { tmpdir } from "node:os";
+import { runDatabaseCommand } from "../../scripts/database";
+import { initializeHackkit } from "@hackkit/core";
+import { SqliteDriver } from "@mikro-orm/sqlite";
+import { expect, it } from "vitest";
+import appConfig from "../../hackkit.config";
 
-const clients: ReturnType<typeof createClient>[] = [];
-
-afterEach(() => {
-	for (const client of clients.splice(0)) client.close();
-});
-
-describe("committed web database workflow", () => {
-	it("runs Better Auth against its generated schema after app migrations", async () => {
-		const client = createClient({ url: ":memory:" });
-		clients.push(client);
-		const db = drizzle(client);
-		await migrate(db, {
-			migrationsFolder: join(process.cwd(), "db/migrations"),
-		});
-		await client.executeMultiple(
-			await readFile(
-				join(process.cwd(), "db/__tests__/fixtures/app-migration.sql"),
-				"utf8",
-			),
-		);
-
-		const database = createDrizzleLibsqlAdapter(db);
-		await runDbSeed({
-			database,
-			seedRoles: [
-				{
-					id: "core.participant",
-					name: "Participant",
-					position: 10,
-					permissions: [],
-				},
-				{
-					id: "core.owner",
-					name: "Owner",
-					position: 0,
-					permissions: [CorePermission.SuperAdmin],
-				},
-			],
-		});
-		const hackkit = createHackkit({ database });
-		await expect(hackkit.roles.listRoles()).resolves.toMatchObject([
-			{ id: "core.owner", name: "Owner" },
-			{ id: "core.participant", name: "Participant" },
-		]);
-
-		await db.insert(appJob).values({ id: "job-1", status: "ready" });
-		await expect(db.select().from(appJob)).resolves.toEqual([
-			{ id: "job-1", status: "ready" },
-		]);
-
-		const auth = betterAuth({
+it("runs Core, plugins, and Better Auth against committed app migrations", async () => {
+	const directory = await mkdtemp(join(tmpdir(), "hackkit-web-db-"));
+	const config = {
+		...appConfig,
+		database: {
+			...appConfig.database,
+			driver: SqliteDriver,
+			dbName: join(directory, "web.db"),
+			clientUrl: undefined,
+			migrations: {
+				path: join(process.cwd(), "db/migrations/sqlite"),
+				snapshotOnMigrate: false,
+			},
+		},
+		auth: {
 			baseURL: "http://localhost:3000",
 			secret: "database-workflow-test-secret-at-least-32-characters",
-			database: drizzleAdapter(db, {
-				provider: "sqlite",
-				schema: { user, session, account, verification },
-				camelCase: true,
-			}),
 			emailAndPassword: { enabled: true },
-			rateLimit: { enabled: false },
-		});
-
-		const signup = await auth.api.signUpEmail({
-			body: {
+		},
+		logger: { disabled: true },
+	};
+	try {
+		await runDatabaseCommand(config, { command: "migrate" });
+		await runDatabaseCommand(config, { command: "seed" });
+		const core = await initializeHackkit(config);
+		try {
+			expect(await core.orm.schema.getUpdateSchemaSQL()).toBe("");
+			const scope = core.createScope();
+			expect(await scope.hackkit.roles.listRoles()).toMatchObject([
+				{ id: "core.owner" },
+				{ id: "core.participant" },
+			]);
+			const signup = await core.auth.api.signUpEmail({
+				body: {
+					name: "Schema Test",
+					email: "schema@example.com",
+					password: "correct-horse-battery-staple",
+				},
+				returnHeaders: true,
+			});
+			const cookie = signup.headers.get("set-cookie");
+			expect(cookie).toContain("better-auth.session_token=");
+			const session = await core.auth.api.getSession({
+				headers: new Headers({ cookie: cookie ?? "" }),
+			});
+			expect(session?.user.email).toBe("schema@example.com");
+			expect(
+				await scope.hackkit.users.getUser(signup.response.user.id),
+			).toMatchObject({
+				id: signup.response.user.id,
 				name: "Schema Test",
 				email: "schema@example.com",
-				password: "correct-horse-battery-staple",
-			},
-			returnHeaders: true,
-		});
-		expect(signup.response.user.email).toBe("schema@example.com");
-
-		const setCookie = signup.headers.get("set-cookie");
-		expect(setCookie).toContain("better-auth.session_token=");
-		const cookie = setCookie?.split(";", 1)[0];
-		const currentSession = await auth.api.getSession({
-			headers: new Headers({ cookie: cookie ?? "" }),
-		});
-
-		expect(currentSession?.user.email).toBe("schema@example.com");
-	});
+			});
+		} finally {
+			await core.orm.close();
+		}
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
 });

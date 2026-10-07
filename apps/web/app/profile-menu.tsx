@@ -19,12 +19,13 @@ export function ProfileMenu({
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
 	const [isSigningOut, setIsSigningOut] = useState(false);
-	const initials = name
-		.split(/\s+/)
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((part) => part[0]?.toUpperCase())
-		.join("") || "U";
+	const initials =
+		name
+			.split(/\s+/)
+			.filter(Boolean)
+			.slice(0, 2)
+			.map((part) => part[0]?.toUpperCase())
+			.join("") || "U";
 
 	async function signOut() {
 		setIsSigningOut(true);
@@ -44,13 +45,19 @@ export function ProfileMenu({
 			>
 				{image ? (
 					// eslint-disable-next-line @next/next/no-img-element
-					<img src={image} alt="" className="h-8 w-8 rounded-full object-cover" />
+					<img
+						src={image}
+						alt=""
+						className="h-8 w-8 rounded-full object-cover"
+					/>
 				) : (
 					<span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
 						{initials}
 					</span>
 				)}
-				<span className="hidden max-w-32 truncate sm:inline">{name}</span>
+				<span className="hidden max-w-32 truncate sm:inline">
+					{name}
+				</span>
 			</button>
 
 			{isOpen ? (
@@ -60,7 +67,9 @@ export function ProfileMenu({
 				>
 					<div className="border-b px-4 py-3">
 						<p className="truncate text-sm font-medium">{name}</p>
-						<p className="truncate text-xs text-muted-foreground">{email}</p>
+						<p className="truncate text-xs text-muted-foreground">
+							{email}
+						</p>
 					</div>
 					<div className="p-1">
 						<Link

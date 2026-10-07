@@ -28,19 +28,37 @@ jobs:
                     --health-timeout 5s
                     --health-retries 5
 
+            mysql:
+                image: mysql:8.4
+                env:
+                    MYSQL_ROOT_PASSWORD: mysql
+                    MYSQL_DATABASE: hackkit
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd "mysqladmin ping -h 127.0.0.1 -pmysql"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+            libsql:
+                image: ghcr.io/tursodatabase/libsql-server:latest
+                env:
+                    SQLD_NODE: standalone
+                    SQLD_HTTP_LISTEN_ADDR: 0.0.0.0:8080
+                ports:
+                    - 8080:8080
+
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
 
             - name: Set up pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: 8.3.1
 
             - name: Set up Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: "20"
+                  node-version: "22.17.0"
                   cache: pnpm
 
             - name: Install dependencies
@@ -53,56 +71,27 @@ jobs:
               working-directory: apps/web
               run: pnpm plugin:sync
 
-            - name: Regenerate native schema files
-              working-directory: apps/web
-              run: |
-                  pnpm schema:generate
-                  pnpm auth:schema
+            - name: Verify generated plugin files are current
+              run: git diff --exit-code -- apps/web/app apps/web/hackkit.lock
 
-            - name: Verify generated files are current
-              run: |
-                  changed="$(git status --porcelain -- apps/web/app/discord apps/web/app/invites/page.tsx apps/web/app/teams/page.tsx apps/web/app/hackkit-plugin-actions.ts apps/web/db/schema apps/web/hackkit.lock)"
-                  if [ -n "$changed" ]; then
-                      echo "$changed"
-                      git diff -- apps/web/app/discord apps/web/app/invites/page.tsx apps/web/app/teams/page.tsx apps/web/app/hackkit-plugin-actions.ts apps/web/db/schema apps/web/hackkit.lock
-                      exit 1
-                  fi
+            - name: Wait for network libSQL
+              run: curl --fail --retry 20 --retry-connrefused --retry-delay 2 http://127.0.0.1:8080/health
 
-            - name: Validate and apply migrations
-              working-directory: apps/web
+            - name: Test all SQL drivers against committed migrations
               env:
-                  DATABASE_URL: file:.data/ci.db
-              run: |
-                  mkdir -p .data
-                  pnpm drizzle-kit check
-                  pnpm db:generate
-                  changed="$(git status --porcelain -- db/migrations)"
-                  if [ -n "$changed" ]; then
-                      echo "$changed"
-                      git diff -- db/migrations
-                      exit 1
-                  fi
-                  pnpm db:migrate
+                  HACKKIT_REQUIRE_DATABASE_MATRIX: "1"
+                  HACKKIT_TEST_POSTGRESQL_URL: postgresql://postgres:postgres@127.0.0.1:5432/hackkit
+                  HACKKIT_TEST_MYSQL_URL: mysql://root:mysql@127.0.0.1:3306/hackkit
+                  HACKKIT_TEST_LIBSQL_URL: http://127.0.0.1:8080
+              run: pnpm --filter web test:db-matrix
 
             - name: Test database workflow isolation
               run: pnpm --filter web test:db-workflow
-
-            - name: Validate PostgreSQL migration fixture
-              run: |
-                  pnpm --filter @hackkit/db-drizzle exec drizzle-kit check --config test-fixtures/postgres/drizzle.config.ts
-                  pnpm --filter @hackkit/db-drizzle exec drizzle-kit generate --config test-fixtures/postgres/drizzle.config.ts
-                  changed="$(git status --porcelain -- packages/db-drizzle/test-fixtures/postgres)"
-                  if [ -n "$changed" ]; then
-                      echo "$changed"
-                      git diff -- packages/db-drizzle/test-fixtures/postgres
-                      exit 1
-                  fi
 
             - name: Package tests
               run: |
                   pnpm --filter web test
                   pnpm --filter @hackkit/core test
-                  POSTGRES_TEST_URL=postgres://postgres:postgres@localhost:5432/hackkit pnpm --filter @hackkit/db-drizzle test
                   pnpm --filter @hackkit/cli test
                   pnpm --filter @hackkit/config test
                   pnpm --filter @hackkit/next test
@@ -110,13 +99,20 @@ jobs:
                   pnpm --filter @hackkit/plugin-discord test
                   pnpm --filter @hackkit/plugin-notifications-email test
 
+            - name: Prepare isolated build database
+              env:
+                  DATABASE_URL: file:.data/ci.db
+              run: |
+                  mkdir -p apps/web/.data
+                  pnpm --filter web db:migrate
+                  pnpm --filter web db:seed
+
             - name: Typecheck
               run: pnpm --filter web typecheck
 
             - name: Build web
               env:
-                  DATABASE_URL: libsql://web-ci.turso.io
-                  TURSO_AUTH_TOKEN: ci-token
+                  DATABASE_URL: file:.data/ci.db
                   NEXT_PUBLIC_APP_URL: https://web-ci.example.com
                   BETTER_AUTH_URL: https://web-ci.example.com
                   BETTER_AUTH_SECRET: ci-web-secret-that-is-at-least-32-characters
@@ -131,3 +127,6 @@ jobs:
                   DISCORD_INTERNAL_AUTH_KEY: ci-internal-auth-key
                   DISCORD_PARTICIPANT_ROLE_ID: ci-participant-role
               run: pnpm --filter web build
+
+            - name: Test production HTTP runtime
+              run: pnpm --filter web test:runtime

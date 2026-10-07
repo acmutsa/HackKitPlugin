@@ -12,7 +12,7 @@ export default async function AdminEventsPage() {
 	);
 	const hackkit = await getHackkit();
 	const events = await hackkit.events.listEvents({
-		actorAuthId: principal.user.authId,
+		actorAuthId: principal.user.id,
 	});
 
 	return (
@@ -20,7 +20,9 @@ export default async function AdminEventsPage() {
 			<div className="mx-auto max-w-5xl space-y-6">
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
-						<h1 className="text-3xl font-bold tracking-tight">Events</h1>
+						<h1 className="text-3xl font-bold tracking-tight">
+							Events
+						</h1>
 						<p className="text-muted-foreground">
 							Manage the hackathon schedule.
 						</p>

@@ -27,22 +27,30 @@ db.command("seed")
 		await runDbSeed(config);
 	});
 
-db.command("schema")
-	.description("Manage the native HackKit database schema")
-	.command("generate")
-	.description("Generate the configured adapter's native HackKit schema")
+db.command("generate")
+	.description("Generate an app-owned MikroORM migration for review")
 	.option("-c, --config <path>", "path to HackKit config")
-	.option("-o, --output <path>", "schema output path")
-	.action(async (commandOptions: { config?: string; output?: string }) => {
-		const globalOptions = program.opts<{ config: string }>();
+	.option("-n, --name <name>", "migration name")
+	.action(async (options: { config?: string; name?: string }) => {
 		const config = await loadConfig(
-			commandOptions.config ?? globalOptions.config,
+			options.config ?? program.opts<{ config: string }>().config,
 		);
-		const { runDbSchemaGenerate } = await import("./db-schema");
-		await runDbSchemaGenerate(config, {
+		const { runDbMigrationGenerate } = await import("./db-migrations");
+		await runDbMigrationGenerate(config, {
 			projectRoot: process.cwd(),
-			output: commandOptions.output,
+			name: options.name,
 		});
+	});
+
+db.command("migrate")
+	.description("Apply reviewed MikroORM migrations")
+	.option("-c, --config <path>", "path to HackKit config")
+	.action(async (options: { config?: string }) => {
+		const config = await loadConfig(
+			options.config ?? program.opts<{ config: string }>().config,
+		);
+		const { runDbMigrate } = await import("./db-migrations");
+		await runDbMigrate(config);
 	});
 
 const plugins = program

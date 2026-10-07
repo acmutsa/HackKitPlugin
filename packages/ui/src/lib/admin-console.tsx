@@ -1,9 +1,9 @@
-import type { AdminUserRecord } from "@hackkit/core";
+import type { AdminUserRecord } from "@hackkit/core/client";
 import type * as React from "react";
 import { cn } from "./cn";
 
 export function fullName(record: AdminUserRecord): string {
-	return `${record.user.firstName} ${record.user.lastName}`.trim();
+	return record.user.name;
 }
 
 export function formatDateTime(date: Date): string {
