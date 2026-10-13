@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventScan, User } from "@hackkit/core";
+import type { EventScan, User } from "@hackkit/core/client";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import * as React from "react";
 import { toast } from "sonner";
@@ -72,7 +72,12 @@ export function EventScanner({ event, className, onDone }: EventScannerProps) {
 	}
 
 	return (
-		<div className={cn("mx-auto flex w-full max-w-lg flex-col gap-6", className)}>
+		<div
+			className={cn(
+				"mx-auto flex w-full max-w-lg flex-col gap-6",
+				className,
+			)}
+		>
 			<Card>
 				<CardHeader>
 					<CardTitle>{event.title}</CardTitle>
@@ -93,16 +98,16 @@ export function EventScanner({ event, className, onDone }: EventScannerProps) {
 			{targetUser ? (
 				<Card>
 					<CardHeader>
-						<CardTitle>
-							{targetUser.firstName} {targetUser.lastName}
-						</CardTitle>
+						<CardTitle>{targetUser.name}</CardTitle>
 						<CardDescription>{targetUser.email}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						{priorScans.length > 0 ? (
 							<p className="text-sm font-medium text-amber-700">
-								This participant was already scanned {priorScans.length}{" "}
-								time{priorScans.length === 1 ? "" : "s"} for this event.
+								This participant was already scanned{" "}
+								{priorScans.length} time
+								{priorScans.length === 1 ? "" : "s"} for this
+								event.
 							</p>
 						) : null}
 						<div className="flex gap-2">

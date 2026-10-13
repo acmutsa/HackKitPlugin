@@ -25,7 +25,8 @@ describe("CLI config loading", () => {
 		await writeFile(
 			join(projectRoot, "hackkit.config.ts"),
 			`export default {
-				database: { create() { throw new Error("unused"); } },
+                auth: {},
+				database: { driver: class UnusedDriver {} },
 				loadedEnvValue: process.env.${testEnvKey},
 			};`,
 		);
@@ -36,7 +37,8 @@ describe("CLI config loading", () => {
 		});
 
 		expect(
-			(config as typeof config & { loadedEnvValue?: string }).loadedEnvValue,
+			(config as typeof config & { loadedEnvValue?: string })
+				.loadedEnvValue,
 		).toBe("from-app-env");
 	});
 });

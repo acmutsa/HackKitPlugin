@@ -43,13 +43,15 @@ export function DiscordVerifyForm({
 			className="space-y-4 rounded-lg border bg-card p-6 shadow-sm"
 		>
 			<div className="space-y-2">
-				<p className="text-sm font-medium text-primary">Discord verification</p>
+				<p className="text-sm font-medium text-primary">
+					Discord verification
+				</p>
 				<h1 className="text-2xl font-bold tracking-tight">
 					Link @{username}?
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					This links your Discord account to your approved Hacker profile and
-					syncs your participant, role, and Group roles.
+					This links your Discord account to your approved Hacker
+					profile and syncs your participant, role, and Group roles.
 				</p>
 			</div>
 			<Button type="submit" disabled={pending}>

@@ -28,10 +28,17 @@ export function createDiscordHttpRoleSyncProvider(
 				body: JSON.stringify(input),
 			});
 			if (!response.ok) {
-				throw new Error(`Discord role sync failed with ${response.status}.`);
+				throw new Error(
+					`Discord role sync failed with ${response.status}.`,
+				);
 			}
 			const body = await response.json().catch(() => undefined);
-			if (body && typeof body === "object" && "success" in body && !body.success) {
+			if (
+				body &&
+				typeof body === "object" &&
+				"success" in body &&
+				!body.success
+			) {
 				throw new Error("Discord role sync provider returned failure.");
 			}
 			return body && typeof body === "object" && "externalId" in body

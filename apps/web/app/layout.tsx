@@ -1,7 +1,10 @@
 import type * as React from "react";
 import type { Metadata } from "next";
 import { PublicSiteFooter } from "@hackkit/ui";
-import { getPublicThemeStyle, publicSiteConfig } from "@/lib/public-site-config";
+import {
+	getPublicThemeStyle,
+	publicSiteConfig,
+} from "@/lib/public-site-config";
 import "./globals.css";
 import { AppBar } from "./app-bar";
 import { Providers } from "./providers";

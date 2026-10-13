@@ -13,9 +13,7 @@ export default async function UserDataOnboardingPage() {
 	}
 
 	const hackkit = await getHackkit();
-	const existingUserData = await hackkit.userData.getUserData(
-		currentUser.authId,
-	);
+	const existingUserData = await hackkit.userData.getUserData(currentUser.id);
 	const steps = await getOnboardingSteps("/onboarding/user-data");
 
 	return (
@@ -32,7 +30,7 @@ export default async function UserDataOnboardingPage() {
 						? toUserDataFormDefaultValues(existingUserData)
 						: undefined
 				}
-				localStorageKey={`web:onboarding:${currentUser.authId}:user-data`}
+				localStorageKey={`web:onboarding:${currentUser.id}:user-data`}
 				successRedirectTo="/onboarding/hacker"
 			/>
 		</OnboardingShell>

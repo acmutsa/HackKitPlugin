@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { QRCodeSVG } from "qrcode.react";
-import type { User } from "@hackkit/core";
+import type { User } from "@hackkit/core/client";
 import { cn } from "../lib/cn";
 import { Button } from "./ui/button";
 import {
@@ -36,10 +36,10 @@ export function EventPass({
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="space-y-1 text-center">
-					<p className="text-lg font-semibold">
-						{user.firstName} {user.lastName}
+					<p className="text-lg font-semibold">{user.name}</p>
+					<p className="text-sm text-muted-foreground">
+						{user.email}
 					</p>
-					<p className="text-sm text-muted-foreground">{user.email}</p>
 					{user.checkedInAt ? (
 						<p className="text-sm font-medium text-emerald-600">
 							Checked in

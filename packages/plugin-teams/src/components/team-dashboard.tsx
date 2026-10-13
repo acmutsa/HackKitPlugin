@@ -6,20 +6,14 @@ import { toast } from "sonner";
 import type { User } from "@hackkit/core";
 import type { HackKitActionResult } from "@hackkit/ui";
 import { Button } from "@hackkit/ui";
-import type {
-	InviteToTeamInput,
-	RemoveMemberInput,
-} from "../actions";
+import type { InviteToTeamInput, RemoveMemberInput } from "../actions";
 import type { TeamInviteWithInvitee, TeamWithMembers } from "../api";
 
-const INVITE_STATUS_LABEL: Record<
-	TeamInviteWithInvitee["status"],
-	string
-> = {
-	pending: "Pending",
-	accepted: "Accepted",
-	declined: "Declined",
-};
+const INVITE_STATUS_LABEL = new Map<TeamInviteWithInvitee["status"], string>([
+	["pending", "Pending"],
+	["accepted", "Accepted"],
+	["declined", "Declined"],
+]);
 
 function formatInviteSentAt(createdAt: Date | string): string {
 	const date = createdAt instanceof Date ? createdAt : new Date(createdAt);
@@ -54,7 +48,7 @@ export function TeamDashboard({
 	const router = useRouter();
 	const [hackTag, setHackTag] = React.useState("");
 	const [pending, setPending] = React.useState<string | null>(null);
-	const isOwner = team.ownerAuthId === currentUser.authId;
+	const isOwner = team.ownerAuthId === currentUser.id;
 
 	async function handleInvite(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -98,7 +92,9 @@ export function TeamDashboard({
 		<div className="space-y-6">
 			<div className="rounded-lg border bg-card p-6 shadow-sm">
 				<p className="text-sm font-medium text-primary">Your team</p>
-				<h1 className="text-3xl font-bold tracking-tight">{team.name}</h1>
+				<h1 className="text-3xl font-bold tracking-tight">
+					{team.name}
+				</h1>
 				<p className="text-muted-foreground">@{team.tag}</p>
 			</div>
 
@@ -112,13 +108,15 @@ export function TeamDashboard({
 						>
 							<div>
 								<p className="font-medium">
-									{member.user.firstName} {member.user.lastName}
+									{member.user.name}
 								</p>
 								<p className="text-sm text-muted-foreground">
 									{member.user.hackTag
 										? `@${member.user.hackTag}`
 										: member.user.email}
-									{member.authId === team.ownerAuthId ? " · Owner" : ""}
+									{member.authId === team.ownerAuthId
+										? " · Owner"
+										: ""}
 								</p>
 							</div>
 							{isOwner && member.authId !== team.ownerAuthId ? (
@@ -156,8 +154,7 @@ export function TeamDashboard({
 									>
 										<div>
 											<p className="font-medium">
-												{invite.invitee.firstName}{" "}
-												{invite.invitee.lastName}
+												{invite.invitee.name}
 											</p>
 											<p className="text-sm text-muted-foreground">
 												{invite.invitee.hackTag
@@ -165,19 +162,25 @@ export function TeamDashboard({
 													: invite.invitee.email}
 											</p>
 											<p className="text-xs text-muted-foreground">
-												Sent {formatInviteSentAt(invite.createdAt)}
+												Sent{" "}
+												{formatInviteSentAt(
+													invite.createdAt,
+												)}
 											</p>
 										</div>
 										<span
 											className={
 												invite.status === "pending"
 													? "inline-flex w-fit rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"
-													: invite.status === "accepted"
+													: invite.status ===
+														  "accepted"
 														? "inline-flex w-fit rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400"
 														: "inline-flex w-fit rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
 											}
 										>
-											{INVITE_STATUS_LABEL[invite.status]}
+											{INVITE_STATUS_LABEL.get(
+												invite.status,
+											)}
 										</span>
 									</li>
 								))}
@@ -186,24 +189,30 @@ export function TeamDashboard({
 					</section>
 
 					<form
-					onSubmit={handleInvite}
-					className="space-y-4 rounded-lg border bg-card p-6 shadow-sm"
-				>
-					<h2 className="text-lg font-semibold">Invite a Hacker</h2>
-					<label className="block space-y-1 text-sm">
-						<span className="font-medium">HackTag</span>
-						<input
-							className="flex h-10 w-full rounded-md border bg-background px-3 py-2"
-							value={hackTag}
-							onChange={(event) => setHackTag(event.target.value)}
-							placeholder="teammate-tag"
-							required
-						/>
-					</label>
-					<Button type="submit" disabled={pending === "invite"}>
-						{pending === "invite" ? "Sending..." : "Send invite"}
-					</Button>
-				</form>
+						onSubmit={handleInvite}
+						className="space-y-4 rounded-lg border bg-card p-6 shadow-sm"
+					>
+						<h2 className="text-lg font-semibold">
+							Invite a Hacker
+						</h2>
+						<label className="block space-y-1 text-sm">
+							<span className="font-medium">HackTag</span>
+							<input
+								className="flex h-10 w-full rounded-md border bg-background px-3 py-2"
+								value={hackTag}
+								onChange={(event) =>
+									setHackTag(event.target.value)
+								}
+								placeholder="teammate-tag"
+								required
+							/>
+						</label>
+						<Button type="submit" disabled={pending === "invite"}>
+							{pending === "invite"
+								? "Sending..."
+								: "Send invite"}
+						</Button>
+					</form>
 				</>
 			) : (
 				<Button

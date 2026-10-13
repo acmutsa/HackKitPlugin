@@ -1,4 +1,3 @@
-export type { AuthAdapter, AuthIdentity, AuthSession } from "./adapters/auth";
 export type {
 	BlobStorageAdapter,
 	BlobStorageAdapterWithView,
@@ -19,16 +18,18 @@ export type {
 	HackKitLoggerOptions,
 	LogLevel,
 } from "./adapters/logger";
-export { createHackkit } from "./hackkit";
+export { createHackKitAuth } from "./mikro/auth";
+export type { HackKitAuthOptions } from "./mikro/auth";
+export {
+	authEntities,
+	AuthSession,
+	AuthAccount,
+	AuthVerification,
+} from "./mikro/auth-entities";
+export { HackKitUser } from "./models";
 export type { HackKit } from "./hackkit";
 export { seedRoles } from "./seed";
 export type { SeedRoleInput, SeedRolesOptions, SeedRolesResult } from "./seed";
-export {
-	defineModel,
-	field,
-	isDatabaseAdapterFactory,
-	model,
-} from "./database";
 export {
 	createCompleteUserDataSchema,
 	defaultUserDataOptions,
@@ -46,10 +47,6 @@ export {
 	defineSetting,
 	validateSettingValue,
 } from "./settings";
-export {
-	createInMemoryDatabaseAdapter,
-	createInMemoryDatabaseAdapterFromStorage,
-} from "./adapters/db/memory";
 export { createAccessControl } from "./access-control";
 export type { AccessControl, AccessPrincipal } from "./access-control";
 export type { HackkitRuntimeContext } from "./hackkit-context";
@@ -82,30 +79,6 @@ export type {
 	EventTypesInput,
 } from "./event-types";
 export type { GroupsInput, HackkitGroup, HackkitGroupInput } from "./groups";
-export type {
-	AnyField,
-	DatabaseAdapter,
-	DatabaseAdapterFactory,
-	DatabaseAdapterFactoryContext,
-	DatabaseAdapterInput,
-	DatabaseSchemaAdapter,
-	FieldDefinition,
-	FieldKind,
-	FieldReference,
-	FindManyOptions,
-	GeneratedSchemaFile,
-	InferInsert,
-	InferSelect,
-	Model,
-	ModelDefinition,
-	ModelKey,
-	OrderBy,
-	PersistentModel,
-	ReferenceAction,
-	StorageDefault,
-	StorageRegistry,
-	Where,
-} from "./database";
 export type {
 	UserDataOption,
 	UserDataOptions,
@@ -149,17 +122,6 @@ export type {
 	AdminUserExportRow,
 	AdminUserRecord,
 	PublicUserProfile,
-	NewHacker,
-	NewRsvp,
-	NewRole,
-	NewUser,
-	NewUserBan,
-	NewUserData,
-	NewEvent,
-	NewEventScan,
-	NewHackathonSetting,
-	NewNotificationDeliveryAttempt,
-	NewNotificationIntent,
 	NotificationDeliveryAttempt,
 	NotificationIntent,
 } from "./types";
@@ -179,7 +141,6 @@ export {
 	createRoleSchema,
 	deleteEventSchema,
 	deleteRoleSchema,
-	ensureUserSchema,
 	getEventSchema,
 	hackTagSchema,
 	listEventScansSchema,
@@ -194,3 +155,14 @@ export {
 	updateUserProfileSchema,
 } from "./schemas";
 export type { CompleteUserDataInput } from "./schemas";
+
+export { initializeHackkit } from "./runtime";
+export { createOrmOptions } from "./mikro/options";
+export type {
+	InitializeHackkitOptions,
+	HackKitScope,
+	HackKitRuntime,
+} from "./runtime";
+export type { HackKitDatabaseOptions, HackKitDriver } from "./mikro/options";
+
+export { withOperationLock } from "./mikro/operation";

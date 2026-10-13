@@ -1,44 +1,21 @@
+import {
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "../testing";
 import { describe, expect, it } from "vitest";
-import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory";
-import { createHackkit } from "../hackkit";
-import { createPluginRegistry } from "../plugins";
 import { CoreSetting } from "../settings";
 import { seedTestOwner } from "./seed-test-owner";
 
-function createTestHackkit() {
-	const registry = createPluginRegistry();
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return Object.assign(
-		createHackkit({
-			database: db,
-			clock: now,
-			id,
-			groups: [
-				{ id: "alpha", label: "Alpha", discordRoleName: "Alpha Role" },
-				{ id: "beta", label: "Beta", discordRoleName: "Beta Role" },
-			],
-		}),
-		{ database: db },
-	);
-}
-
 async function seedHacker(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit,
 	authId: string,
 	group?: string,
 ) {
-	await hackkit.users.ensureUser({
+	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: "Test",
-		lastName: "Hacker",
+		name: "Test Hacker",
 	});
 	await hackkit.userData.completeUserData({
 		authId,
@@ -53,7 +30,7 @@ async function seedHacker(
 		isEmailable: true,
 	});
 	await hackkit.hackers.registerHacker({
-		authId,
+		userId: authId,
 		university: "Test U",
 		major: "CS",
 		levelOfStudy: "Undergraduate",
@@ -65,7 +42,12 @@ async function seedHacker(
 
 describe("groups", () => {
 	it("assigns approved hackers across enabled groups without overwriting existing groups", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit({
+			groups: [
+				{ id: "alpha", label: "Alpha", discordRoleName: "Alpha Role" },
+				{ id: "beta", label: "Beta", discordRoleName: "Beta Role" },
+			],
+		});
 		await seedTestOwner(hackkit);
 		await hackkit.settings.setMany({
 			actorAuthId: "owner-auth",

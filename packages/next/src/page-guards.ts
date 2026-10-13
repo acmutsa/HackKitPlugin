@@ -37,7 +37,8 @@ export function createPageGuards(
 	const onForbidden = options.onForbidden ?? "notFound";
 	const redirectTo = options.redirectTo ?? "/dashboard";
 	const approvalRedirectTo = options.approvalRedirectTo ?? "/i/approval";
-	const onboardingRedirectTo = options.onboardingRedirectTo ?? "/onboarding/hacktag";
+	const onboardingRedirectTo =
+		options.onboardingRedirectTo ?? "/onboarding/hacktag";
 	const registrationClosedRedirectTo =
 		options.registrationClosedRedirectTo ?? "/registration-closed";
 	const suspendedRedirectTo = options.suspendedRedirectTo ?? "/suspended";
@@ -65,7 +66,9 @@ export function createPageGuards(
 			: hackkit.settings.getValue(key);
 	}
 
-	async function requireNotBannedForAuthId(authId: string): Promise<UserBan | null> {
+	async function requireNotBannedForAuthId(
+		authId: string,
+	): Promise<UserBan | null> {
 		const ban = await hackkit.users.getUserBan(authId);
 		if (ban) redirect(suspendedRedirectTo);
 		return null;
@@ -77,25 +80,27 @@ export function createPageGuards(
 
 	async function requireApprovedUser(): Promise<User> {
 		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.authId);
+		await requireNotBannedForAuthId(user.id);
 		if (!user.isApproved) redirect(approvalRedirectTo);
 		return user;
 	}
 
 	async function requireCompletedOnboarding(): Promise<CompetitorOnboardingState> {
 		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.authId);
+		await requireNotBannedForAuthId(user.id);
 
 		if (!user.hackTag) redirect(onboardingRedirectTo);
 
 		const [userData, hacker] = await Promise.all([
-			hackkit.userData.getUserData(user.authId),
-			hackkit.hackers.getHacker(user.authId),
+			hackkit.userData.getUserData(user.id),
+			hackkit.hackers.getHacker(user.id),
 		]);
 
 		if (!userData) redirect("/onboarding/user-data");
 		if (!hacker) {
-			const registrationOpen = await getSettingValue(CoreSetting.RegistrationOpen);
+			const registrationOpen = await getSettingValue(
+				CoreSetting.RegistrationOpen,
+			);
 			if (!registrationOpen) redirect(registrationClosedRedirectTo);
 			redirect("/onboarding/hacker");
 		}
@@ -111,12 +116,12 @@ export function createPageGuards(
 
 	async function requireOnboardingAccess(): Promise<User> {
 		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.authId);
+		await requireNotBannedForAuthId(user.id);
 
 		if (!user.hackTag) return user;
 		const [userData, hacker] = await Promise.all([
-			hackkit.userData.getUserData(user.authId),
-			hackkit.hackers.getHacker(user.authId),
+			hackkit.userData.getUserData(user.id),
+			hackkit.hackers.getHacker(user.id),
 		]);
 
 		if (!userData || !hacker) return user;
@@ -150,7 +155,9 @@ export function createPageGuards(
 			const authId = await getAuthId();
 			const existing = await hackkit.hackers.getHacker(authId);
 			if (existing) return;
-			const registrationOpen = await getSettingValue(CoreSetting.RegistrationOpen);
+			const registrationOpen = await getSettingValue(
+				CoreSetting.RegistrationOpen,
+			);
 			if (registrationOpen) return;
 			redirect(registrationClosedRedirectTo);
 		},

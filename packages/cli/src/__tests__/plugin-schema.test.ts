@@ -1,3 +1,4 @@
+import { SqliteDriver } from "@mikro-orm/sqlite";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { HackkitConfig } from "@hackkit/config";
@@ -5,7 +6,6 @@ import type { HackKitPlugin } from "@hackkit/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-	generateSchema: vi.fn(),
 	loadConfig: vi.fn(),
 	syncPlugins: vi.fn().mockResolvedValue({
 		routesWritten: 0,
@@ -14,9 +14,6 @@ const mocks = vi.hoisted(() => ({
 	}),
 }));
 
-vi.mock("../db-schema", () => ({
-	runDbSchemaGenerate: mocks.generateSchema,
-}));
 vi.mock("../cli-config", () => ({ loadConfig: mocks.loadConfig }));
 vi.mock("../plugin-sync", () => ({ runPluginSync: mocks.syncPlugins }));
 
@@ -30,11 +27,8 @@ const teamsPlugin: HackKitPlugin = {
 	id: "teams",
 	packageName: "@hackkit/plugin-teams",
 };
-const database = {
-	create() {
-		throw new Error("not used by command tests");
-	},
-};
+const database = { driver: SqliteDriver, dbName: ":memory:" };
+const auth = { secret: "test-secret-that-is-at-least-32-characters" };
 const directories: string[] = [];
 
 async function createProject(
@@ -71,26 +65,24 @@ afterEach(async () => {
 });
 
 describe("plugin schema orchestration", () => {
-	it("regenerates HackKit schema after plugin add", async () => {
+	it("adds plugin configuration and syncs routes", async () => {
 		const projectRoot = await createProject(
 			"export default { plugins: [] };\n",
 			{ "@hackkit/plugin-teams": "workspace:*" },
 		);
 		const refreshedConfig: HackkitConfig = {
 			database,
+			auth,
 			plugins: [teamsPlugin],
 		};
 		mocks.loadConfig.mockResolvedValue(refreshedConfig);
 
 		await runPluginAdd(
-			{ projectRoot, config: { database, plugins: [] } },
+			{ projectRoot, config: { database, auth, plugins: [] } },
 			"teams",
 		);
 
 		expect(mocks.syncPlugins).toHaveBeenCalledOnce();
-		expect(mocks.generateSchema).toHaveBeenCalledWith(refreshedConfig, {
-			projectRoot,
-		});
 		const configSource = await readFile(
 			join(projectRoot, "hackkit.config.ts"),
 			"utf8",
@@ -99,23 +91,20 @@ describe("plugin schema orchestration", () => {
 		expect(configSource).toContain('from "@hackkit/plugin-teams"');
 	});
 
-	it("regenerates HackKit schema after plugin removal", async () => {
+	it("removes plugin configuration and syncs routes", async () => {
 		const projectRoot = await createProject(
 			'import { teamsPlugin } from "@hackkit/plugin-teams";\nexport default { plugins: [teamsPlugin()] };\n',
 			{ "@hackkit/plugin-teams": "workspace:*" },
 		);
 		const config: HackkitConfig = {
 			database,
+			auth,
 			plugins: [teamsPlugin],
 		};
 
 		await runPluginRemove({ projectRoot, config }, "teams");
 
 		expect(mocks.syncPlugins).toHaveBeenCalledOnce();
-		expect(mocks.generateSchema).toHaveBeenCalledWith(
-			expect.objectContaining({ database, plugins: [] }),
-			{ projectRoot },
-		);
 		const configSource = await readFile(
 			join(projectRoot, "hackkit.config.ts"),
 			"utf8",
@@ -127,10 +116,9 @@ describe("plugin schema orchestration", () => {
 	it("does not generate schema during plugin sync", async () => {
 		await runPluginSyncAll({
 			projectRoot: process.cwd(),
-			config: { database, plugins: [teamsPlugin] },
+			config: { database, auth, plugins: [teamsPlugin] },
 		});
 
 		expect(mocks.syncPlugins).toHaveBeenCalledOnce();
-		expect(mocks.generateSchema).not.toHaveBeenCalled();
 	});
 });

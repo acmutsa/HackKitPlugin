@@ -1,5 +1,5 @@
 import type * as React from "react";
-import type { Event } from "@hackkit/core";
+import type { Event } from "@hackkit/core/client";
 import { cn } from "../lib/cn";
 
 export type PublicShellLink = {
@@ -152,16 +152,28 @@ export function PublicLandingPage({
 					<div className="rounded-3xl border bg-card p-6 shadow-sm">
 						<div className="grid gap-4 sm:grid-cols-2">
 							{stats.map((stat) => (
-								<div key={stat.label} className="rounded-2xl bg-muted/50 p-4">
-									<p className="text-3xl font-black">{stat.value}</p>
-									<p className="text-sm text-muted-foreground">{stat.label}</p>
+								<div
+									key={stat.label}
+									className="rounded-2xl bg-muted/50 p-4"
+								>
+									<p className="text-3xl font-black">
+										{stat.value}
+									</p>
+									<p className="text-sm text-muted-foreground">
+										{stat.label}
+									</p>
 								</div>
 							))}
 						</div>
 						<div className="mt-6 space-y-3">
 							{highlights.map((item) => (
-								<div key={item.title} className="rounded-2xl border bg-background p-4">
-									<h2 className="font-semibold">{item.title}</h2>
+								<div
+									key={item.title}
+									className="rounded-2xl border bg-background p-4"
+								>
+									<h2 className="font-semibold">
+										{item.title}
+									</h2>
 									<p className="mt-1 text-sm text-muted-foreground">
 										{item.description}
 									</p>
@@ -175,8 +187,13 @@ export function PublicLandingPage({
 			{sections.length > 0 ? (
 				<section className="mx-auto grid max-w-6xl gap-4 px-6 py-16 md:grid-cols-3">
 					{sections.map((section) => (
-						<article key={section.title} className="rounded-2xl border bg-card p-6">
-							<h2 className="text-xl font-semibold">{section.title}</h2>
+						<article
+							key={section.title}
+							className="rounded-2xl border bg-card p-6"
+						>
+							<h2 className="text-xl font-semibold">
+								{section.title}
+							</h2>
 							<p className="mt-3 text-sm leading-6 text-muted-foreground">
 								{section.description}
 							</p>
@@ -204,13 +221,17 @@ export function PublicSiteFooter({
 						{description}
 					</p>
 					{copyright ? (
-						<p className="text-xs text-muted-foreground">{copyright}</p>
+						<p className="text-xs text-muted-foreground">
+							{copyright}
+						</p>
 					) : null}
 				</div>
 				<div className="grid gap-6 sm:grid-cols-2">
 					{linkGroups.map((group) => (
 						<div key={group.title} className="space-y-3">
-							<p className="text-sm font-semibold">{group.title}</p>
+							<p className="text-sm font-semibold">
+								{group.title}
+							</p>
 							<div className="grid gap-2 text-sm">
 								{group.links.map((link) =>
 									renderLink(
@@ -238,7 +259,9 @@ export function PublicHelpPage({
 		<main className={cn("min-h-screen px-6 py-16", className)}>
 			<div className="mx-auto max-w-5xl space-y-10">
 				<div className="max-w-3xl space-y-3">
-					<h1 className="text-4xl font-black tracking-tight">{title}</h1>
+					<h1 className="text-4xl font-black tracking-tight">
+						{title}
+					</h1>
 					<p className="text-lg leading-8 text-muted-foreground">
 						{description}
 					</p>
@@ -252,7 +275,9 @@ export function PublicHelpPage({
 							rel={contact.external ? "noreferrer" : undefined}
 							className="rounded-2xl border bg-card p-6 shadow-sm transition hover:border-primary/50"
 						>
-							<h2 className="text-xl font-semibold">{contact.label}</h2>
+							<h2 className="text-xl font-semibold">
+								{contact.label}
+							</h2>
 							{contact.description ? (
 								<p className="mt-2 text-sm leading-6 text-muted-foreground">
 									{contact.description}
@@ -312,8 +337,8 @@ export function ParticipantDashboard({
 						Welcome, {participantName}
 					</h1>
 					<p className="mt-3 max-w-2xl text-muted-foreground">
-						Use this dashboard for your event pass, schedule, RSVP, team links,
-						settings, and day-of help.
+						Use this dashboard for your event pass, schedule, RSVP,
+						team links, settings, and day-of help.
 					</p>
 					<div className="mt-6 flex flex-wrap gap-3">
 						{primaryActions.map((action) =>
@@ -328,14 +353,20 @@ export function ParticipantDashboard({
 				{onboarding ? (
 					<section className="rounded-2xl border bg-muted/30 p-5">
 						<div className="space-y-1">
-							<h2 className="text-xl font-semibold">Continue onboarding</h2>
+							<h2 className="text-xl font-semibold">
+								Continue onboarding
+							</h2>
 							<p className="text-sm text-muted-foreground">
-								Finish registration to unlock the full participant experience.
+								Finish registration to unlock the full
+								participant experience.
 							</p>
 						</div>
 						<div className="mt-4">{onboarding.progress}</div>
 						{renderLink(
-							{ href: onboarding.nextHref, label: "Continue registration" },
+							{
+								href: onboarding.nextHref,
+								label: "Continue registration",
+							},
 							"mt-4 inline-flex text-sm font-medium text-primary hover:underline",
 						)}
 					</section>
@@ -350,8 +381,12 @@ export function ParticipantDashboard({
 									key={item.label}
 									className="flex items-center justify-between gap-4 rounded-xl bg-muted/40 px-4 py-3"
 								>
-									<dt className="text-sm text-muted-foreground">{item.label}</dt>
-									<dd className="text-sm font-medium">{item.value}</dd>
+									<dt className="text-sm text-muted-foreground">
+										{item.label}
+									</dt>
+									<dd className="text-sm font-medium">
+										{item.value}
+									</dd>
 								</div>
 							))}
 						</dl>
@@ -363,11 +398,19 @@ export function ParticipantDashboard({
 								<a
 									key={resource.href}
 									href={resource.href}
-									target={resource.external ? "_blank" : undefined}
-									rel={resource.external ? "noreferrer" : undefined}
+									target={
+										resource.external ? "_blank" : undefined
+									}
+									rel={
+										resource.external
+											? "noreferrer"
+											: undefined
+									}
 									className="rounded-xl border bg-background p-4 transition hover:border-primary/50"
 								>
-									<p className="font-medium">{resource.label}</p>
+									<p className="font-medium">
+										{resource.label}
+									</p>
 									{resource.description ? (
 										<p className="mt-1 text-sm text-muted-foreground">
 											{resource.description}
@@ -394,7 +437,10 @@ export function ScheduleDetail({
 	return (
 		<main className={cn("min-h-screen px-6 py-10", className)}>
 			<article className="mx-auto max-w-3xl space-y-6 rounded-3xl border bg-card p-6 shadow-sm md:p-8">
-				<a href={backHref} className="text-sm font-medium text-primary hover:underline">
+				<a
+					href={backHref}
+					className="text-sm font-medium text-primary hover:underline"
+				>
 					Back to schedule
 				</a>
 				<div className="space-y-4">
@@ -405,7 +451,9 @@ export function ScheduleDetail({
 						{typeLabel}
 					</span>
 					<div>
-						<h1 className="text-4xl font-black tracking-tight">{event.title}</h1>
+						<h1 className="text-4xl font-black tracking-tight">
+							{event.title}
+						</h1>
 						<p className="mt-3 text-muted-foreground">
 							{formatEventDateTime(event.startTime)} to{" "}
 							{formatEventDateTime(event.endTime)}
@@ -428,7 +476,9 @@ export function ScheduleDetail({
 						</div>
 					) : null}
 				</div>
-				<p className="leading-7 text-muted-foreground">{event.description}</p>
+				<p className="leading-7 text-muted-foreground">
+					{event.description}
+				</p>
 				{actions.length > 0 ? (
 					<div className="flex flex-wrap gap-3">
 						{actions.map((action) =>

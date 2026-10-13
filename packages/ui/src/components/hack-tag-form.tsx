@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { claimHackTagSchema, type User } from "@hackkit/core";
+import { claimHackTagSchema, type User } from "@hackkit/core/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -72,8 +72,7 @@ export function HackTagForm({
 			<CardHeader>
 				<CardTitle>Claim your HackTag</CardTitle>
 				<CardDescription>
-					Choose a public handle for {currentUser.firstName}{" "}
-					{currentUser.lastName}.
+					Choose a public handle for {currentUser.name}.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

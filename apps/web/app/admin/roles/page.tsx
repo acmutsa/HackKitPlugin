@@ -17,7 +17,10 @@ export default async function AdminRolesPage() {
 					Manage admin roles and permissions.
 				</p>
 			</div>
-			<AdminRolesPanel roles={roles} permissions={Object.values(CorePermission)} />
+			<AdminRolesPanel
+				roles={roles}
+				permissions={Object.values(CorePermission)}
+			/>
 		</main>
 	);
 }

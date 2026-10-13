@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { registerHackerSchema } from "../schemas";
 
 const base = {
-	authId: "hacker-auth",
+	userId: "hacker-auth",
 	university: "Test U",
 	major: "CS",
 	levelOfStudy: "undergraduate",

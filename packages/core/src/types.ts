@@ -1,4 +1,4 @@
-import type { InferInsert, InferSelect } from "./database";
+import type { InferEntity, EntityDTO } from "@mikro-orm/core";
 import type { coreModels } from "./models";
 
 export type AuthId = string;
@@ -6,35 +6,22 @@ export type UserId = AuthId;
 export type RoleId = string;
 export type PermissionKey = `${string}.${string}`;
 
-export type User = InferSelect<typeof coreModels.user>;
-export type NewUser = InferInsert<typeof coreModels.user>;
-export type UserData = InferSelect<typeof coreModels.userData>;
-export type NewUserData = InferInsert<typeof coreModels.userData>;
-export type Hacker = InferSelect<typeof coreModels.hacker>;
-export type NewHacker = InferInsert<typeof coreModels.hacker>;
-export type Rsvp = InferSelect<typeof coreModels.rsvp>;
-export type NewRsvp = InferInsert<typeof coreModels.rsvp>;
-export type Role = InferSelect<typeof coreModels.role>;
-export type NewRole = InferInsert<typeof coreModels.role>;
-export type UserBan = InferSelect<typeof coreModels.userBan>;
-export type NewUserBan = InferInsert<typeof coreModels.userBan>;
-export type Event = InferSelect<typeof coreModels.event>;
-export type NewEvent = InferInsert<typeof coreModels.event>;
-export type EventScan = InferSelect<typeof coreModels.eventScan>;
-export type NewEventScan = InferInsert<typeof coreModels.eventScan>;
-export type HackathonSetting = InferSelect<typeof coreModels.setting>;
-export type NewHackathonSetting = InferInsert<typeof coreModels.setting>;
-export type NotificationIntent = InferSelect<
-	typeof coreModels.notificationIntent
+export type User = EntityDTO<InferEntity<typeof coreModels.user>>;
+export type UserData = EntityDTO<InferEntity<typeof coreModels.userData>>;
+export type Hacker = EntityDTO<InferEntity<typeof coreModels.hacker>>;
+export type Rsvp = EntityDTO<InferEntity<typeof coreModels.rsvp>>;
+export type Role = EntityDTO<InferEntity<typeof coreModels.role>>;
+export type UserBan = EntityDTO<InferEntity<typeof coreModels.userBan>>;
+export type Event = EntityDTO<InferEntity<typeof coreModels.event>>;
+export type EventScan = EntityDTO<InferEntity<typeof coreModels.eventScan>>;
+export type HackathonSetting = EntityDTO<
+	InferEntity<typeof coreModels.setting>
 >;
-export type NewNotificationIntent = InferInsert<
-	typeof coreModels.notificationIntent
+export type NotificationIntent = EntityDTO<
+	InferEntity<typeof coreModels.notificationIntent>
 >;
-export type NotificationDeliveryAttempt = InferSelect<
-	typeof coreModels.notificationDeliveryAttempt
->;
-export type NewNotificationDeliveryAttempt = InferInsert<
-	typeof coreModels.notificationDeliveryAttempt
+export type NotificationDeliveryAttempt = EntityDTO<
+	InferEntity<typeof coreModels.notificationDeliveryAttempt>
 >;
 
 export type AdminUserRecord = {
@@ -49,9 +36,8 @@ export type AdminUserRecord = {
 export type PublicUserProfile = {
 	user: Pick<
 		User,
-		| "authId"
-		| "firstName"
-		| "lastName"
+		| "id"
+		| "name"
 		| "profilePhotoUrl"
 		| "hackTag"
 		| "bio"
@@ -85,10 +71,9 @@ export type AdminOverview = {
 };
 
 export type AdminUserExportRow = {
-	authId: string;
+	id: User["id"];
 	email: string;
-	firstName: string;
-	lastName: string;
+	name: string;
 	hackTag: string;
 	role: string;
 	isApproved: boolean;

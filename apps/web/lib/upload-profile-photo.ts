@@ -12,10 +12,11 @@ export async function uploadProfilePhotoFile(file: File): Promise<string> {
 		throw new Error("Could not prepare profile photo upload.");
 	}
 
-	const { uploadUrl, storedFileReference } = (await registerResponse.json()) as {
-		uploadUrl: string;
-		storedFileReference: string;
-	};
+	const { uploadUrl, storedFileReference } =
+		(await registerResponse.json()) as {
+			uploadUrl: string;
+			storedFileReference: string;
+		};
 
 	const uploadResponse = await fetch(uploadUrl, {
 		method: "PUT",

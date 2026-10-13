@@ -5,7 +5,7 @@ import {
 	createCompleteUserDataSchema,
 	type User,
 	type UserDataOptions,
-} from "@hackkit/core";
+} from "@hackkit/core/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
@@ -368,8 +368,8 @@ export function UserDataForm({
 			<CardHeader>
 				<CardTitle>User Data</CardTitle>
 				<CardDescription>
-					Completing registration as {currentUser.firstName}{" "}
-					{currentUser.lastName} ({currentUser.email}).
+					Completing registration as {currentUser.name} (
+					{currentUser.email}).
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

@@ -75,7 +75,9 @@ export function createDefaultLogger(
 	};
 }
 
-export function createLogger(options: HackKitLoggerOptions = {}): HackKitLogger {
+export function createLogger(
+	options: HackKitLoggerOptions = {},
+): HackKitLogger {
 	return createDefaultLogger(options);
 }
 

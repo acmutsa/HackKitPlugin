@@ -1,9 +1,11 @@
-import type { EventTypes } from "@hackkit/core";
+import type { EventTypes } from "@hackkit/core/client";
 import { cn } from "../lib/cn";
 import type { ScheduleListProps } from "../types";
 
 function getEventTypeColor(eventTypes: EventTypes, type: string): string {
-	return eventTypes.find((option) => option.value === type)?.color ?? "#795548";
+	return (
+		eventTypes.find((option) => option.value === type)?.color ?? "#795548"
+	);
 }
 
 function getEventTypeLabel(eventTypes: EventTypes, type: string): string {
@@ -43,7 +45,9 @@ export function ScheduleList({
 				>
 					<div className="flex flex-wrap items-start justify-between gap-3">
 						<div className="space-y-1">
-							<h2 className="text-lg font-semibold">{event.title}</h2>
+							<h2 className="text-lg font-semibold">
+								{event.title}
+							</h2>
 							<p className="text-sm text-muted-foreground">
 								{formatDateTime(event.startTime)} –{" "}
 								{formatDateTime(event.endTime)}

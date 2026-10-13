@@ -5,7 +5,10 @@ import { toast } from "sonner";
 import { cn } from "../lib/cn";
 import { useHackKitUI } from "../provider";
 import type { HackathonSettingsFormProps } from "../types";
-import type { ResolvedHackathonSetting, SettingKey } from "@hackkit/core";
+import type {
+	ResolvedHackathonSetting,
+	SettingKey,
+} from "@hackkit/core/client";
 import { Button } from "./ui/button";
 import {
 	Card,

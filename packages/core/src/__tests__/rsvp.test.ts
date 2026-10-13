@@ -1,34 +1,14 @@
-import { describe, expect, it } from "vitest";
 import {
-	CoreNotificationKind,
-	CoreSetting,
-	createHackkit,
-	createInMemoryDatabaseAdapterFromStorage,
-	createPluginRegistry,
-} from "../index";
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "../testing";
+import { describe, expect, it } from "vitest";
+import { CoreNotificationKind, CoreSetting } from "../index";
 import { seedTestOwner } from "./seed-test-owner";
 
-function createTestHackkit() {
-	const registry = createPluginRegistry();
-	let timestamp = 0;
-	const now = () =>
-		new Date(
-			`2026-05-24T12:00:${String(timestamp++).padStart(2, "0")}.000Z`,
-		);
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return Object.assign(createHackkit({ database: db, clock: now, id }), {
-		database: db,
-	});
-}
-
 async function setSetting(
-	hackkit: ReturnType<typeof createHackkit>,
+	hackkit: TestHackkit,
 	key: CoreSetting,
 	value: boolean | number,
 ) {
@@ -39,15 +19,11 @@ async function setSetting(
 	});
 }
 
-async function seedApprovedHacker(
-	hackkit: ReturnType<typeof createHackkit>,
-	authId: string,
-) {
-	await hackkit.users.ensureUser({
+async function seedApprovedHacker(hackkit: TestHackkit, authId: string) {
+	await createTestUser(hackkit, {
 		authId,
 		email: `${authId}@example.com`,
-		firstName: authId,
-		lastName: "Hacker",
+		name: `${authId} Hacker`,
 	});
 	await hackkit.userData.completeUserData({
 		authId,
@@ -62,7 +38,7 @@ async function seedApprovedHacker(
 		isEmailable: true,
 	});
 	await hackkit.hackers.registerHacker({
-		authId,
+		userId: authId,
 		university: "Test U",
 		major: "CS",
 		levelOfStudy: "undergraduate",
@@ -73,7 +49,7 @@ async function seedApprovedHacker(
 
 describe("RSVP", () => {
 	it("requires RSVPs to be open and limited to approved hackers", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "admin-auth");
 		await seedApprovedHacker(hackkit, "hacker-auth");
 
@@ -82,11 +58,10 @@ describe("RSVP", () => {
 		).rejects.toMatchObject({ code: "INVALID_OPERATION" });
 
 		await setSetting(hackkit, CoreSetting.RsvpOpen, true);
-		await hackkit.users.ensureUser({
+		await createTestUser(hackkit, {
 			authId: "unregistered-auth",
 			email: "unregistered@example.com",
-			firstName: "Unregistered",
-			lastName: "User",
+			name: "Unregistered User",
 		});
 		await expect(
 			hackkit.rsvp.confirm({ authId: "unregistered-auth" }),
@@ -100,7 +75,7 @@ describe("RSVP", () => {
 	});
 
 	it("places over-limit hackers on an ordered waitlist and queues intents", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "admin-auth");
 		await setSetting(hackkit, CoreSetting.RsvpOpen, true);
 		await setSetting(hackkit, CoreSetting.RsvpLimit, 1);
@@ -138,7 +113,7 @@ describe("RSVP", () => {
 	});
 
 	it("lets admins cancel and promote waitlisted RSVPs", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "admin-auth");
 		await setSetting(hackkit, CoreSetting.RsvpOpen, true);
 		await setSetting(hackkit, CoreSetting.RsvpLimit, 1);

@@ -1,3 +1,4 @@
+import { SqliteDriver } from "@mikro-orm/sqlite";
 import { describe, expect, it } from "vitest";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,10 +10,11 @@ import {
 
 describe("HackKit config", () => {
 	it("normalizes optional collection fields", () => {
-		const database = { create: () => ({}) as never };
+		const database = { driver: SqliteDriver, dbName: ":memory:" };
 		const config = resolveHackkitConfig(
 			defineHackkitConfig({
 				database,
+				auth: { secret: "test-secret-that-is-at-least-32-characters" },
 			}),
 		);
 

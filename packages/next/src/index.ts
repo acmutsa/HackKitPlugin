@@ -8,6 +8,7 @@ export type {
 	CreateHackkitRuntimeFromConfigOptions,
 	CreateHackkitRuntimeOptions,
 	HackkitRuntime,
+	HackkitRuntimeHost,
 } from "./runtime";
 export { actionFailure, actionSuccess } from "@hackkit/ui/actions";
 export type { HackKitActionResult } from "@hackkit/ui/actions";

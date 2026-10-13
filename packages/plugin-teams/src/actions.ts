@@ -22,16 +22,18 @@ export type RemoveMemberInput = {
 
 import type { TeamsApi } from "./api";
 
-export function createTeamsActions(runtime: HackkitRuntime) {
-	const teams = runtime.hackkit.plugins.teams as unknown as TeamsApi;
-
+export function createTeamsActions(
+	runtime: Pick<HackkitRuntime, "hackkit" | "getAuthId">,
+) {
 	return {
 		async createTeam(values: CreateTeamInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				const team = await teams.createTeam({
-					actorAuthId,
 					...values,
+					actorAuthId,
 				});
 				return actionSuccess(team);
 			} catch (error) {
@@ -41,10 +43,12 @@ export function createTeamsActions(runtime: HackkitRuntime) {
 
 		async inviteToTeam(values: InviteToTeamInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				const invite = await teams.inviteToTeam({
-					actorAuthId,
 					...values,
+					actorAuthId,
 				});
 				return actionSuccess(invite);
 			} catch (error) {
@@ -54,10 +58,12 @@ export function createTeamsActions(runtime: HackkitRuntime) {
 
 		async respondToInvite(values: RespondToInviteInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				const result = await teams.respondToInvite({
-					actorAuthId,
 					...values,
+					actorAuthId,
 				});
 				return actionSuccess(result);
 			} catch (error) {
@@ -67,6 +73,8 @@ export function createTeamsActions(runtime: HackkitRuntime) {
 
 		async leaveTeam() {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				await teams.leaveTeam({ actorAuthId });
 				return actionSuccess();
@@ -77,6 +85,8 @@ export function createTeamsActions(runtime: HackkitRuntime) {
 
 		async removeMember(values: RemoveMemberInput) {
 			try {
+				const teams = runtime.hackkit.plugins
+					.teams as unknown as TeamsApi;
 				const actorAuthId = await runtime.getAuthId();
 				await teams.removeMember({
 					actorAuthId,

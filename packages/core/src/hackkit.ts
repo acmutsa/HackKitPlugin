@@ -1,7 +1,7 @@
-import {
-	isDatabaseAdapterFactory,
-	type DatabaseAdapterInput,
-} from "./database";
+import { serialize } from "@mikro-orm/core";
+import { withOperationLock } from "./mikro/operation";
+import type { EntityManager } from "@mikro-orm/core";
+import { readUser } from "./mikro/user";
 import { createAccessControl } from "./access-control";
 import { HackKitError, parseInput } from "./errors";
 import type { HackkitRuntimeContext } from "./hackkit-context";
@@ -28,6 +28,7 @@ import type {
 	RoleId,
 	User,
 	UserData,
+	UserId,
 } from "./types";
 import { createUsersApi } from "./functions/users";
 import { createEventsApi } from "./functions/events";
@@ -47,10 +48,12 @@ import { createNotificationsApi } from "./notifications";
 import { createRsvpApi } from "./functions/rsvp";
 import { createGroupsApi } from "./functions/groups";
 
-type CreateHackkitOptions<
+export type CreateHackkitOptions<
 	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
 > = {
-	database: DatabaseAdapterInput;
+	em: EntityManager;
+	registry?: import("./plugins").HackKitRegistry;
+	actorAuthId?: string;
 	plugins?: TPlugins;
 	clock?: () => Date;
 	id?: () => string;
@@ -68,12 +71,10 @@ export function createHackkit<
 	const TPlugins extends readonly HackKitPlugin[] = [],
 >(options: CreateHackkitOptions<TPlugins>) {
 	const plugins = options.plugins ?? ([] as unknown as TPlugins);
-	const registry = createPluginRegistry(plugins);
+	const registry = options.registry ?? createPluginRegistry(plugins);
 	const now = options.clock ?? (() => new Date());
 	const id = options.id ?? defaultId;
-	const db = isDatabaseAdapterFactory(options.database)
-		? options.database.create({ storage: registry.storage, now, id })
-		: options.database;
+	const em = options.em;
 	const userDataOptions = resolveUserDataOptions(options.userDataOptions);
 	const eventTypes = resolveEventTypes(options.eventTypes);
 	const groups = resolveGroups(options.groups);
@@ -81,18 +82,18 @@ export function createHackkit<
 		createCompleteUserDataSchema(userDataOptions);
 	const logger = createLogger(options.logger);
 	const defaultCompetitorRoleId = options.defaultCompetitorRoleId;
-	const notificationsApi = createNotificationsApi({ db, now });
+	const notificationsApi = createNotificationsApi({ em, now });
 
 	async function getUserOrThrow(authId: AuthId): Promise<User> {
-		const user = await db.findOne(coreModels.user, { authId });
+		const user = await readUser(em, { id: authId });
 		if (!user) throw new HackKitError("NOT_FOUND", "User not found.");
 		return user;
 	}
 
 	async function getRoleOrThrow(roleId: RoleId): Promise<Role> {
-		const role = await db.findOne(coreModels.role, { id: roleId });
+		const role = await em.findOne(coreModels.role, { id: roleId });
 		if (!role) throw new HackKitError("NOT_FOUND", "Role not found.");
-		return role;
+		return serialize(role);
 	}
 
 	const accessControl = createAccessControl({
@@ -100,14 +101,16 @@ export function createHackkit<
 		getRoleOrThrow,
 	});
 	const settingsApi = createSettingsApi({
-		db,
+		em,
 		now,
 		logger,
 		settings: registry.settings,
 		requirePermission: accessControl.requirePermission,
 	});
 	const pluginApis = setupPluginApis(plugins, {
-		database: db,
+		em,
+		actorAuthId: options.actorAuthId,
+		getUser: (authId) => readUser(em, { id: authId }),
 		registry,
 		getSettingValue: settingsApi.getValue,
 		notifications: notificationsApi,
@@ -115,7 +118,7 @@ export function createHackkit<
 	});
 
 	const runtimeContext: HackkitRuntimeContext = {
-		db,
+		em,
 		now,
 		id,
 		logger,
@@ -138,68 +141,56 @@ export function createHackkit<
 	const groupsApi = createGroupsApi(runtimeContext);
 
 	async function registerHacker(input: unknown): Promise<Hacker> {
-		const parsed = parseInput(registerHackerSchema, input);
-		return withDomainLog(
-			logger,
-			"hackers.register",
-			{ targetAuthId: parsed.authId },
-			async () => {
-				await getUserOrThrow(parsed.authId);
-				const userData = await db.findOne(coreModels.userData, {
-					authId: parsed.authId,
-				});
-				if (!userData)
-					throw new HackKitError(
-						"INVALID_OPERATION",
-						"User Data must be completed before registering as a Hacker.",
-					);
-				const existing = await db.findOne(coreModels.hacker, {
-					authId: parsed.authId,
-				});
-				const timestamp = now();
-				const value: Hacker = {
-					...parsed,
-					registeredAt: existing?.registeredAt ?? timestamp,
-					updatedAt: timestamp,
-				};
+		return withOperationLock(em, "registration", async () => {
+			const parsed = parseInput(registerHackerSchema, input);
+			return withDomainLog(
+				logger,
+				"hackers.register",
+				{ targetAuthId: parsed.userId },
+				async () => {
+					await getUserOrThrow(parsed.userId);
+					const userData = await em.findOne(coreModels.userData, {
+						authId: parsed.userId,
+					});
+					if (!userData)
+						throw new HackKitError(
+							"INVALID_OPERATION",
+							"User Data must be completed before registering as a Hacker.",
+						);
+					const existing = await em.findOne(coreModels.hacker, {
+						userId: parsed.userId,
+					});
+					const timestamp = now();
+					const value: Hacker = {
+						...parsed,
+						registeredAt: existing?.registeredAt ?? timestamp,
+						updatedAt: timestamp,
+					};
 
-				let hacker: Hacker;
-				if (!existing) {
+					if (existing) {
+						em.assign(existing, value, { ignoreUndefined: true });
+						await em.flush();
+						return serialize(existing);
+					}
 					const { requireApproval } =
 						await registrationPolicy.assertCanRegisterNewHacker();
-					hacker = await db.insert(coreModels.hacker, value);
+					const hacker = em.create(coreModels.hacker, value);
+					const profile = await em.findOneOrFail(coreModels.user, {
+						id: parsed.userId,
+					});
 					if (defaultCompetitorRoleId) {
 						await getRoleOrThrow(defaultCompetitorRoleId);
-						await db.update(
-							coreModels.user,
-							{ authId: parsed.authId },
-							{
-								roleId: defaultCompetitorRoleId,
-								isApproved: !requireApproval,
-								updatedAt: timestamp,
-							},
-						);
+						profile.roleId = defaultCompetitorRoleId;
+						profile.isApproved = !requireApproval;
 					} else if (!requireApproval) {
-						await db.update(
-							coreModels.user,
-							{ authId: parsed.authId },
-							{
-								isApproved: true,
-								updatedAt: timestamp,
-							},
-						);
+						profile.isApproved = true;
 					}
-				} else {
-					const [updated] = await db.update(
-						coreModels.hacker,
-						{ authId: parsed.authId },
-						value,
-					);
-					hacker = updated ?? value;
-				}
-				return hacker;
-			},
-		);
+					profile.updatedAt = timestamp;
+					await em.flush();
+					return serialize(hacker);
+				},
+			);
+		});
 	}
 
 	const hackkit = {
@@ -207,6 +198,13 @@ export function createHackkit<
 		permissions: CorePermission,
 		registry,
 		plugins: pluginApis,
+		isPluginEnabled(pluginId: string): boolean {
+			const plugin = registry.plugins[pluginId];
+			return (
+				Object.hasOwn(registry.plugins, pluginId) &&
+				plugin.enabled !== false
+			);
+		},
 		accessControl,
 		settings: settingsApi,
 		notifications: notificationsApi,
@@ -224,36 +222,40 @@ export function createHackkit<
 			options: userDataOptions,
 
 			async getUserData(authId: AuthId): Promise<UserData | null> {
-				return db.findOne(coreModels.userData, { authId });
+				const record = await em.findOne(coreModels.userData, {
+					authId,
+				});
+				return record ? serialize(record) : null;
 			},
 
 			async completeUserData(input: unknown): Promise<UserData> {
-				const parsed = parseInput(completeUserDataSchema, input);
-				await getUserOrThrow(parsed.authId);
-				const existing = await db.findOne(coreModels.userData, {
-					authId: parsed.authId,
+				return withOperationLock(em, "user-data", async () => {
+					const parsed = parseInput(completeUserDataSchema, input);
+					await getUserOrThrow(parsed.authId);
+					const existing = await em.findOne(coreModels.userData, {
+						authId: parsed.authId,
+					});
+					const timestamp = now();
+					const value: UserData = {
+						...parsed,
+						completedAt: existing?.completedAt ?? timestamp,
+						updatedAt: timestamp,
+					};
+					const record = existing
+						? em.assign(existing, value, { ignoreUndefined: true })
+						: em.create(coreModels.userData, value);
+					await em.flush();
+					return serialize(record);
 				});
-				const timestamp = now();
-				const value: UserData = {
-					...parsed,
-					completedAt: existing?.completedAt ?? timestamp,
-					updatedAt: timestamp,
-				};
-				if (!existing) return db.insert(coreModels.userData, value);
-				const [updated] = await db.update(
-					coreModels.userData,
-					{ authId: parsed.authId },
-					value,
-				);
-				return updated ?? value;
 			},
 		},
 
 		hackers: {
 			registerHacker,
 
-			async getHacker(authId: AuthId): Promise<Hacker | null> {
-				return db.findOne(coreModels.hacker, { authId });
+			async getHacker(userId: UserId): Promise<Hacker | null> {
+				const record = await em.findOne(coreModels.hacker, { userId });
+				return record ? serialize(record) : null;
 			},
 		},
 
@@ -264,131 +266,165 @@ export function createHackkit<
 						input.actorAuthId,
 						CorePermission.RolesView,
 					);
-				return db.findMany(coreModels.role, {
-					orderBy: { field: "position", direction: "asc" },
-				});
+				return serialize(
+					await em.find(
+						coreModels.role,
+						{},
+						{ orderBy: { position: "asc" } },
+					),
+				);
 			},
 
 			async getRole(roleId: RoleId): Promise<Role | null> {
-				return db.findOne(coreModels.role, { id: roleId });
+				const record = await em.findOne(coreModels.role, {
+					id: roleId,
+				});
+				return record ? serialize(record) : null;
 			},
 
 			async createRole(input: unknown): Promise<Role> {
-				const parsed = parseInput(createRoleSchema, input);
-				const principal = await accessControl.requirePermission(
-					parsed.actorAuthId,
-					CorePermission.RolesCreate,
-				);
-				const rolePosition = {
-					...principal.role,
-					position: parsed.position,
-				};
-				accessControl.assertCanManageRole(principal, rolePosition);
-				accessControl.assertCanGrantPermissions(
-					principal,
-					parsed.permissions as PermissionKey[],
-				);
-				const existingName = await db.findOne(coreModels.role, {
-					name: parsed.name,
-				});
-				if (existingName)
-					throw new HackKitError(
-						"CONFLICT",
-						"Role name already exists.",
+				return withOperationLock(em, "roles", async () => {
+					const parsed = parseInput(createRoleSchema, input);
+					const principal = await accessControl.requirePermission(
+						parsed.actorAuthId,
+						CorePermission.RolesCreate,
 					);
-				const timestamp = now();
-				return db.insert(coreModels.role, {
-					id: parsed.id ?? id(),
-					name: parsed.name,
-					position: parsed.position,
-					permissions: parsed.permissions as PermissionKey[],
-					color: parsed.color,
-					createdAt: timestamp,
-					updatedAt: timestamp,
-				});
-			},
-
-			async updateRole(input: unknown): Promise<Role> {
-				const parsed = parseInput(updateRoleSchema, input);
-				const principal = await accessControl.requirePermission(
-					parsed.actorAuthId,
-					CorePermission.RolesUpdate,
-				);
-				const role = await getRoleOrThrow(parsed.roleId);
-				accessControl.assertCanManageRole(principal, role);
-				if (parsed.position !== undefined)
-					accessControl.assertCanManageRole(principal, {
-						...role,
+					const rolePosition = {
+						...principal.role,
 						position: parsed.position,
-					});
-				if (parsed.permissions)
+					};
+					accessControl.assertCanManageRole(principal, rolePosition);
 					accessControl.assertCanGrantPermissions(
 						principal,
 						parsed.permissions as PermissionKey[],
 					);
-				const [updated] = await db.update(
-					coreModels.role,
-					{ id: parsed.roleId },
-					{
+					const existingName = await em.findOne(coreModels.role, {
 						name: parsed.name,
-						position: parsed.position,
-						permissions: parsed.permissions as
-							| PermissionKey[]
-							| undefined,
-						color: parsed.color,
-						updatedAt: now(),
-					},
-				);
-				if (!updated)
-					throw new HackKitError("NOT_FOUND", "Role not found.");
-				return updated;
+					});
+					if (existingName)
+						throw new HackKitError(
+							"CONFLICT",
+							"Role name already exists.",
+						);
+					const timestamp = now();
+					{
+						const created = em.create(coreModels.role, {
+							id: parsed.id ?? id(),
+							name: parsed.name,
+							position: parsed.position,
+							permissions: parsed.permissions as PermissionKey[],
+							color: parsed.color,
+							createdAt: timestamp,
+							updatedAt: timestamp,
+						});
+						await em.flush();
+						return serialize(created);
+					}
+				});
+			},
+
+			async updateRole(input: unknown): Promise<Role> {
+				return withOperationLock(em, "roles", async () => {
+					const parsed = parseInput(updateRoleSchema, input);
+					const principal = await accessControl.requirePermission(
+						parsed.actorAuthId,
+						CorePermission.RolesUpdate,
+					);
+					const role = await getRoleOrThrow(parsed.roleId);
+					accessControl.assertCanManageRole(principal, role);
+					if (parsed.position !== undefined)
+						accessControl.assertCanManageRole(principal, {
+							...role,
+							position: parsed.position,
+						});
+					if (parsed.permissions)
+						accessControl.assertCanGrantPermissions(
+							principal,
+							parsed.permissions as PermissionKey[],
+						);
+					const updated = await em.findOne(coreModels.role, {
+						id: parsed.roleId,
+					});
+					if (updated) {
+						em.assign(
+							updated,
+							{
+								name: parsed.name,
+								position: parsed.position,
+								permissions: parsed.permissions as
+									| PermissionKey[]
+									| undefined,
+								color: parsed.color,
+								updatedAt: now(),
+							},
+							{ ignoreUndefined: true },
+						);
+						await em.flush();
+					}
+					if (!updated)
+						throw new HackKitError("NOT_FOUND", "Role not found.");
+					return serialize(updated);
+				});
 			},
 
 			async deleteRole(input: unknown): Promise<void> {
-				const parsed = parseInput(deleteRoleSchema, input);
-				const principal = await accessControl.requirePermission(
-					parsed.actorAuthId,
-					CorePermission.RolesDelete,
-				);
-				const role = await getRoleOrThrow(parsed.roleId);
-				accessControl.assertCanManageRole(principal, role);
-				const usersWithRole = await db.findMany(coreModels.user, {
-					where: { roleId: parsed.roleId },
-					limit: 1,
-				});
-				if (usersWithRole.length > 0)
-					throw new HackKitError(
-						"INVALID_OPERATION",
-						"Cannot delete a role assigned to users.",
+				return withOperationLock(em, "roles", async () => {
+					const parsed = parseInput(deleteRoleSchema, input);
+					const principal = await accessControl.requirePermission(
+						parsed.actorAuthId,
+						CorePermission.RolesDelete,
 					);
-				await db.delete(coreModels.role, { id: parsed.roleId });
+					const role = await getRoleOrThrow(parsed.roleId);
+					accessControl.assertCanManageRole(principal, role);
+					const usersWithRole = await em.find(
+						coreModels.user,
+						{ roleId: parsed.roleId },
+						{ limit: 1 },
+					);
+					if (usersWithRole.length > 0)
+						throw new HackKitError(
+							"INVALID_OPERATION",
+							"Cannot delete a role assigned to users.",
+						);
+					await em.nativeDelete(coreModels.role, {
+						id: parsed.roleId,
+					});
+				});
 			},
 
 			async assignRoleToUser(input: unknown): Promise<User> {
-				const parsed = parseInput(assignRoleSchema, input);
-				const principal = await accessControl.requirePermission(
-					parsed.actorAuthId,
-					CorePermission.RolesAssign,
-				);
-				const target = await getUserOrThrow(parsed.targetAuthId);
-				const nextRole = await getRoleOrThrow(parsed.roleId);
-				accessControl.assertCanManageRole(principal, nextRole);
-				if (target.roleId)
-					accessControl.assertCanManageRole(
-						principal,
-						await getRoleOrThrow(target.roleId),
+				return withOperationLock(em, "roles", async () => {
+					const parsed = parseInput(assignRoleSchema, input);
+					const principal = await accessControl.requirePermission(
+						parsed.actorAuthId,
+						CorePermission.RolesAssign,
 					);
-				const [updated] = await db.update(
-					coreModels.user,
-					{ authId: parsed.targetAuthId },
-					{
-						roleId: parsed.roleId,
-						updatedAt: now(),
-					},
-				);
-				if (!updated)
-					throw new HackKitError("NOT_FOUND", "User not found.");
-				return updated;
+					const target = await getUserOrThrow(parsed.targetAuthId);
+					const nextRole = await getRoleOrThrow(parsed.roleId);
+					accessControl.assertCanManageRole(principal, nextRole);
+					if (target.roleId)
+						accessControl.assertCanManageRole(
+							principal,
+							await getRoleOrThrow(target.roleId),
+						);
+					const updated = await em.findOne(coreModels.user, {
+						id: parsed.targetAuthId,
+					});
+					if (updated) {
+						em.assign(
+							updated,
+							{
+								roleId: parsed.roleId,
+								updatedAt: now(),
+							},
+							{ ignoreUndefined: true },
+						);
+						await em.flush();
+					}
+					if (!updated)
+						throw new HackKitError("NOT_FOUND", "User not found.");
+					return getUserOrThrow(parsed.targetAuthId);
+				});
 			},
 		},
 	};

@@ -25,7 +25,10 @@ export type PublicSiteConfig = {
 		public: PublicShellLink[];
 		participant: PublicShellLink[];
 	};
-	landing: Omit<PublicLandingPageProps, "primaryAction" | "secondaryAction"> & {
+	landing: Omit<
+		PublicLandingPageProps,
+		"primaryAction" | "secondaryAction"
+	> & {
 		primaryAction: PublicShellLink;
 		secondaryAction: PublicShellLink;
 		signedInAction: PublicShellLink;
@@ -131,7 +134,8 @@ export const publicSiteConfig = {
 			{
 				label: "Organizer support",
 				href: "mailto:organizers@example.com",
-				description: "Questions about registration, approvals, travel, or event logistics.",
+				description:
+					"Questions about registration, approvals, travel, or event logistics.",
 			},
 			{
 				label: "Report a bug",
@@ -149,7 +153,8 @@ export const publicSiteConfig = {
 			{
 				label: "Emergency contact",
 				href: "mailto:organizers@example.com?subject=Urgent%20event%20support",
-				description: "Use for urgent safety or day-of operations issues.",
+				description:
+					"Use for urgent safety or day-of operations issues.",
 			},
 		],
 		resources: [
@@ -169,7 +174,8 @@ export const publicSiteConfig = {
 			{
 				label: "Schedule",
 				href: "/schedule",
-				description: "See public events and open detailed schedule pages.",
+				description:
+					"See public events and open detailed schedule pages.",
 			},
 			{
 				label: "Event pass",
@@ -179,7 +185,8 @@ export const publicSiteConfig = {
 			{
 				label: "Teams",
 				href: "/teams",
-				description: "Manage team participation through the existing team route.",
+				description:
+					"Manage team participation through the existing team route.",
 			},
 			{
 				label: "Invites",
@@ -189,12 +196,14 @@ export const publicSiteConfig = {
 			{
 				label: "Settings",
 				href: "/settings",
-				description: "Update profile details and registration information.",
+				description:
+					"Update profile details and registration information.",
 			},
 			{
 				label: "Survival guide",
 				href: "/help",
-				description: "Find help contacts, logistics links, and Discord instructions.",
+				description:
+					"Find help contacts, logistics links, and Discord instructions.",
 			},
 			{
 				label: "Discord",
@@ -205,7 +214,8 @@ export const publicSiteConfig = {
 			{
 				label: "Admin console",
 				href: "/admin",
-				description: "Organizer tools are available to authorized users.",
+				description:
+					"Organizer tools are available to authorized users.",
 			},
 		],
 	},

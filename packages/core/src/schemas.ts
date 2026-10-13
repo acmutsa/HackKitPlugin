@@ -16,18 +16,9 @@ export const hackTagSchema = z
 	.regex(/^[a-zA-Z0-9_-]+$/)
 	.transform((value) => value.toLowerCase());
 
-export const ensureUserSchema = z.object({
-	authId: authIdSchema,
-	email: z.string().email(),
-	firstName: z.string().min(1).max(100),
-	lastName: z.string().min(1).max(100),
-	profilePhotoUrl: z.string().url().optional(),
-});
-
 export const updateUserProfileSchema = z.object({
 	authId: authIdSchema,
-	firstName: z.string().min(1).max(100).optional(),
-	lastName: z.string().min(1).max(100).optional(),
+	name: z.string().trim().min(1).max(200).optional(),
 	profilePhotoUrl: z
 		.union([
 			z.string().url(),
@@ -67,7 +58,7 @@ export const storedFileReferenceSchema = z.union([
 ]);
 
 export const registerHackerSchema = z.object({
-	authId: authIdSchema,
+	userId: authIdSchema,
 	university: z.string().min(1),
 	major: z.string().min(1),
 	schoolId: z.string().optional(),

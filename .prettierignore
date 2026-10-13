@@ -1,8 +1,5 @@
-packages/db/drizzle/meta/**
 pnpm-lock.yaml
 pnpm-workspace.yaml
 **/package.json
 *.json
-apps/web/db/schema/**
 apps/web/db/migrations/**
-packages/db-drizzle/test-fixtures/**

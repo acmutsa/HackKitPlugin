@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { format } from "prettier";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import type { HackKitPlugin } from "@hackkit/core";
 import {
@@ -70,14 +77,14 @@ function renderRouteStub(
 	return lines.join("\n");
 }
 
-function renderPluginActionsFile(
+export async function renderPluginActionsFile(
 	plugins: readonly {
 		id: string;
 		packageName: string;
 		actionFactory?: string;
 		actionNames?: readonly string[];
 	}[],
-): string {
+): Promise<string> {
 	const lines = [
 		'"use server";',
 		"",
@@ -89,7 +96,7 @@ function renderPluginActionsFile(
 	for (const plugin of plugins) {
 		if (!plugin.actionFactory || !plugin.actionNames?.length) continue;
 		lines.push(
-			`import { ${plugin.actionFactory} } from "${plugin.packageName}";`,
+			`import { ${plugin.actionFactory} } from "${plugin.packageName}/actions";`,
 		);
 	}
 
@@ -97,17 +104,14 @@ function renderPluginActionsFile(
 
 	for (const plugin of plugins) {
 		if (!plugin.actionFactory || !plugin.actionNames?.length) continue;
-		const factoryVar = `${plugin.id}ActionsPromise`;
-		lines.push(
-			`const ${factoryVar} = getRuntime().then((runtime) =>`,
-			`	${plugin.actionFactory}(runtime),`,
-			`);`,
-			"",
-		);
 		for (const actionName of plugin.actionNames) {
 			lines.push(
-				`export async function ${actionName}(...args: Parameters<Awaited<ReturnType<typeof ${plugin.actionFactory}>>["${actionName}"]>) {`,
-				`	const actions = await ${factoryVar};`,
+				`export async function ${actionName}(`,
+				`\t...args: Parameters<`,
+				`\t\tAwaited<ReturnType<typeof ${plugin.actionFactory}>>["${actionName}"]`,
+				`\t>`,
+				`) {`,
+				`	const actions = await ${plugin.actionFactory}(await getRuntime());`,
 				`	return actions.${actionName}(...args);`,
 				`}`,
 				"",
@@ -115,7 +119,11 @@ function renderPluginActionsFile(
 		}
 	}
 
-	return lines.join("\n");
+	return format(lines.join("\n"), {
+		parser: "typescript",
+		useTabs: true,
+		tabWidth: 4,
+	});
 }
 
 function collectRouteClaims(
@@ -171,7 +179,10 @@ export async function runPluginSync(
 			id: resolved.plugin.id,
 			package: resolved.packageName,
 			version: resolved.version,
-			routes: resolved.routes.map(({ host, source }) => ({ host, source })),
+			routes: resolved.routes.map(({ host, source }) => ({
+				host,
+				source,
+			})),
 			actions: [...(resolved.plugin.actionNames ?? [])],
 		})),
 	};
@@ -188,10 +199,7 @@ export async function runPluginSync(
 		for (const route of resolved.routes) {
 			const hostPath = join(projectRoot, route.host);
 			nextStubPaths.add(normalizeAppPath(route.host));
-			writeGeneratedFile(
-				hostPath,
-				renderRouteStub(lockPlugin, route),
-			);
+			writeGeneratedFile(hostPath, renderRouteStub(lockPlugin, route));
 			routesWritten += 1;
 		}
 	}
@@ -211,7 +219,7 @@ export async function runPluginSync(
 	}
 
 	const actionsPath = join(projectRoot, "app/hackkit-plugin-actions.ts");
-	const actionsContent = renderPluginActionsFile(
+	const actionsContent = await renderPluginActionsFile(
 		resolvedPlugins.map((resolved) => ({
 			id: resolved.plugin.id,
 			packageName: resolved.packageName,

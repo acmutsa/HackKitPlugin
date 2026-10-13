@@ -1,5 +1,7 @@
 # Let database adapters generate native schema and applications own migrations
 
+> Superseded: [ADR 0013](0013-mikroorm-and-core-auth.md) adopts native MikroORM entities and queries, Core-owned Better Auth, and explicit MikroORM migration commands. The historical decision below no longer governs persistence. Domain boundaries and app ownership of reviewed migrations remain.
+
 HackKit Core owns an adapter-neutral Storage Schema, but it does not own an ORM schema format or a migration engine. Concrete database adapters compile merged Core and plugin storage into their ecosystem's native schema source. The application commits that generated source and uses its native database tooling to generate, review, and apply migrations.
 
 The ownership chain is:

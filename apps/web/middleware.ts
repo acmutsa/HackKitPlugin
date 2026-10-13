@@ -7,12 +7,7 @@ const PUBLIC_ROUTE_PATHS = new Set([
 	"/registration-closed",
 	"/suspended",
 ]);
-const PUBLIC_ROUTE_PREFIXES = [
-	"/api/",
-	"/i/approval",
-	"/schedule",
-	"/user/",
-];
+const PUBLIC_ROUTE_PREFIXES = ["/api/", "/i/approval", "/schedule", "/user/"];
 const PROTECTED_ROUTE_PREFIXES = [
 	"/admin",
 	"/dashboard",
@@ -62,7 +57,10 @@ export function middleware(request: NextRequest) {
 
 	if (!hasSession && isProtectedRoute(pathname) && !isPublicRoute(pathname)) {
 		const signInUrl = new URL("/sign-in", request.url);
-		signInUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+		signInUrl.searchParams.set(
+			"next",
+			`${pathname}${request.nextUrl.search}`,
+		);
 		return NextResponse.redirect(signInUrl);
 	}
 

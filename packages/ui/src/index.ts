@@ -34,9 +34,7 @@ export type {
 	CompetitorOnboardingStepId,
 } from "./lib/onboarding-steps";
 export { UserDataFields, UserDataForm } from "./components/user-data-form";
-export type {
-	UserDataFormProps,
-} from "./components/user-data-form";
+export type { UserDataFormProps } from "./components/user-data-form";
 export { UserProfileSettingsForm } from "./components/user-profile-settings-form";
 export type { UserProfileSettingsFormProps } from "./components/user-profile-settings-form";
 export { PublicProfileCard } from "./components/public-profile-card";

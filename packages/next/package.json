@@ -23,16 +23,19 @@
   "dependencies": {
     "@hackkit/config": "workspace:*",
     "@hackkit/core": "workspace:*",
-    "@hackkit/ui": "workspace:*"
+    "@hackkit/ui": "workspace:*",
+    "better-auth": "1.7.6"
   },
   "peerDependencies": {
     "next": ">=14",
     "react": ">=18"
   },
   "devDependencies": {
+    "@types/node": "22.18.6",
     "next": "14.2.35",
-    "typescript": "5.5.3",
+    "typescript": "5.9.3",
     "vitest": "^3.2.4",
+    "@types/react": "18.3.3",
     "tsup": "^8.5.1"
   },
   "license": "MIT",

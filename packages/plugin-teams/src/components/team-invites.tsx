@@ -34,7 +34,9 @@ export function TeamInvites({ invites, respondToInvite }: TeamInvitesProps) {
 	if (invites.length === 0) {
 		return (
 			<div className="rounded-lg border bg-card p-6 shadow-sm">
-				<p className="text-muted-foreground">No pending team invites.</p>
+				<p className="text-muted-foreground">
+					No pending team invites.
+				</p>
 			</div>
 		);
 	}
@@ -48,7 +50,9 @@ export function TeamInvites({ invites, respondToInvite }: TeamInvitesProps) {
 				>
 					<div>
 						<p className="font-medium">{invite.team.name}</p>
-						<p className="text-sm text-muted-foreground">@{invite.team.tag}</p>
+						<p className="text-sm text-muted-foreground">
+							@{invite.team.tag}
+						</p>
 					</div>
 					<div className="flex gap-2">
 						<Button

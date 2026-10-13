@@ -8,13 +8,13 @@ Early Core implementations coupled QR validation to `users.checkIn` and `events.
 
 ## Decision
 
-- Remove QR-specific fields and validation from Core User/Event APIs.
-- Implement Event Pass QR helpers in `@hackkit/ui`.
-- Parse and validate raw QR in `@hackkit/next` mutations (`previewEventPassQr`, `checkInUser`, `recordEventScan`).
-- Keep scanner UX in HackKit UI with client-only scan state; confirm sends `rawQr` to server actions.
+-   Remove QR-specific fields and validation from Core User/Event APIs.
+-   Implement Event Pass QR helpers in `@hackkit/ui`.
+-   Parse and validate raw QR in `@hackkit/next` mutations (`previewEventPassQr`, `checkInUser`, `recordEventScan`).
+-   Keep scanner UX in HackKit UI with client-only scan state; confirm sends `rawQr` to server actions.
 
 ## Consequences
 
-- Core stays framework- and presentation-free; alternate check-in UIs can call the same Core APIs.
-- Apps configure Event Pass QR TTL when wiring `HackKitUIProvider` and mutations, not via `createHackkit`.
-- Security depends on server-side QR validation in mutations, not URL query parameters.
+-   Core stays framework- and presentation-free; alternate check-in UIs can call the same Core APIs.
+-   Apps configure Event Pass QR TTL when wiring `HackKitUIProvider` and mutations, not via `createHackkit`.
+-   Security depends on server-side QR validation in mutations, not URL query parameters.

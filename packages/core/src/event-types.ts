@@ -27,7 +27,9 @@ const eventTypeOptionSchema = z.object({
 
 const eventTypesSchema = z.array(eventTypeOptionSchema).min(1);
 
-function assertUniqueEventTypeValues(options: readonly EventTypeOption[]): void {
+function assertUniqueEventTypeValues(
+	options: readonly EventTypeOption[],
+): void {
 	const seen = new Set<string>();
 	for (const option of options) {
 		if (seen.has(option.value)) {

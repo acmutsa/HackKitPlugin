@@ -20,11 +20,11 @@ async function canViewFile(key: string): Promise<boolean> {
 
 	const runtime = await getRuntime();
 	const currentUser = await runtime.getCurrentUser();
-	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.authId);
+	const hacker = await runtime.hackkit.hackers.getHacker(currentUser.id);
 	if (hacker?.resumeUrl === storedFileReferenceForKey(key)) return true;
 
 	return runtime.hackkit.accessControl.hasPermission(
-		currentUser.authId,
+		currentUser.id,
 		CorePermission.HackersView,
 	);
 }
@@ -56,12 +56,8 @@ export async function GET(request: Request): Promise<NextResponse> {
 		}
 		const body =
 			result.body instanceof Uint8Array
-				? result.body
-				: Buffer.isBuffer(result.body)
-					? result.body
-					: Buffer.from(
-							await new Response(result.body).arrayBuffer(),
-						);
+				? Uint8Array.from(result.body).buffer
+				: await new Response(result.body).arrayBuffer();
 		return new NextResponse(body, {
 			headers: {
 				"Content-Type":

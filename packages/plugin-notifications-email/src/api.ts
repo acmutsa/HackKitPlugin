@@ -1,4 +1,4 @@
-import { coreModels, type HackKitPluginContext } from "@hackkit/core";
+import { type HackKitPluginContext } from "@hackkit/core";
 import type {
 	NotificationChannel,
 	NotificationDeliveryResult,
@@ -51,13 +51,15 @@ async function defaultRecipientResolver(
 ): Promise<EmailRecipient | null> {
 	const authId =
 		intent.recipientAuthId ??
-		(typeof intent.payload.authId === "string" ? intent.payload.authId : undefined);
+		(typeof intent.payload.authId === "string"
+			? intent.payload.authId
+			: undefined);
 	if (!authId) return null;
-	const user = await context.database.findOne(coreModels.user, { authId });
+	const user = await context.getUser(authId);
 	if (!user) return null;
 	return {
 		email: user.email,
-		name: `${user.firstName} ${user.lastName}`.trim(),
+		name: user.name,
 	};
 }
 
@@ -71,7 +73,8 @@ export function createEmailNotificationsApi(
 	options: EmailNotificationsPluginOptions,
 ) {
 	const templates = mergeEmailTemplates(options.templates);
-	const resolveRecipient = options.resolveRecipient ?? defaultRecipientResolver;
+	const resolveRecipient =
+		options.resolveRecipient ?? defaultRecipientResolver;
 
 	const channel: NotificationChannel = {
 		id: "email",

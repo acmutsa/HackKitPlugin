@@ -1,39 +1,20 @@
+import {
+	createTestHackkit,
+	createTestUser,
+	type TestHackkit,
+} from "../testing";
 import { describe, expect, it } from "vitest";
-import { createPluginRegistry } from "../plugins";
-import { createInMemoryDatabaseAdapterFromStorage } from "../adapters/db/memory";
-import { createHackkit } from "../hackkit";
 import { CorePermission } from "../permissions";
 import { seedTestOwner } from "./seed-test-owner";
 
-function createTestHackkit() {
-	const registry = createPluginRegistry();
-	const now = () => new Date("2026-05-24T12:00:00.000Z");
-	let counter = 0;
-	const id = () => `id-${++counter}`;
-	const db = createInMemoryDatabaseAdapterFromStorage(
-		registry.storage,
-		now,
-		id,
-	);
-	return Object.assign(
-		createHackkit({
-			database: db,
-			clock: now,
-			id,
-		}),
-		{ database: db },
-	);
-}
-
 describe("hackkit access control and check-in", () => {
 	it("records hackathon check-in once", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "volunteer-auth");
-		await hackkit.users.ensureUser({
+		await createTestUser(hackkit, {
 			authId: "participant-auth",
 			email: "p@example.com",
-			firstName: "Pat",
-			lastName: "Participant",
+			name: "Pat Participant",
 		});
 
 		const checkedIn = await hackkit.users.checkIn({
@@ -51,13 +32,12 @@ describe("hackkit access control and check-in", () => {
 	});
 
 	it("records event scans as separate rows", async () => {
-		const hackkit = createTestHackkit();
+		const hackkit = await createTestHackkit();
 		await seedTestOwner(hackkit, "volunteer-auth");
-		await hackkit.users.ensureUser({
+		await createTestUser(hackkit, {
 			authId: "participant-auth",
 			email: "p@example.com",
-			firstName: "Pat",
-			lastName: "Participant",
+			name: "Pat Participant",
 		});
 
 		const event = await hackkit.events.createEvent({
@@ -88,12 +68,11 @@ describe("hackkit access control and check-in", () => {
 	});
 
 	it("enforces permissions through accessControl", async () => {
-		const hackkit = createTestHackkit();
-		await hackkit.users.ensureUser({
+		const hackkit = await createTestHackkit();
+		await createTestUser(hackkit, {
 			authId: "no-role-auth",
 			email: "n@example.com",
-			firstName: "No",
-			lastName: "Role",
+			name: "No Role",
 		});
 
 		await expect(
