@@ -277,7 +277,7 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 -   Early **HackKit Web App** implementations may use guided “next step” links without hard redirects between onboarding steps; strict step enforcement may come later.
 -   **HackKit UI** may provide a **Competitor Onboarding Progress** component that displays step labels and completion state from props supplied by the **HackKit Web App** (no hard redirects).
 -   **HackKit Web Apps** may expose each **Competitor Onboarding** step at its own route under a shared prefix (for example `/onboarding/...`).
--   **HackKit UI** ships default forms for **Competitor Onboarding** steps, including **HackTag** claim, **User Data**, and **Hacker Registration**; **HackKit Web Apps** wire routes, server actions, and adapters.
+-   **HackKit UI** ships default forms for **Competitor Onboarding** steps, including **HackTag** claim, **User Data**, and **Hacker Registration**; **HackKit Web Apps** wire routes, a typed browser path client, and adapters.
 -   **Hacker Registration** resume uploads use a **Blob Storage Adapter** in the **HackKit Web App**; **HackKit Core** stores only the **Stored File Reference** on the **Hacker** record when provided; omitting a resume leaves `resumeUrl` unset (no sentinel placeholder).
 -   A **Hacker** belongs to exactly one **User**.
 -   A **Hacker** may have zero or one **Group**.

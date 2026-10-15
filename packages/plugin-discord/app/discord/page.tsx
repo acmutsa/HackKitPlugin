@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
+import { DiscordSyncButton } from "../../src/components/discord-sync-button";
 import { getHackkitRuntime } from "@hackkit/next";
 import type { DiscordApi } from "../../src/api";
-import { syncDiscordMemberRoles } from "@/app/hackkit-plugin-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -44,19 +44,7 @@ export default async function DiscordPage() {
 									</p>
 								) : null}
 							</div>
-							<form
-								action={async () => {
-									"use server";
-									await syncDiscordMemberRoles();
-								}}
-							>
-								<button
-									type="submit"
-									className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-								>
-									Sync Discord roles
-								</button>
-							</form>
+							<DiscordSyncButton />
 						</div>
 					) : (
 						<div>

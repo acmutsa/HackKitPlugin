@@ -1,4 +1,5 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import {
@@ -339,7 +340,7 @@ export function UserDataForm({
 	successRedirectTo,
 	className,
 }: UserDataFormProps) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const redirectTo = successRedirectTo ?? navigation.routes.dashboard;
 	const schema = React.useMemo(
 		() => createUserDataFormSchema(userDataOptions),
@@ -352,15 +353,18 @@ export function UserDataForm({
 	const clearPersistedState = usePersistedFormState(form, localStorageKey);
 
 	async function onSubmit(values: UserDataFormValues) {
-		const result = await actions.completeUserData(values);
-		if (!result.ok) {
-			toast.error(result.message);
+		const result = await client("@post/user-data/complete", {
+			body: values,
+		});
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 
 		clearPersistedState();
 		toast.success("User data saved.");
 		navigation.push(redirectTo);
+		navigation.refresh();
 	}
 
 	return (

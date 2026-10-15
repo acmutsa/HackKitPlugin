@@ -1,7 +1,6 @@
 import { getHackkitRuntime } from "@hackkit/next";
 import { notFound, redirect } from "next/navigation";
 import type { TeamsApi } from "../../src/api";
-import { respondToInvite } from "@/app/hackkit-plugin-actions";
 import { TeamInvites } from "../../src/components/team-invites";
 
 export const dynamic = "force-dynamic";
@@ -33,10 +32,7 @@ export default async function InvitesPage() {
 					</p>
 				</div>
 
-				<TeamInvites
-					invites={invites}
-					respondToInvite={respondToInvite}
-				/>
+				<TeamInvites invites={invites} />
 			</div>
 		</main>
 	);

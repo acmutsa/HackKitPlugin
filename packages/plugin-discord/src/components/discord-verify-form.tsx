@@ -3,33 +3,28 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { HackKitActionResult } from "@hackkit/ui";
-import { Button } from "@hackkit/ui";
-import type { ConfirmDiscordVerificationInput } from "../actions";
+import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
+import type { DiscordEndpoints } from "../client";
 
 type DiscordVerifyFormProps = {
 	code: string;
 	username: string;
-	confirmDiscordVerification: (
-		values: ConfirmDiscordVerificationInput,
-	) => Promise<HackKitActionResult<unknown>>;
 };
 
-export function DiscordVerifyForm({
-	code,
-	username,
-	confirmDiscordVerification,
-}: DiscordVerifyFormProps) {
+export function DiscordVerifyForm({ code, username }: DiscordVerifyFormProps) {
+	const client = useHackkitClient<DiscordEndpoints>();
 	const router = useRouter();
 	const [pending, setPending] = React.useState(false);
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setPending(true);
-		const result = await confirmDiscordVerification({ code });
+		const result = await client("@post/discord/confirm-verification", {
+			body: { code },
+		});
 		setPending(false);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("Discord account linked.");

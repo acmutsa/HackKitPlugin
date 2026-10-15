@@ -56,3 +56,6 @@ HANDOFF.md
 
 # build
 **/dist/
+
+# Local research notes
+/docs/research/**/*.md

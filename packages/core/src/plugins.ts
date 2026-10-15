@@ -32,12 +32,10 @@ export type HackKitPlugin<
 	id: TId;
 	/** Disable runtime behavior while retaining entities, settings, and permissions. */
 	enabled?: boolean;
-	/** npm package name used by HackKit CLI to resolve routes and actions. */
+	/** npm package name used by the CLI to resolve plugin routes. */
 	packageName?: string;
-	/** Factory exported by the plugin package, e.g. createTeamsActions. */
-	actionFactory?: string;
-	/** Server action names exposed by the plugin action factory. */
-	actionNames?: readonly string[];
+	/** Built once at startup. Endpoint operations receive a fresh authenticated scope. */
+	endpoints?: import("./http/mutation").EndpointFactory;
 	entities?: readonly EntitySchema[];
 	permissions?: PermissionMap;
 	settings?: readonly HackathonSettingDefinition[];

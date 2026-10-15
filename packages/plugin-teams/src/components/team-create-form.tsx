@@ -3,17 +3,11 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { HackKitActionResult } from "@hackkit/ui";
-import { Button } from "@hackkit/ui";
-import type { CreateTeamInput } from "../actions";
+import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
+import type { TeamsEndpoints } from "../client";
 
-type TeamCreateFormProps = {
-	createTeam: (
-		values: CreateTeamInput,
-	) => Promise<HackKitActionResult<unknown>>;
-};
-
-export function TeamCreateForm({ createTeam }: TeamCreateFormProps) {
+export function TeamCreateForm() {
+	const client = useHackkitClient<TeamsEndpoints>();
 	const router = useRouter();
 	const [name, setName] = React.useState("");
 	const [tag, setTag] = React.useState("");
@@ -22,10 +16,12 @@ export function TeamCreateForm({ createTeam }: TeamCreateFormProps) {
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setPending(true);
-		const result = await createTeam({ name, tag });
+		const result = await client("@post/teams/create", {
+			body: { name, tag },
+		});
 		setPending(false);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("Team created.");

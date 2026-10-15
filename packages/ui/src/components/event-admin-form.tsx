@@ -1,4 +1,5 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -91,7 +92,7 @@ export function EventAdminForm({
 	successRedirectTo,
 	className,
 }: EventAdminFormProps) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const redirectTo = successRedirectTo ?? navigation.routes.admin.events;
 	const schema = React.useMemo(
 		() => createEventFormSchema(eventTypes),
@@ -106,12 +107,19 @@ export function EventAdminForm({
 	});
 
 	async function handleSubmit(values: EventFormValues) {
+		const input = {
+			...values,
+			startTime: new Date(values.startTime).toISOString(),
+			endTime: new Date(values.endTime).toISOString(),
+		};
 		const result = eventId
-			? await actions.updateEvent(eventId, values)
-			: await actions.createEvent(values);
+			? await client("@post/events/update", {
+					body: { eventId, ...input },
+				})
+			: await client("@post/events/create", { body: input });
 
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 

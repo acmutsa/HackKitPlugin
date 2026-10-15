@@ -3,10 +3,9 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { User } from "@hackkit/core";
-import type { HackKitActionResult } from "@hackkit/ui";
-import { Button } from "@hackkit/ui";
-import type { InviteToTeamInput, RemoveMemberInput } from "../actions";
+import type { User } from "@hackkit/core/client";
+import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
+import type { TeamsEndpoints } from "../client";
 import type { TeamInviteWithInvitee, TeamWithMembers } from "../api";
 
 const INVITE_STATUS_LABEL = new Map<TeamInviteWithInvitee["status"], string>([
@@ -28,23 +27,14 @@ type TeamDashboardProps = {
 	team: TeamWithMembers;
 	currentUser: User;
 	teamInvites: TeamInviteWithInvitee[];
-	inviteToTeam: (
-		values: InviteToTeamInput,
-	) => Promise<HackKitActionResult<unknown>>;
-	leaveTeam: () => Promise<HackKitActionResult<unknown>>;
-	removeMember: (
-		values: RemoveMemberInput,
-	) => Promise<HackKitActionResult<unknown>>;
 };
 
 export function TeamDashboard({
 	team,
 	currentUser,
 	teamInvites,
-	inviteToTeam,
-	leaveTeam,
-	removeMember,
 }: TeamDashboardProps) {
+	const client = useHackkitClient<TeamsEndpoints>();
 	const router = useRouter();
 	const [hackTag, setHackTag] = React.useState("");
 	const [pending, setPending] = React.useState<string | null>(null);
@@ -53,10 +43,12 @@ export function TeamDashboard({
 	async function handleInvite(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setPending("invite");
-		const result = await inviteToTeam({ teamId: team.id, hackTag });
+		const result = await client("@post/teams/invite", {
+			body: { teamId: team.id, hackTag },
+		});
 		setPending(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("Invite sent.");
@@ -66,10 +58,10 @@ export function TeamDashboard({
 
 	async function handleLeave() {
 		setPending("leave");
-		const result = await leaveTeam();
+		const result = await client("@post/teams/leave");
 		setPending(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("You left the team.");
@@ -78,10 +70,12 @@ export function TeamDashboard({
 
 	async function handleRemove(memberAuthId: string) {
 		setPending(memberAuthId);
-		const result = await removeMember({ memberAuthId });
+		const result = await client("@post/teams/remove-member", {
+			body: { memberAuthId },
+		});
 		setPending(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("Member removed.");

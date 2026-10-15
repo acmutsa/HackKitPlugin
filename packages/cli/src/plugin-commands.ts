@@ -175,6 +175,6 @@ export async function runPluginSyncAll(
 	});
 	logger.log(
 		"info",
-		`HackKit plugin sync completed (${result.routesWritten} routes, ${result.actionsWritten} actions, ${result.stubsRemoved} removed).`,
+		`HackKit plugin sync completed (${result.routesWritten} routes, ${result.stubsRemoved} removed).`,
 	);
 }

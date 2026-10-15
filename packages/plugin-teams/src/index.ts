@@ -1,3 +1,4 @@
+import { createTeamsEndpoints } from "./endpoints";
 import { defineSetting } from "@hackkit/core";
 import type { HackKitPlugin } from "@hackkit/core";
 import { createTeamsApi } from "./api";
@@ -12,14 +13,7 @@ export function teamsPlugin(): HackKitPlugin<
 	return {
 		id: "teams",
 		packageName: "@hackkit/plugin-teams",
-		actionFactory: "createTeamsActions",
-		actionNames: [
-			"createTeam",
-			"inviteToTeam",
-			"respondToInvite",
-			"leaveTeam",
-			"removeMember",
-		],
+		endpoints: createTeamsEndpoints,
 		entities: Object.values(teamsModels),
 		settings: [
 			defineSetting({
@@ -56,4 +50,3 @@ export type {
 	PendingTeamInvite,
 	TeamInviteWithInvitee,
 } from "./api";
-export type { TeamsActions } from "./actions";

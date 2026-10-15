@@ -31,3 +31,5 @@ export async function getPageGuards() {
 export function getCoreRuntime() {
 	return host.core;
 }
+
+export const handleHackkitRequest = host.handler;

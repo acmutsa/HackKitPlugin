@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHackkitClient } from "@hackkit/core/http/client";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -123,8 +124,107 @@ try {
 		307,
 	);
 	assert.equal((await fetch(`${baseURL}/api/admin/export`)).status, 401);
+	const client = createHackkitClient({
+		baseURL: baseURL + "/api/hackkit",
+	});
+	const callOptions = accounts.map((account) => ({
+		headers: { cookie: account.cookie, origin: baseURL },
+	}));
+	const tags = ["http-first", "http-second"];
+	const claimed = await Promise.all(
+		accounts.map((_, index) =>
+			client("@post/users/claim-hack-tag", {
+				body: { hackTag: tags[index] },
+				...callOptions[index],
+			}),
+		),
+	);
+	assert.deepEqual(
+		claimed.map((result) => result.data?.id),
+		accounts.map((account) => account.id),
+	);
+	assert.equal(typeof claimed[0].data.createdAt, "string");
+	const unauthenticated = await client("@post/users/claim-hack-tag", {
+		body: { hackTag: "anon" },
+		headers: { origin: baseURL },
+	});
+	assert.equal(unauthenticated.error.code, "UNAUTHORIZED");
+	assert.equal(unauthenticated.error.status, 401);
+	const forbidden = await client("@post/roles/create", {
+		body: { name: "Forbidden", position: 0, permissions: [] },
+		...callOptions[0],
+	});
+	assert.equal(forbidden.error.status, 403);
+	const spoof = await fetch(baseURL + "/api/hackkit/users/claim-hack-tag", {
+		method: "POST",
+		headers: {
+			...callOptions[0].headers,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ hackTag: "spoof", authId: accounts[1].id }),
+	});
+	assert.equal(spoof.status, 400);
+	for (let index = 0; index < accounts.length; index++) {
+		const data = await client("@post/user-data/complete", {
+			body: {
+				age: 20,
+				gender: "prefer_not_to_answer",
+				race: "prefer_not_to_answer",
+				ethnicity: "prefer_not_to_answer",
+				shirtSize: "m",
+				dietaryRestrictions: ["none"],
+				hasAcceptedMLHCodeOfConduct: true,
+				hasSharedDataWithMLH: true,
+				isEmailable: true,
+			},
+			...callOptions[index],
+		});
+		assert.equal(data.error, null, JSON.stringify(data.error));
+		const registration = await client("@post/hackers/register", {
+			body: {
+				university: "Test University",
+				major: "CS",
+				levelOfStudy: "undergraduate",
+				hackathonsAttended: 0,
+				softwareExperience: "beginner",
+			},
+			...callOptions[index],
+		});
+		assert.equal(
+			registration.error,
+			null,
+			JSON.stringify(registration.error),
+		);
+		assert.equal(registration.data.userId, accounts[index].id);
+	}
+	const team = await client("@post/teams/create", {
+		body: { name: "HTTP team", tag: "http-team" },
+		...callOptions[0],
+	});
+	assert.equal(team.error, null, JSON.stringify(team.error));
+	assert.equal(team.data.ownerAuthId, accounts[0].id);
+	const invite = await client("@post/teams/invite", {
+		body: { teamId: team.data.id, hackTag: tags[1] },
+		...callOptions[0],
+	});
+	assert.equal(invite.error, null, JSON.stringify(invite.error));
+	const accepted = await client("@post/teams/respond-to-invite", {
+		body: { inviteId: invite.data.id, accept: true },
+		...callOptions[1],
+	});
+	assert.equal(accepted.error, null, JSON.stringify(accepted.error));
+	const left = await client("@post/teams/leave", callOptions[1]);
+	assert.deepEqual(left, { data: null, error: null });
+	const ownerCannotLeave = await client("@post/teams/leave", callOptions[0]);
+	assert.equal(ownerCannotLeave.error.status, 422);
+	const discord = await client("@post/discord/confirm-verification", {
+		body: { code: "missing-code" },
+		...callOptions[0],
+	});
+	assert.equal(discord.error.status, 404);
+
 	console.log(
-		"Passed: HTTP signup, isolated sessions, onboarding rendering, permission denials, and anonymous redirects.",
+		"Passed: HTTP signup, isolated sessions, onboarding rendering, Core and Teams path mutations, actor rejection, permissions, and Discord routing.",
 	);
 } finally {
 	if (server && server.exitCode === null) {

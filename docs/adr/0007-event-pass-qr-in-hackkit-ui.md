@@ -1,5 +1,7 @@
 # Keep Event Pass QR in HackKit UI, not HackKit Core
 
+> Updated October 14, 2026: QR helpers now live in the browser-safe `@hackkit/core/event-pass` transport module. UI reexports them. Core HTTP endpoints validate raw QR before calling the unchanged domain methods. This removes the Next-to-UI dependency. The domain methods still accept `targetAuthId`, and the UI still owns scanner interactions. See the [current integration guide](../guides/next-integration.md).
+
 Hackathon check-in and event scan APIs in HackKit Core accept only domain fields such as `targetAuthId`. Event Pass QR encoding, parsing, and TTL validation live in HackKit UI. Server mutations in `@hackkit/next` import those helpers and accept raw QR strings from client actions before calling Core.
 
 ## Context

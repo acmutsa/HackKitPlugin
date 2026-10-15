@@ -1,3 +1,4 @@
+import { createDiscordEndpoints } from "./endpoints";
 import type { HackKitPlugin } from "@hackkit/core";
 import { createDiscordApi, type DiscordPluginOptions } from "./api";
 import { discordModels } from "./models";
@@ -9,8 +10,7 @@ export function discordPlugin(
 	return {
 		id: "discord",
 		packageName: "@hackkit/plugin-discord",
-		actionFactory: "createDiscordActions",
-		actionNames: ["confirmDiscordVerification", "syncDiscordMemberRoles"],
+		endpoints: createDiscordEndpoints,
 		entities: Object.values(discordModels),
 		setup: (context) => {
 			resolvedOptions ??=
@@ -23,10 +23,6 @@ export function discordPlugin(
 export { createDiscordApi } from "./api";
 export { discordModels } from "./models";
 export { createDiscordHttpRoleSyncProvider } from "./providers";
-export type {
-	ConfirmDiscordVerificationInput,
-	DiscordActions,
-} from "./actions";
 export type {
 	CreateDiscordVerificationInput,
 	DiscordApi,
