@@ -1,4 +1,5 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import { registerHackerSchema, type User } from "@hackkit/core/client";
@@ -126,7 +127,7 @@ export function HackerRegistrationForm({
 	heardFromOptions,
 	uploadResume,
 }: HackerRegistrationFormProps) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const redirectTo = successRedirectTo ?? navigation.routes.dashboard;
 	const [resumeFile, setResumeFile] = React.useState<File | null>(null);
 	const form = useForm<HackerRegistrationFormValues>({
@@ -165,9 +166,11 @@ export function HackerRegistrationForm({
 
 		let result;
 		try {
-			result = await actions.registerHacker({
-				...values,
-				resumeUrl: resumeUrl || undefined,
+			result = await client("@post/hackers/register", {
+				body: {
+					...values,
+					resumeUrl: resumeUrl || undefined,
+				},
 			});
 		} catch {
 			toast.error(
@@ -175,14 +178,15 @@ export function HackerRegistrationForm({
 			);
 			return;
 		}
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 
 		clearPersistedState();
 		toast.success("Hacker registration complete.");
 		navigation.push(redirectTo);
+		navigation.refresh();
 	}
 
 	return (

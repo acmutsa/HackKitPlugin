@@ -1,6 +1,7 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
-import type { EventScan, User } from "@hackkit/core/client";
+import type { EventScan, User, Wire } from "@hackkit/core/client";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import * as React from "react";
 import { toast } from "sonner";
@@ -17,24 +18,26 @@ import {
 } from "./ui/card";
 
 export function EventScanner({ event, className, onDone }: EventScannerProps) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const [loading, setLoading] = React.useState(false);
 	const [rawQr, setRawQr] = React.useState<string | null>(null);
-	const [targetUser, setTargetUser] = React.useState<User | null>(null);
-	const [priorScans, setPriorScans] = React.useState<EventScan[]>([]);
+	const [targetUser, setTargetUser] = React.useState<Wire<User> | null>(null);
+	const [priorScans, setPriorScans] = React.useState<Wire<EventScan>[]>([]);
 
 	async function handleScan(rawValue: string) {
 		if (rawQr) return;
 
 		setLoading(true);
-		const result = await actions.previewEventPassQr({
-			rawQr: rawValue,
-			eventId: event.id,
+		const result = await client("@post/event-pass/preview", {
+			body: {
+				rawQr: rawValue,
+				eventId: event.id,
+			},
 		});
 		setLoading(false);
 
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 
@@ -47,14 +50,16 @@ export function EventScanner({ event, className, onDone }: EventScannerProps) {
 		if (!rawQr) return;
 
 		setLoading(true);
-		const result = await actions.recordEventScan({
-			eventId: event.id,
-			rawQr,
+		const result = await client("@post/events/record-scan", {
+			body: {
+				eventId: event.id,
+				rawQr,
+			},
 		});
 		setLoading(false);
 
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 

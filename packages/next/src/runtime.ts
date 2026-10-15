@@ -2,48 +2,58 @@ import {
 	initializeHackkit,
 	HackKitError,
 	type HackKit,
+	type HackKitPlugin,
 	type HackKitRuntime as CoreRuntime,
 	type SettingKey,
 	type SettingValue,
 	type User,
 } from "@hackkit/core";
 import { resolveHackkitConfig, type HackkitConfig } from "@hackkit/config";
-import type { HackKitUIActions } from "@hackkit/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { nextCookies } from "better-auth/next-js";
 import { cache } from "react";
-import { createHackKitMutations } from "./mutations";
+import { createHackkitHandler } from "@hackkit/core/http";
 import { createPageGuards, type PageGuards } from "./page-guards";
 
-export type CreateHackkitRuntimeOptions = {
-	core: CoreRuntime;
+export type CreateHackkitRuntimeOptions<
+	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
+> = {
+	core: CoreRuntime<TPlugins>;
 	afterCurrentUser?: (user: User, hackkit: HackKit) => Promise<void>;
 };
 
-export type CreateHackkitRuntimeFromConfigOptions = {
-	config: HackkitConfig;
+export type CreateHackkitRuntimeFromConfigOptions<
+	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
+> = {
+	config: HackkitConfig<TPlugins>;
 	afterCurrentUser?: CreateHackkitRuntimeOptions["afterCurrentUser"];
 };
 
-export type HackkitRuntime = {
-	hackkit: HackKit;
-	mutations: HackKitUIActions;
+export type HackkitRuntime<
+	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
+> = {
+	hackkit: ReturnType<CoreRuntime<TPlugins>["createScope"]>["hackkit"];
 	pageGuards: PageGuards;
 	getAuthId(): Promise<string>;
 	getCurrentUser(): Promise<User>;
 	getSettingValue(key: SettingKey): Promise<SettingValue>;
 };
 
-export type HackkitRuntimeHost = {
-	core: Promise<CoreRuntime>;
-	getRuntime(): Promise<HackkitRuntime>;
+export type HackkitRuntimeHost<
+	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
+> = {
+	core: Promise<CoreRuntime<TPlugins>>;
+	handler(request: Request): Promise<Response>;
+	getRuntime(): Promise<HackkitRuntime<TPlugins>>;
 };
 
 /** Bind domain operations to this request's session and fresh EntityManager. */
-export async function createHackkitRuntime(
-	options: CreateHackkitRuntimeOptions,
-): Promise<HackkitRuntime> {
+export async function createHackkitRuntime<
+	const TPlugins extends readonly HackKitPlugin[],
+>(
+	options: CreateHackkitRuntimeOptions<TPlugins>,
+): Promise<HackkitRuntime<TPlugins>> {
 	const session = await options.core.auth.api.getSession({
 		headers: await headers(),
 	});
@@ -65,18 +75,12 @@ export async function createHackkitRuntime(
 	function getSettingValue(key: SettingKey) {
 		return hackkit.settings.getValue(key);
 	}
-	const mutations = createHackKitMutations({
-		hackkit,
-		getAuthId,
-		getSettingValue,
-	});
 	const pageGuards = createPageGuards(hackkit, getAuthId, {
 		getCurrentUser,
 		getSettingValue,
 	});
 	return {
 		hackkit,
-		mutations,
 		pageGuards,
 		getAuthId,
 		getCurrentUser,
@@ -85,10 +89,21 @@ export async function createHackkitRuntime(
 }
 
 /** Initialize shared resources once; React caches only within a server render. */
-export function createHackkitRuntimeFromConfig(
-	options: CreateHackkitRuntimeFromConfigOptions,
-): HackkitRuntimeHost {
+export function createHackkitRuntimeFromConfig<
+	const TPlugins extends readonly HackKitPlugin[] = [],
+>(
+	options: CreateHackkitRuntimeFromConfigOptions<TPlugins>,
+): HackkitRuntimeHost<TPlugins> {
 	const config = resolveHackkitConfig(options.config);
+
+	const baseURL = config.auth.baseURL;
+	if (typeof baseURL !== "string")
+		throw new Error(
+			"HackKit HTTP requires an explicit auth.baseURL origin.",
+		);
+	const trustedOrigins = config.auth.trustedOrigins;
+	if (trustedOrigins && !Array.isArray(trustedOrigins))
+		throw new Error("HackKit HTTP requires a static trustedOrigins list.");
 	const core = initializeHackkit({
 		...config,
 		auth: {
@@ -102,7 +117,24 @@ export function createHackkitRuntimeFromConfig(
 			afterCurrentUser: options.afterCurrentUser,
 		}),
 	);
-	return { core, getRuntime };
+	let handler: ReturnType<typeof createHackkitHandler> | undefined;
+
+	return {
+		core,
+		getRuntime,
+		handler: async (request) => {
+			const runtime = await core;
+			handler ??= createHackkitHandler({
+				runtime,
+				trustedOrigins: [
+					new URL(baseURL).origin,
+					...(trustedOrigins ?? []),
+				],
+				logger: config.logger,
+			});
+			return handler(request);
+		},
+	};
 }
 
 let runtimeProvider: (() => Promise<HackkitRuntime>) | undefined;

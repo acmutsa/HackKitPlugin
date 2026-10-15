@@ -1,7 +1,12 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
-import { updateUserProfileSchema, type User } from "@hackkit/core/client";
+import {
+	updateUserProfileSchema,
+	type User,
+	type Wire,
+} from "@hackkit/core/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -52,7 +57,7 @@ function textToSkills(value?: string) {
 		.filter(Boolean);
 }
 
-function userToFormValues(user: User): FormValues {
+function userToFormValues(user: User | Wire<User>): FormValues {
 	return {
 		name: user.name,
 		hackTag: user.hackTag ?? "",
@@ -71,7 +76,7 @@ export function UserProfileSettingsForm({
 	uploadProfilePhoto,
 	className,
 }: UserProfileSettingsFormProps) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const [profilePhotoFile, setProfilePhotoFile] = React.useState<File | null>(
 		null,
 	);
@@ -122,13 +127,15 @@ export function UserProfileSettingsForm({
 		};
 		let result;
 		try {
-			result = await actions.updateUserProfile(payload);
+			result = await client("@post/users/update-profile", {
+				body: payload,
+			});
 		} catch {
 			toast.error("Could not save your profile. Please try again.");
 			return;
 		}
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 

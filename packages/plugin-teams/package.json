@@ -20,10 +20,9 @@
       "default": "./app/invites/page.tsx"
     },
     "./app/*": "./app/*",
-    "./actions": {
-      "types": "./dist/actions.d.ts",
-      "import": "./dist/actions.js",
-      "default": "./dist/actions.js"
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
     }
   },
   "files": [
@@ -43,7 +42,8 @@
     "@hackkit/ui": "workspace:*",
     "sonner": "^1.5.0",
     "zod": "^3.25.67",
-    "@mikro-orm/core": "7.2.1"
+    "@mikro-orm/core": "7.2.1",
+    "better-call": "1.4.0"
   },
   "peerDependencies": {
     "next": ">=14",

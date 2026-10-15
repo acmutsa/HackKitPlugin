@@ -1,9 +1,8 @@
-export { actionFailure, actionSuccess } from "./actions";
-export type { HackKitActionResult } from "./actions";
 export {
 	HackKitUIProvider,
 	useHackKitNavigation,
 	useHackKitUI,
+	useHackkitClient,
 } from "./provider";
 export type { HackKitUIProviderProps } from "./provider";
 export {
@@ -88,27 +87,15 @@ export {
 } from "./event-pass";
 export type {
 	CheckInScannerProps,
-	CheckInUserInput,
-	ApproveUserInput,
-	AssignRoleInput,
-	BanUserInput,
-	CreateRoleInput,
 	EventAdminFormProps,
 	EventFormValues,
 	EventPassProps,
 	EventScannerProps,
 	HackathonSettingsFormProps,
-	HackKitUIActions,
 	HackTagFormValues,
 	HackerRegistrationFormValues,
-	PreviewEventPassQrInput,
-	PreviewEventPassQrResult,
-	RecordEventScanInput,
 	RsvpConfirmationProps,
 	ScheduleListProps,
-	SetRsvpStatusInput,
-	SetSettingsInput,
-	UpdateRoleInput,
 	UserProfileFormValues,
 	UserDataFormValues,
 } from "./types";
@@ -134,3 +121,5 @@ export {
 	SelectValue,
 } from "./components/ui/select";
 export { Textarea } from "./components/ui/textarea";
+
+export { showHackkitError } from "./http-error";

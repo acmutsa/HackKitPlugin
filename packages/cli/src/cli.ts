@@ -59,7 +59,7 @@ const plugins = program
 
 plugins
 	.command("sync")
-	.description("Sync plugin routes, actions, and lockfile")
+	.description("Sync plugin routes and lockfile")
 	.option("-c, --config <path>", "path to HackKit config")
 	.action(async (commandOptions: { config?: string }) => {
 		const globalOptions = program.opts<{ config: string }>();

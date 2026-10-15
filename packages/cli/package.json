@@ -35,8 +35,7 @@
     "dotenv": "^16.6.1",
     "jiti": "^2.4.2",
     "@mikro-orm/core": "7.2.1",
-    "@mikro-orm/migrations": "7.2.1",
-    "prettier": "^3.3.3"
+    "@mikro-orm/migrations": "7.2.1"
   },
   "devDependencies": {
     "@types/node": "22.18.6",

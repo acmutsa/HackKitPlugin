@@ -47,8 +47,10 @@ export type HackerRegistrationOptions = {
 	heardFrom?: readonly RegistrationOption[];
 };
 
-export type HackkitConfig = {
-	plugins?: readonly HackKitPlugin[];
+export type HackkitConfig<
+	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
+> = {
+	plugins?: TPlugins;
 	database: HackKitDatabaseOptions;
 	auth: HackKitAuthOptions;
 	entities?: InitializeHackkitOptions["entities"];
@@ -62,11 +64,10 @@ export type HackkitConfig = {
 	blob?: HackkitBlobConfig;
 };
 
-export type NormalizedHackkitConfig = Omit<
-	HackkitConfig,
-	"plugins" | "seedRoles"
-> & {
-	plugins: readonly HackKitPlugin[];
+export type NormalizedHackkitConfig<
+	TPlugins extends readonly HackKitPlugin[] = readonly HackKitPlugin[],
+> = Omit<HackkitConfig<TPlugins>, "plugins" | "seedRoles"> & {
+	plugins: TPlugins;
 	seedRoles: readonly HackkitSeedRole[];
 };
 
@@ -76,9 +77,9 @@ export function defineHackkitConfig<const TConfig extends HackkitConfig>(
 	return config;
 }
 
-export function resolveHackkitConfig(
-	config: HackkitConfig,
-): NormalizedHackkitConfig {
+export function resolveHackkitConfig<
+	const TPlugins extends readonly HackKitPlugin[] = [],
+>(config: HackkitConfig<TPlugins>): NormalizedHackkitConfig<TPlugins> {
 	if (!config?.database?.driver) {
 		throw new Error(
 			"HackKit config must include native MikroORM database options and a driver.",
@@ -88,7 +89,7 @@ export function resolveHackkitConfig(
 		throw new Error("HackKit config must include Better Auth options.");
 	return {
 		...config,
-		plugins: config.plugins ?? [],
+		plugins: config.plugins ?? ([] as unknown as TPlugins),
 		seedRoles: config.seedRoles ?? [],
 	};
 }

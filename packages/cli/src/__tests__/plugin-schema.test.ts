@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
 	loadConfig: vi.fn(),
 	syncPlugins: vi.fn().mockResolvedValue({
 		routesWritten: 0,
-		actionsWritten: 0,
 		stubsRemoved: 0,
 	}),
 }));

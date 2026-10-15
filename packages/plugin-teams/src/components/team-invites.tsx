@@ -3,28 +3,27 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { HackKitActionResult } from "@hackkit/ui";
-import { Button } from "@hackkit/ui";
+import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
+import type { TeamsEndpoints } from "../client";
 import type { PendingTeamInvite } from "../api";
-import type { RespondToInviteInput } from "../actions";
 
 type TeamInvitesProps = {
 	invites: PendingTeamInvite[];
-	respondToInvite: (
-		values: RespondToInviteInput,
-	) => Promise<HackKitActionResult<unknown>>;
 };
 
-export function TeamInvites({ invites, respondToInvite }: TeamInvitesProps) {
+export function TeamInvites({ invites }: TeamInvitesProps) {
+	const client = useHackkitClient<TeamsEndpoints>();
 	const router = useRouter();
 	const [pendingId, setPendingId] = React.useState<string | null>(null);
 
 	async function handleRespond(inviteId: string, accept: boolean) {
 		setPendingId(inviteId);
-		const result = await respondToInvite({ inviteId, accept });
+		const result = await client("@post/teams/respond-to-invite", {
+			body: { inviteId, accept },
+		});
 		setPendingId(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success(accept ? "Invite accepted." : "Invite declined.");

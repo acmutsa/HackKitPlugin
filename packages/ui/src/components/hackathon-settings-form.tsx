@@ -1,4 +1,5 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import { toast } from "sonner";
@@ -6,7 +7,8 @@ import { cn } from "../lib/cn";
 import { useHackKitUI } from "../provider";
 import type { HackathonSettingsFormProps } from "../types";
 import type {
-	ResolvedHackathonSetting,
+	ResolvedHackathonSetting as DomainSetting,
+	Wire,
 	SettingKey,
 } from "@hackkit/core/client";
 import { Button } from "./ui/button";
@@ -20,6 +22,8 @@ import {
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+
+type ResolvedHackathonSetting = DomainSetting | Wire<DomainSetting>;
 
 type FormValue = boolean | string;
 type FormState = Record<string, FormValue>;
@@ -76,8 +80,9 @@ export function HackathonSettingsForm({
 	settings,
 	className,
 }: HackathonSettingsFormProps) {
-	const { actions } = useHackKitUI();
-	const [currentSettings, setCurrentSettings] = React.useState(settings);
+	const { client } = useHackKitUI();
+	const [currentSettings, setCurrentSettings] =
+		React.useState<ResolvedHackathonSetting[]>(settings);
 	const [values, setValues] = React.useState<FormState>(() =>
 		toFormState(settings),
 	);
@@ -133,15 +138,17 @@ export function HackathonSettingsForm({
 	async function saveChanges() {
 		if (!hasDirty || hasInvalidNumbers) return;
 		setIsSaving(true);
-		const result = await actions.setSettings(
-			dirtyUpdates.map((update) => ({
-				key: update.key,
-				value: update.value,
-			})),
-		);
+		const result = await client("@post/settings/set", {
+			body: {
+				values: dirtyUpdates.map((update) => ({
+					key: update.key,
+					value: update.value,
+				})),
+			},
+		});
 		setIsSaving(false);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		setCurrentSettings((existing) =>
@@ -157,10 +164,12 @@ export function HackathonSettingsForm({
 
 	async function resetSetting(setting: ResolvedHackathonSetting) {
 		setResettingKey(setting.key);
-		const result = await actions.resetSetting(setting.key);
+		const result = await client("@post/settings/reset", {
+			body: { key: setting.key },
+		});
 		setResettingKey(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		updateSettingInState(result.data);

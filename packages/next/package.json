@@ -23,7 +23,6 @@
   "dependencies": {
     "@hackkit/config": "workspace:*",
     "@hackkit/core": "workspace:*",
-    "@hackkit/ui": "workspace:*",
     "better-auth": "1.7.6"
   },
   "peerDependencies": {

@@ -1,4 +1,5 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import { claimHackTagSchema, type User } from "@hackkit/core/client";
@@ -44,7 +45,7 @@ export function HackTagForm({
 	successRedirectTo,
 	className,
 }: HackTagFormProps) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const redirectTo =
 		successRedirectTo ?? navigation.routes.onboarding.userData;
 	const form = useForm<HackTagFormValues>({
@@ -56,15 +57,18 @@ export function HackTagForm({
 	const clearPersistedState = usePersistedFormState(form, localStorageKey);
 
 	async function onSubmit(values: HackTagFormValues) {
-		const result = await actions.claimHackTag(values);
-		if (!result.ok) {
-			toast.error(result.message);
+		const result = await client("@post/users/claim-hack-tag", {
+			body: values,
+		});
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 
 		clearPersistedState();
 		toast.success("HackTag claimed.");
 		navigation.push(redirectTo);
+		navigation.refresh();
 	}
 
 	return (

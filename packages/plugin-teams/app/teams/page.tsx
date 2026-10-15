@@ -1,12 +1,6 @@
 import { getHackkitRuntime } from "@hackkit/next";
 import { notFound, redirect } from "next/navigation";
 import type { TeamsApi } from "../../src/api";
-import {
-	createTeam,
-	inviteToTeam,
-	leaveTeam,
-	removeMember,
-} from "@/app/hackkit-plugin-actions";
 import { TeamCreateForm } from "../../src/components/team-create-form";
 import { TeamDashboard } from "../../src/components/team-dashboard";
 
@@ -50,12 +44,9 @@ export default async function TeamsPage() {
 						team={team}
 						currentUser={currentUser}
 						teamInvites={teamInvites}
-						inviteToTeam={inviteToTeam}
-						leaveTeam={leaveTeam}
-						removeMember={removeMember}
 					/>
 				) : (
-					<TeamCreateForm createTeam={createTeam} />
+					<TeamCreateForm />
 				)}
 			</div>
 		</main>

@@ -1,5 +1,5 @@
 import { SqliteDriver } from "@mikro-orm/sqlite";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -43,4 +43,21 @@ describe("HackKit config", () => {
 			"core.owner",
 		]);
 	});
+});
+
+it("preserves plugin tuples through normalization and represents omitted plugins as empty", () => {
+	const config = resolveHackkitConfig(
+		defineHackkitConfig({
+			database: { driver: SqliteDriver, dbName: ":memory:" },
+			auth: {},
+			plugins: [{ id: "example", setup: () => ({ answer: 42 }) }],
+		}),
+	);
+	expectTypeOf(config.plugins[0].id).toEqualTypeOf<"example">();
+	expectTypeOf(config.plugins[0].setup().answer).toEqualTypeOf<number>();
+	const empty = resolveHackkitConfig({
+		database: { driver: SqliteDriver, dbName: ":memory:" },
+		auth: {},
+	});
+	expectTypeOf(empty.plugins).toEqualTypeOf<[]>();
 });

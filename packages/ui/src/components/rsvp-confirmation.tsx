@@ -1,4 +1,6 @@
 "use client";
+import type { Rsvp, Wire } from "@hackkit/core/client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import { toast } from "sonner";
@@ -19,8 +21,10 @@ export function RsvpConfirmation({
 	summary,
 	className,
 }: RsvpConfirmationProps) {
-	const { actions } = useHackKitUI();
-	const [currentRsvp, setCurrentRsvp] = React.useState(rsvp);
+	const { client } = useHackKitUI();
+	const [currentRsvp, setCurrentRsvp] = React.useState<
+		Rsvp | Wire<Rsvp> | null
+	>(rsvp);
 	const [isSubmitting, setIsSubmitting] = React.useState(false);
 
 	const isConfirmed = currentRsvp?.status === "confirmed";
@@ -35,10 +39,10 @@ export function RsvpConfirmation({
 
 	async function confirmRsvp() {
 		setIsSubmitting(true);
-		const result = await actions.confirmRsvp();
+		const result = await client("@post/rsvp/confirm");
 		setIsSubmitting(false);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		setCurrentRsvp(result.data);
@@ -112,7 +116,7 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function statusTitle(
-	rsvp: RsvpConfirmationProps["rsvp"],
+	rsvp: Rsvp | Wire<Rsvp> | null,
 	summary: RsvpConfirmationProps["summary"],
 ): string {
 	if (rsvp?.status === "confirmed") return "You are confirmed.";
@@ -129,7 +133,7 @@ function statusTitle(
 }
 
 function statusDescription(
-	rsvp: RsvpConfirmationProps["rsvp"],
+	rsvp: Rsvp | Wire<Rsvp> | null,
 	summary: RsvpConfirmationProps["summary"],
 ): string {
 	if (rsvp?.status === "confirmed") {

@@ -1,4 +1,3 @@
-import { format } from "prettier";
 import {
 	existsSync,
 	mkdirSync,
@@ -57,7 +56,6 @@ export type PluginSyncOptions = {
 export type PluginSyncResult = {
 	lockfile: HackkitLockfile;
 	routesWritten: number;
-	actionsWritten: number;
 	stubsRemoved: number;
 };
 
@@ -75,55 +73,6 @@ function renderRouteStub(
 	}
 	lines.push("");
 	return lines.join("\n");
-}
-
-export async function renderPluginActionsFile(
-	plugins: readonly {
-		id: string;
-		packageName: string;
-		actionFactory?: string;
-		actionNames?: readonly string[];
-	}[],
-): Promise<string> {
-	const lines = [
-		'"use server";',
-		"",
-		GENERATED_HEADER,
-		"",
-		'import { getRuntime } from "@/lib/runtime";',
-	];
-
-	for (const plugin of plugins) {
-		if (!plugin.actionFactory || !plugin.actionNames?.length) continue;
-		lines.push(
-			`import { ${plugin.actionFactory} } from "${plugin.packageName}/actions";`,
-		);
-	}
-
-	lines.push("");
-
-	for (const plugin of plugins) {
-		if (!plugin.actionFactory || !plugin.actionNames?.length) continue;
-		for (const actionName of plugin.actionNames) {
-			lines.push(
-				`export async function ${actionName}(`,
-				`\t...args: Parameters<`,
-				`\t\tAwaited<ReturnType<typeof ${plugin.actionFactory}>>["${actionName}"]`,
-				`\t>`,
-				`) {`,
-				`	const actions = await ${plugin.actionFactory}(await getRuntime());`,
-				`	return actions.${actionName}(...args);`,
-				`}`,
-				"",
-			);
-		}
-	}
-
-	return format(lines.join("\n"), {
-		parser: "typescript",
-		useTabs: true,
-		tabWidth: 4,
-	});
 }
 
 function collectRouteClaims(
@@ -183,7 +132,6 @@ export async function runPluginSync(
 				host,
 				source,
 			})),
-			actions: [...(resolved.plugin.actionNames ?? [])],
 		})),
 	};
 
@@ -218,26 +166,11 @@ export async function runPluginSync(
 		}
 	}
 
-	const actionsPath = join(projectRoot, "app/hackkit-plugin-actions.ts");
-	const actionsContent = await renderPluginActionsFile(
-		resolvedPlugins.map((resolved) => ({
-			id: resolved.plugin.id,
-			packageName: resolved.packageName,
-			actionFactory: resolved.plugin.actionFactory,
-			actionNames: resolved.plugin.actionNames,
-		})),
-	);
-	writeGeneratedFile(actionsPath, actionsContent);
-
 	writeFileSync(lockfilePath, serializeLockfile(nextLockfile), "utf8");
 
 	return {
 		lockfile: nextLockfile,
 		routesWritten,
-		actionsWritten: resolvedPlugins.reduce(
-			(total, plugin) => total + (plugin.plugin.actionNames?.length ?? 0),
-			0,
-		),
 		stubsRemoved,
 	};
 }

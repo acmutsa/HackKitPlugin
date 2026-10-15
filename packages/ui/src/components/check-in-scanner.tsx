@@ -1,6 +1,7 @@
 "use client";
+import { showHackkitError } from "../http-error";
 
-import type { User } from "@hackkit/core/client";
+import type { User, Wire } from "@hackkit/core/client";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import * as React from "react";
 import { toast } from "sonner";
@@ -17,20 +18,22 @@ import {
 } from "./ui/card";
 
 export function CheckInScanner({ className, onDone }: CheckInScannerProps) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const [loading, setLoading] = React.useState(false);
 	const [rawQr, setRawQr] = React.useState<string | null>(null);
-	const [targetUser, setTargetUser] = React.useState<User | null>(null);
+	const [targetUser, setTargetUser] = React.useState<Wire<User> | null>(null);
 
 	async function handleScan(rawValue: string) {
 		if (rawQr) return;
 
 		setLoading(true);
-		const result = await actions.previewEventPassQr({ rawQr: rawValue });
+		const result = await client("@post/event-pass/preview", {
+			body: { rawQr: rawValue },
+		});
 		setLoading(false);
 
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 
@@ -42,11 +45,13 @@ export function CheckInScanner({ className, onDone }: CheckInScannerProps) {
 		if (!rawQr) return;
 
 		setLoading(true);
-		const result = await actions.checkInUser({ rawQr });
+		const result = await client("@post/users/check-in", {
+			body: { rawQr },
+		});
 		setLoading(false);
 
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 
@@ -61,11 +66,15 @@ export function CheckInScanner({ className, onDone }: CheckInScannerProps) {
 		if (!targetUser) return;
 
 		setLoading(true);
-		const result = await actions.clearCheckIn(targetUser.id);
+		const result = await client("@post/users/clear-check-in", {
+			body: {
+				targetAuthId: targetUser.id,
+			},
+		});
 		setLoading(false);
 
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 

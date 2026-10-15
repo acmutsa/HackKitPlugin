@@ -10,10 +10,14 @@ import {
 	type HackKitNavigation,
 	type HackKitUIRoutesInput,
 } from "./navigation";
-import type { HackKitUIActions } from "./types";
+import {
+	createHackkitClient,
+	type HackkitClient,
+	type HttpEndpoints,
+} from "@hackkit/core/http/client";
 
 type HackKitUIContextValue = {
-	actions: HackKitUIActions;
+	client: HackkitClient;
 	navigation: HackKitNavigation;
 	eventPassQrTtlMs: number;
 };
@@ -23,7 +27,7 @@ const HackKitUIContext = React.createContext<HackKitUIContextValue | null>(
 );
 
 export type HackKitUIProviderProps = {
-	actions: HackKitUIActions;
+	client: HackkitClient;
 	/**
 	 * Full navigation adapter override. When omitted, HackKit UI uses the
 	 * default Next.js App Router adapter with {@link routes} (or defaults).
@@ -39,30 +43,30 @@ export type HackKitUIProviderProps = {
 };
 
 type ProviderShellProps = {
-	actions: HackKitUIActions;
+	client: HackkitClient;
 	navigation: HackKitNavigation;
 	eventPassQrTtlMs: number;
 	children: React.ReactNode;
 };
 
 function HackKitUIProviderShell({
-	actions,
+	client,
 	navigation,
 	eventPassQrTtlMs,
 	children,
 }: ProviderShellProps) {
 	return (
 		<HackKitUIContext.Provider
-			value={{ actions, navigation, eventPassQrTtlMs }}
+			value={{ client, navigation, eventPassQrTtlMs }}
 		>
 			{children}
-			<Toaster richColors />
+			<Toaster richColors closeButton />
 		</HackKitUIContext.Provider>
 	);
 }
 
 function HackKitUIProviderWithDefaultNavigation({
-	actions,
+	client,
 	routes,
 	eventPassQrTtlMs,
 	children,
@@ -89,7 +93,7 @@ function HackKitUIProviderWithDefaultNavigation({
 
 	return (
 		<HackKitUIProviderShell
-			actions={actions}
+			client={client}
 			navigation={navigation}
 			eventPassQrTtlMs={eventPassQrTtlMs ?? DEFAULT_EVENT_PASS_QR_TTL_MS}
 		>
@@ -99,7 +103,7 @@ function HackKitUIProviderWithDefaultNavigation({
 }
 
 export function HackKitUIProvider({
-	actions,
+	client,
 	navigation,
 	routes,
 	eventPassQrTtlMs = DEFAULT_EVENT_PASS_QR_TTL_MS,
@@ -108,7 +112,7 @@ export function HackKitUIProvider({
 	if (navigation) {
 		return (
 			<HackKitUIProviderShell
-				actions={actions}
+				client={client}
 				navigation={navigation}
 				eventPassQrTtlMs={eventPassQrTtlMs}
 			>
@@ -119,7 +123,7 @@ export function HackKitUIProvider({
 
 	return (
 		<HackKitUIProviderWithDefaultNavigation
-			actions={actions}
+			client={client}
 			routes={routes}
 			eventPassQrTtlMs={eventPassQrTtlMs}
 		>
@@ -141,4 +145,13 @@ export function useHackKitUI(): HackKitUIContextValue {
 /** Convenience hook for the navigation seam only. */
 export function useHackKitNavigation(): HackKitNavigation {
 	return useHackKitUI().navigation;
+}
+
+/** Bind a plugin's type-only endpoints using the provider's HTTP settings. */
+export function useHackkitClient<TEndpoints extends HttpEndpoints = {}>() {
+	const { options } = useHackKitUI().client;
+	return React.useMemo(
+		() => createHackkitClient<TEndpoints>(options),
+		[options],
+	);
 }

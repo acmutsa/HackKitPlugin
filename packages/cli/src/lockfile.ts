@@ -8,7 +8,6 @@ export type HackkitLockPlugin = {
 	package: string;
 	version: string;
 	routes: HackkitLockRoute[];
-	actions: string[];
 };
 
 export type HackkitLockfile = {

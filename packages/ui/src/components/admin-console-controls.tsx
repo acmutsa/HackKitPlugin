@@ -1,4 +1,6 @@
 "use client";
+import type { ApiResult } from "@hackkit/core/client";
+import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import type {
@@ -52,7 +54,7 @@ export function AdminUserActions({
 	record: AdminUserRecord;
 	roles: Role[];
 }) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const [pendingAction, setPendingAction] =
 		React.useState<PendingAction>(null);
 	const [roleId, setRoleId] = React.useState(record.user.roleId ?? "");
@@ -60,16 +62,14 @@ export function AdminUserActions({
 
 	async function run<T>(
 		action: PendingAction,
-		task: () => Promise<
-			{ ok: true; data: T } | { ok: false; message: string }
-		>,
+		task: () => Promise<ApiResult<T>>,
 		successMessage: string,
 	) {
 		setPendingAction(action);
 		const result = await task();
 		setPendingAction(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success(successMessage);
@@ -95,9 +95,11 @@ export function AdminUserActions({
 							run(
 								"approval",
 								() =>
-									actions.approveUser({
-										targetAuthId: record.user.id,
-										approved: !record.user.isApproved,
+									client("@post/users/approve", {
+										body: {
+											targetAuthId: record.user.id,
+											approved: !record.user.isApproved,
+										},
 									}),
 								record.user.isApproved
 									? "Approval removed."
@@ -133,9 +135,11 @@ export function AdminUserActions({
 								run(
 									"assignRole",
 									() =>
-										actions.assignRoleToUser({
-											targetAuthId: record.user.id,
-											roleId,
+										client("@post/roles/assign", {
+											body: {
+												targetAuthId: record.user.id,
+												roleId,
+											},
 										}),
 									"Role assigned.",
 								)
@@ -160,7 +164,13 @@ export function AdminUserActions({
 								onClick={() =>
 									run(
 										"unban",
-										() => actions.unbanUser(record.user.id),
+										() =>
+											client("@post/users/unban", {
+												body: {
+													targetAuthId:
+														record.user.id,
+												},
+											}),
 										"User reinstated.",
 									)
 								}
@@ -186,11 +196,14 @@ export function AdminUserActions({
 									run(
 										"ban",
 										() =>
-											actions.banUser({
-												targetAuthId: record.user.id,
-												reason:
-													banReason.trim() ||
-													undefined,
+											client("@post/users/ban", {
+												body: {
+													targetAuthId:
+														record.user.id,
+													reason:
+														banReason.trim() ||
+														undefined,
+												},
 											}),
 										"User suspended.",
 									)
@@ -216,9 +229,11 @@ export function AdminUserActions({
 								run(
 									"rsvpConfirm",
 									() =>
-										actions.setRsvpStatus({
-											targetAuthId: record.user.id,
-											status: "confirmed",
+										client("@post/rsvp/set-status", {
+											body: {
+												targetAuthId: record.user.id,
+												status: "confirmed",
+											},
 										}),
 									"RSVP marked confirmed.",
 								)
@@ -234,9 +249,11 @@ export function AdminUserActions({
 								run(
 									"rsvpWaitlist",
 									() =>
-										actions.setRsvpStatus({
-											targetAuthId: record.user.id,
-											status: "waitlisted",
+										client("@post/rsvp/set-status", {
+											body: {
+												targetAuthId: record.user.id,
+												status: "waitlisted",
+											},
 										}),
 									"RSVP moved to waitlist.",
 								)
@@ -254,7 +271,12 @@ export function AdminUserActions({
 							onClick={() =>
 								run(
 									"rsvpPromote",
-									() => actions.promoteRsvp(record.user.id),
+									() =>
+										client("@post/rsvp/promote", {
+											body: {
+												targetAuthId: record.user.id,
+											},
+										}),
 									"Waitlisted RSVP promoted.",
 								)
 							}
@@ -270,7 +292,12 @@ export function AdminUserActions({
 							onClick={() =>
 								run(
 									"rsvpCancel",
-									() => actions.cancelRsvp(record.user.id),
+									() =>
+										client("@post/rsvp/cancel", {
+											body: {
+												targetAuthId: record.user.id,
+											},
+										}),
 									"RSVP cancelled.",
 								)
 							}
@@ -299,7 +326,7 @@ export function AdminRoleManager({
 	roles: Role[];
 	permissions?: string[];
 }) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const [pendingAction, setPendingAction] =
 		React.useState<PendingAction>(null);
 	const [name, setName] = React.useState("");
@@ -320,15 +347,17 @@ export function AdminRoleManager({
 	async function createRole(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setPendingAction("createRole");
-		const result = await actions.createRole({
-			name,
-			position,
-			color: color.trim() || undefined,
-			permissions: selectedPermissions,
+		const result = await client("@post/roles/create", {
+			body: {
+				name,
+				position,
+				color: color.trim() || undefined,
+				permissions: selectedPermissions,
+			},
 		});
 		setPendingAction(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("Role created.");
@@ -343,10 +372,12 @@ export function AdminRoleManager({
 		if (!window.confirm(`Delete ${role.name}?`)) return;
 		const actionId = `deleteRole:${role.id}` as const;
 		setPendingAction(actionId);
-		const result = await actions.deleteRole(role.id);
+		const result = await client("@post/roles/delete", {
+			body: { roleId: role.id },
+		});
 		setPendingAction(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("Role deleted.");
@@ -470,7 +501,7 @@ function RoleEditor({
 	setPendingAction: (action: PendingAction) => void;
 	onDelete: (role: Role) => Promise<void>;
 }) {
-	const { actions, navigation } = useHackKitUI();
+	const { client, navigation } = useHackKitUI();
 	const [name, setName] = React.useState(role.name);
 	const [position, setPosition] = React.useState(role.position);
 	const [color, setColor] = React.useState(role.color ?? "");
@@ -490,16 +521,18 @@ function RoleEditor({
 	async function updateRole(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setPendingAction(actionId);
-		const result = await actions.updateRole({
-			roleId: role.id,
-			name,
-			position,
-			color: color.trim() || undefined,
-			permissions: selectedPermissions,
+		const result = await client("@post/roles/update", {
+			body: {
+				roleId: role.id,
+				name,
+				position,
+				color: color.trim() || undefined,
+				permissions: selectedPermissions,
+			},
 		});
 		setPendingAction(null);
-		if (!result.ok) {
-			toast.error(result.message);
+		if (result.error) {
+			showHackkitError(result.error);
 			return;
 		}
 		toast.success("Role updated.");

@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getHackkitRuntime } from "@hackkit/next";
 import type { DiscordApi } from "../../../src/api";
-import { confirmDiscordVerification } from "@/app/hackkit-plugin-actions";
 import { DiscordVerifyForm } from "../../../src/components/discord-verify-form";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +49,6 @@ export default async function DiscordVerifyPage({
 				<DiscordVerifyForm
 					code={code}
 					username={verification.username}
-					confirmDiscordVerification={confirmDiscordVerification}
 				/>
 			</div>
 		</main>

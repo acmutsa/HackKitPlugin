@@ -1,4 +1,3 @@
-import { createTeamsActions } from "../actions";
 import {
 	createTestHackkit,
 	createTestUser,
@@ -245,41 +244,4 @@ it("keeps the final team place and losing invite consistent across concurrent jo
 			status: "pending",
 		}),
 	).toBe(1);
-});
-
-it("uses the session actor as team owner even when the submission supplies another actor", async () => {
-	const { hackkit } = await createTeamsHackkit();
-	await seedHacker(hackkit, "caller", "caller");
-	await seedHacker(hackkit, "other", "other");
-	const actions = createTeamsActions({
-		hackkit,
-		getAuthId: async () => "caller",
-	});
-	const submitted = {
-		name: "Session team",
-		tag: "session-team",
-		actorAuthId: "other",
-	};
-	const result = await actions.createTeam(submitted);
-	expect(result).toMatchObject({ ok: true, data: { ownerAuthId: "caller" } });
-});
-
-it("returns a structured error from generated actions when Teams is disabled", async () => {
-	const hackkit = await createTestHackkit({
-		plugins: [{ ...teamsPlugin(), enabled: false }],
-	});
-	const actions = createTeamsActions({
-		hackkit,
-		getAuthId: async () => "caller",
-	});
-	expect(
-		await actions.createTeam({
-			name: "Disabled team",
-			tag: "disabled-team",
-		}),
-	).toMatchObject({
-		ok: false,
-		message: "HackKit plugin 'teams' is disabled.",
-	});
-	expect(await hackkit.em.count(teamsModels.team, {})).toBe(0);
 });

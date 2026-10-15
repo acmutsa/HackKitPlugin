@@ -9,3 +9,5 @@ export * from "./event-types";
 export * from "./groups";
 export type * from "./types";
 export type { RsvpSummary } from "./functions/rsvp";
+
+export * from "./http/client";
