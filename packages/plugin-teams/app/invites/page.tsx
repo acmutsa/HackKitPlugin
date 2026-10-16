@@ -1,39 +1,48 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { getHackkitRuntime } from "@hackkit/next";
 import { notFound, redirect } from "next/navigation";
-import type { TeamsApi } from "../../src/api";
+import { type TeamsApi } from "../../src/api";
 import { TeamInvites } from "../../src/components/team-invites";
-
 export const dynamic = "force-dynamic";
+export default function InvitesPage() {
+	return runPromise(
+		Effect.gen(function* () {
+			const runtime = yield* fromResult(getHackkitRuntime());
+			if (!runtime.hackkit.isPluginEnabled("teams")) notFound();
+			const teams = runtime.hackkit.plugins.teams as TeamsApi;
+			const currentUser = yield* fromResult(runtime.getCurrentUser());
+			const [hacker, invites] = yield* Effect.all(
+				[
+					fromResult(
+						runtime.hackkit.hackers.getHacker(currentUser.id),
+					),
+					fromResult(teams.listPendingInvites(currentUser.id)),
+				],
+				{ concurrency: "unbounded" },
+			);
+			if (!hacker && invites.length === 0) {
+				redirect("/register");
+			}
+			return (
+				<main className="min-h-screen bg-muted/30 px-6 py-10">
+					<div className="mx-auto flex max-w-3xl flex-col gap-6">
+						<div className="space-y-2">
+							<p className="text-sm font-medium text-primary">
+								Teams
+							</p>
+							<h1 className="text-3xl font-bold tracking-tight">
+								Team invites
+							</h1>
+							<p className="text-muted-foreground">
+								Review and respond to pending team invitations.
+							</p>
+						</div>
 
-export default async function InvitesPage() {
-	const runtime = await getHackkitRuntime();
-	if (!runtime.hackkit.isPluginEnabled("teams")) notFound();
-	const teams = runtime.hackkit.plugins.teams as TeamsApi;
-	const currentUser = await runtime.getCurrentUser();
-	const [hacker, invites] = await Promise.all([
-		runtime.hackkit.hackers.getHacker(currentUser.id),
-		teams.listPendingInvites(currentUser.id),
-	]);
-
-	if (!hacker && invites.length === 0) {
-		redirect("/register");
-	}
-
-	return (
-		<main className="min-h-screen bg-muted/30 px-6 py-10">
-			<div className="mx-auto flex max-w-3xl flex-col gap-6">
-				<div className="space-y-2">
-					<p className="text-sm font-medium text-primary">Teams</p>
-					<h1 className="text-3xl font-bold tracking-tight">
-						Team invites
-					</h1>
-					<p className="text-muted-foreground">
-						Review and respond to pending team invitations.
-					</p>
-				</div>
-
-				<TeamInvites invites={invites} />
-			</div>
-		</main>
+						<TeamInvites invites={invites} />
+					</div>
+				</main>
+			);
+		}),
 	);
 }

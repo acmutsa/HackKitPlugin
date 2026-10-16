@@ -1,12 +1,14 @@
 "use client";
 
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { User } from "@hackkit/core/client";
+import { type User } from "@hackkit/core/client";
 import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
-import type { TeamsEndpoints } from "../client";
-import type { TeamInviteWithInvitee, TeamWithMembers } from "../api";
+import { type TeamsEndpoints } from "../client";
+import { type TeamInviteWithInvitee, type TeamWithMembers } from "../api";
 
 const INVITE_STATUS_LABEL = new Map<TeamInviteWithInvitee["status"], string>([
 	["pending", "Pending"],
@@ -40,46 +42,62 @@ export function TeamDashboard({
 	const [pending, setPending] = React.useState<string | null>(null);
 	const isOwner = team.ownerAuthId === currentUser.id;
 
-	async function handleInvite(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setPending("invite");
-		const result = await client("@post/teams/invite", {
-			body: { teamId: team.id, hackTag },
-		});
-		setPending(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("Invite sent.");
-		setHackTag("");
-		router.refresh();
+	function handleInvite(event: React.FormEvent<HTMLFormElement>) {
+		return runPromise(
+			Effect.gen(function* () {
+				event.preventDefault();
+				setPending("invite");
+				const result = yield* fromResult(
+					client("@post/teams/invite", {
+						body: { teamId: team.id, hackTag },
+					}),
+				);
+				setPending(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("Invite sent.");
+				setHackTag("");
+				router.refresh();
+			}),
+		);
 	}
 
-	async function handleLeave() {
-		setPending("leave");
-		const result = await client("@post/teams/leave");
-		setPending(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("You left the team.");
-		router.refresh();
+	function handleLeave() {
+		return runPromise(
+			Effect.gen(function* () {
+				setPending("leave");
+				const result = yield* fromResult(client("@post/teams/leave"));
+				setPending(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("You left the team.");
+				router.refresh();
+			}),
+		);
 	}
 
-	async function handleRemove(memberAuthId: string) {
-		setPending(memberAuthId);
-		const result = await client("@post/teams/remove-member", {
-			body: { memberAuthId },
-		});
-		setPending(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("Member removed.");
-		router.refresh();
+	function handleRemove(memberAuthId: string) {
+		return runPromise(
+			Effect.gen(function* () {
+				setPending(memberAuthId);
+				const result = yield* fromResult(
+					client("@post/teams/remove-member", {
+						body: { memberAuthId },
+					}),
+				);
+				setPending(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("Member removed.");
+				router.refresh();
+			}),
+		);
 	}
 
 	return (

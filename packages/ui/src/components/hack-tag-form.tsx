@@ -1,4 +1,7 @@
 "use client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
@@ -56,19 +59,25 @@ export function HackTagForm({
 	});
 	const clearPersistedState = usePersistedFormState(form, localStorageKey);
 
-	async function onSubmit(values: HackTagFormValues) {
-		const result = await client("@post/users/claim-hack-tag", {
-			body: values,
-		});
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+	function onSubmit(values: HackTagFormValues) {
+		return runPromise(
+			Effect.gen(function* () {
+				const result = yield* fromResult(
+					client("@post/users/claim-hack-tag", {
+						body: values,
+					}),
+				);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		clearPersistedState();
-		toast.success("HackTag claimed.");
-		navigation.push(redirectTo);
-		navigation.refresh();
+				clearPersistedState();
+				toast.success("HackTag claimed.");
+				navigation.push(redirectTo);
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

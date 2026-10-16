@@ -1,10 +1,11 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "../../effect";
 import {
 	createCompleteUserDataSchema,
 	resolveUserDataOptions,
 } from "../../user-data-options";
 import { registerHackerSchema } from "../../schemas";
 import { createMutationFactory, type RequestRunner } from "../mutation";
-
 export function createRegistrationEndpoints(
 	run: RequestRunner,
 	userDataOptions = resolveUserDataOptions(),
@@ -16,20 +17,32 @@ export function createRegistrationEndpoints(
 			createCompleteUserDataSchema(userDataOptions)
 				.omit({ authId: true })
 				.strict(),
-			async ({ hackkit, actorAuthId }, input) =>
-				hackkit.userData.completeUserData({
-					...input,
-					authId: actorAuthId,
-				}),
+			({ hackkit, actorAuthId }, input) =>
+				runPromise(
+					Effect.suspend(() =>
+						fromResult(
+							hackkit.userData.completeUserData({
+								...input,
+								authId: actorAuthId,
+							}),
+						),
+					),
+				),
 		),
 		registerHacker: post(
 			"/hackers/register",
 			registerHackerSchema.omit({ userId: true }).strict(),
-			async ({ hackkit, actorAuthId }, input) =>
-				hackkit.hackers.registerHacker({
-					...input,
-					userId: actorAuthId,
-				}),
+			({ hackkit, actorAuthId }, input) =>
+				runPromise(
+					Effect.suspend(() =>
+						fromResult(
+							hackkit.hackers.registerHacker({
+								...input,
+								userId: actorAuthId,
+							}),
+						),
+					),
+				),
 		),
 	};
 }

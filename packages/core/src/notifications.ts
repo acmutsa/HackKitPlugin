@@ -1,14 +1,23 @@
-import { serialize } from "@mikro-orm/core";
-import { z } from "zod";
-import type { EntityManager } from "@mikro-orm/core";
-import { HackKitError, parseInput } from "./errors";
-import { coreModels } from "./models";
-import type {
-	AuthId,
-	NotificationDeliveryAttempt,
-	NotificationIntent,
-} from "./types";
+import { operation } from "./effect";
+import { decodeInput } from "./effect-schema";
+import {
+	promiseApi,
+	originalError,
+	type BoundaryError,
+	fromResult,
+} from "./effect";
+import { Effect } from "effect";
 
+import { serialize, type EntityManager } from "@mikro-orm/core";
+import { z } from "zod";
+
+import { HackKitError } from "./errors";
+import { coreModels } from "./models";
+import {
+	type AuthId,
+	type NotificationDeliveryAttempt,
+	type NotificationIntent,
+} from "./types";
 export const CoreNotificationKind = {
 	UserApproved: "core.user.approved",
 	UserUnapproved: "core.user.unapproved",
@@ -17,23 +26,19 @@ export const CoreNotificationKind = {
 	RsvpPromoted: "core.rsvp.promoted",
 	AuthAccount: "core.auth.account",
 } as const;
-
 export type CoreNotificationKind =
 	(typeof CoreNotificationKind)[keyof typeof CoreNotificationKind];
 export type NotificationKind = CoreNotificationKind | (string & {});
 export type NotificationIntentStatus = NotificationIntent["status"];
 export type NotificationDeliveryAttemptStatus =
 	NotificationDeliveryAttempt["status"];
-
 const notificationKindSchema = z
 	.string()
 	.min(1)
 	.regex(/^[a-z0-9_-]+\.[a-z0-9_.-]+$/);
-
 const baseRecipientPayloadSchema = z.object({
 	authId: z.string().min(1),
 });
-
 export const coreNotificationPayloadSchemas = {
 	[CoreNotificationKind.UserApproved]: baseRecipientPayloadSchema.extend({
 		approvedByAuthId: z.string().min(1).optional(),
@@ -51,17 +56,14 @@ export const coreNotificationPayloadSchemas = {
 		url: z.string().url().optional(),
 	}),
 } satisfies Record<CoreNotificationKind, z.ZodType<Record<string, unknown>>>;
-
 export type CoreNotificationPayloadMap = {
 	[TKind in CoreNotificationKind]: z.infer<
 		(typeof coreNotificationPayloadSchemas)[TKind]
 	>;
 };
-
 export type NotificationPayload =
 	| CoreNotificationPayloadMap[CoreNotificationKind]
 	| Record<string, unknown>;
-
 export type QueueNotificationIntentInput<
 	TKind extends NotificationKind = NotificationKind,
 > = {
@@ -72,14 +74,12 @@ export type QueueNotificationIntentInput<
 		: Record<string, unknown>;
 	idempotencyKey?: string;
 };
-
 const queueNotificationIntentSchema = z.object({
 	kind: notificationKindSchema,
 	recipientAuthId: z.string().min(1).optional(),
 	payload: z.record(z.unknown()).default({}),
 	idempotencyKey: z.string().min(1).optional(),
 });
-
 const listNotificationIntentsSchema = z
 	.object({
 		status: z
@@ -96,7 +96,6 @@ const listNotificationIntentsSchema = z
 		limit: z.number().int().positive().max(100).optional(),
 	})
 	.optional();
-
 const recordDeliveryAttemptSchema = z.object({
 	intentId: z.string().min(1),
 	channel: z.string().min(1),
@@ -107,7 +106,6 @@ const recordDeliveryAttemptSchema = z.object({
 	error: z.string().min(1).optional(),
 	metadata: z.record(z.unknown()).default({}),
 });
-
 export type NotificationDeliveryResult = {
 	status: NotificationDeliveryAttemptStatus;
 	provider?: string;
@@ -116,27 +114,22 @@ export type NotificationDeliveryResult = {
 	error?: string;
 	metadata?: Record<string, unknown>;
 };
-
 export type NotificationChannel = {
 	id: string;
 	deliver(intent: NotificationIntent): Promise<NotificationDeliveryResult>;
 };
-
 export type DeliverPendingNotificationsInput = {
 	channels: readonly NotificationChannel[];
 	limit?: number;
 };
-
 export type DeliverPendingNotificationsResult = {
 	intentsProcessed: number;
 	attempts: NotificationDeliveryAttempt[];
 };
-
 export type NotificationsApiContext = {
 	em: EntityManager;
 	now: () => Date;
 };
-
 function optionalWhere<T extends Record<string, unknown>>(
 	where: T,
 ): Partial<T> {
@@ -144,12 +137,10 @@ function optionalWhere<T extends Record<string, unknown>>(
 		Object.entries(where).filter(([, value]) => value !== undefined),
 	) as Partial<T>;
 }
-
 function parsePayload(kind: string, payload: Record<string, unknown>) {
 	const schema = coreNotificationPayloadSchemas[kind as CoreNotificationKind];
 	return schema ? schema.parse(payload) : payload;
 }
-
 function summarizeIntentStatus(
 	results: readonly NotificationDeliveryAttempt[],
 ): NotificationIntentStatus {
@@ -161,163 +152,205 @@ function summarizeIntentStatus(
 	}
 	return "skipped";
 }
-
-export function createNotificationsApi(context: NotificationsApiContext) {
+export function createNotificationsEffects(context: NotificationsApiContext) {
 	const { em, now } = context;
-
-	async function getIntentOrThrow(
+	function getIntentOrThrow(
 		intentId: string,
-	): Promise<NotificationIntent> {
-		const intent = await em.findOne(coreModels.notificationIntent, {
-			id: intentId,
-		});
-		if (!intent) {
-			throw new HackKitError(
-				"NOT_FOUND",
-				"Notification intent not found.",
+	): Effect.Effect<NotificationIntent, BoundaryError> {
+		return Effect.gen(function* () {
+			const intent = yield* fromResult(
+				em.findOne(coreModels.notificationIntent, {
+					id: intentId,
+				}),
 			);
-		}
-		return serialize(intent);
+			if (!intent) {
+				return yield* Effect.fail(
+					new HackKitError(
+						"NOT_FOUND",
+						"Notification intent not found.",
+					),
+				);
+			}
+			return serialize(intent);
+		});
 	}
-
-	async function recordDeliveryAttempt(
+	function recordDeliveryAttempt(
 		input: unknown,
-	): Promise<NotificationDeliveryAttempt> {
-		const parsed = parseInput(recordDeliveryAttemptSchema, input);
-		await getIntentOrThrow(parsed.intentId);
-		{
-			const created = em.create(coreModels.notificationDeliveryAttempt, {
-				...parsed,
-				attemptedAt: now(),
-			});
-			await em.flush();
-			return serialize(created);
-		}
-	}
-
-	return {
-		async queueIntent(
-			input: QueueNotificationIntentInput,
-		): Promise<NotificationIntent> {
-			const parsed = parseInput(queueNotificationIntentSchema, input);
-			const payload = parsePayload(parsed.kind, parsed.payload);
-			if (parsed.idempotencyKey) {
-				const existing = await em.findOne(
-					coreModels.notificationIntent,
+	): Effect.Effect<NotificationDeliveryAttempt, BoundaryError> {
+		return Effect.gen(function* () {
+			const parsed = yield* decodeInput(
+				recordDeliveryAttemptSchema,
+				input,
+			);
+			yield* getIntentOrThrow(parsed.intentId);
+			{
+				const created = em.create(
+					coreModels.notificationDeliveryAttempt,
 					{
-						idempotencyKey: parsed.idempotencyKey,
+						...parsed,
+						attemptedAt: now(),
 					},
 				);
-				if (existing) return serialize(existing);
-			}
-			const timestamp = now();
-			{
-				const created = em.create(coreModels.notificationIntent, {
-					kind: parsed.kind,
-					recipientAuthId: parsed.recipientAuthId,
-					payload,
-					idempotencyKey: parsed.idempotencyKey,
-					status: "pending",
-					createdAt: timestamp,
-					updatedAt: timestamp,
-				});
-				await em.flush();
+				yield* fromResult(em.flush());
 				return serialize(created);
 			}
-		},
-
-		async getIntent(intentId: string): Promise<NotificationIntent | null> {
-			const record = await em.findOne(coreModels.notificationIntent, {
-				id: intentId,
-			});
-			return record ? serialize(record) : null;
-		},
-
-		async listIntents(input?: unknown): Promise<NotificationIntent[]> {
-			const parsed = parseInput(listNotificationIntentsSchema, input);
-			return serialize(
-				await em.find(
-					coreModels.notificationIntent,
-					optionalWhere({
-						status: parsed?.status,
-						kind: parsed?.kind,
-						recipientAuthId: parsed?.recipientAuthId,
-					}),
-					{ orderBy: { createdAt: "desc" }, limit: parsed?.limit },
-				),
-			);
-		},
-
-		async listDeliveryAttempts(
-			intentId: string,
-		): Promise<NotificationDeliveryAttempt[]> {
-			return serialize(
-				await em.find(
-					coreModels.notificationDeliveryAttempt,
-					{ intentId },
-					{ orderBy: { attemptedAt: "desc" } },
-				),
-			);
-		},
-
-		recordDeliveryAttempt,
-
-		async deliverPending(
-			input: DeliverPendingNotificationsInput,
-		): Promise<DeliverPendingNotificationsResult> {
-			if (input.channels.length === 0) {
-				return { intentsProcessed: 0, attempts: [] };
-			}
-			const intents = await em.find(
-				coreModels.notificationIntent,
-				{ status: "pending" },
-				{ orderBy: { createdAt: "asc" }, limit: input.limit ?? 25 },
-			);
-			const attempts: NotificationDeliveryAttempt[] = [];
-
-			let intentsProcessed = 0;
-			for (const intent of intents) {
-				const claimed = await em.nativeUpdate(
-					coreModels.notificationIntent,
-					{ id: intent.id, status: "pending" },
-					{ status: "processing", updatedAt: now() },
+		});
+	}
+	return {
+		queueIntent(
+			input: QueueNotificationIntentInput,
+		): Effect.Effect<NotificationIntent, BoundaryError> {
+			return Effect.gen(function* () {
+				const parsed = yield* decodeInput(
+					queueNotificationIntentSchema,
+					input,
 				);
-				if (claimed === 0) continue;
-				await em.refresh(intent);
-				intentsProcessed++;
-
-				const intentAttempts: NotificationDeliveryAttempt[] = [];
-
-				for (const channel of input.channels) {
-					let result: NotificationDeliveryResult;
-					try {
-						result = await channel.deliver(serialize(intent));
-					} catch (error) {
-						result = {
-							status: "failed",
-							error:
-								error instanceof Error
-									? error.message
-									: "Notification channel failed.",
-						};
-					}
-					const attempt = await recordDeliveryAttempt({
-						intentId: intent.id,
-						channel: channel.id,
-						...result,
-					});
-					intentAttempts.push(attempt);
-					attempts.push(attempt);
+				const payload = yield* operation(() =>
+					parsePayload(parsed.kind, parsed.payload),
+				);
+				if (parsed.idempotencyKey) {
+					const existing = yield* fromResult(
+						em.findOne(coreModels.notificationIntent, {
+							idempotencyKey: parsed.idempotencyKey,
+						}),
+					);
+					if (existing) return serialize(existing);
 				}
-
-				intent.status = summarizeIntentStatus(intentAttempts);
-				intent.updatedAt = now();
-				await em.flush();
-			}
-
-			return { intentsProcessed, attempts };
+				const timestamp = now();
+				{
+					const created = em.create(coreModels.notificationIntent, {
+						kind: parsed.kind,
+						recipientAuthId: parsed.recipientAuthId,
+						payload,
+						idempotencyKey: parsed.idempotencyKey,
+						status: "pending",
+						createdAt: timestamp,
+						updatedAt: timestamp,
+					});
+					yield* fromResult(em.flush());
+					return serialize(created);
+				}
+			});
+		},
+		getIntent(
+			intentId: string,
+		): Effect.Effect<NotificationIntent | null, BoundaryError> {
+			return Effect.gen(function* () {
+				const record = yield* fromResult(
+					em.findOne(coreModels.notificationIntent, {
+						id: intentId,
+					}),
+				);
+				return record ? serialize(record) : null;
+			});
+		},
+		listIntents(
+			input?: unknown,
+		): Effect.Effect<NotificationIntent[], BoundaryError> {
+			return Effect.gen(function* () {
+				const parsed = yield* decodeInput(
+					listNotificationIntentsSchema,
+					input,
+				);
+				return serialize(
+					yield* fromResult(
+						em.find(
+							coreModels.notificationIntent,
+							optionalWhere({
+								status: parsed?.status,
+								kind: parsed?.kind,
+								recipientAuthId: parsed?.recipientAuthId,
+							}),
+							{
+								orderBy: { createdAt: "desc" },
+								limit: parsed?.limit,
+							},
+						),
+					),
+				);
+			});
+		},
+		listDeliveryAttempts(
+			intentId: string,
+		): Effect.Effect<NotificationDeliveryAttempt[], BoundaryError> {
+			return Effect.gen(function* () {
+				return serialize(
+					yield* fromResult(
+						em.find(
+							coreModels.notificationDeliveryAttempt,
+							{ intentId },
+							{ orderBy: { attemptedAt: "desc" } },
+						),
+					),
+				);
+			});
+		},
+		recordDeliveryAttempt,
+		deliverPending(
+			input: DeliverPendingNotificationsInput,
+		): Effect.Effect<DeliverPendingNotificationsResult, BoundaryError> {
+			return Effect.gen(function* () {
+				if (input.channels.length === 0)
+					return { intentsProcessed: 0, attempts: [] };
+				const intents = yield* operation(() =>
+					em.find(
+						coreModels.notificationIntent,
+						{ status: "pending" },
+						{
+							orderBy: { createdAt: "asc" },
+							limit: input.limit ?? 25,
+						},
+					),
+				);
+				const attempts: NotificationDeliveryAttempt[] = [];
+				let intentsProcessed = 0;
+				for (const intent of intents) {
+					const claimed = yield* operation(() =>
+						em.nativeUpdate(
+							coreModels.notificationIntent,
+							{ id: intent.id, status: "pending" },
+							{ status: "processing", updatedAt: now() },
+						),
+					);
+					if (claimed === 0) continue;
+					yield* operation(() => em.refresh(intent));
+					intentsProcessed++;
+					const intentAttempts: NotificationDeliveryAttempt[] = [];
+					for (const channel of input.channels) {
+						const result = yield* operation(() =>
+							channel.deliver(serialize(intent)),
+						).pipe(
+							Effect.catchAll((failure) => {
+								const error = originalError(failure);
+								return Effect.succeed<NotificationDeliveryResult>(
+									{
+										status: "failed",
+										error:
+											error instanceof Error
+												? error.message
+												: "Notification channel failed.",
+									},
+								);
+							}),
+						);
+						const attempt = yield* recordDeliveryAttempt({
+							intentId: intent.id,
+							channel: channel.id,
+							...result,
+						});
+						intentAttempts.push(attempt);
+						attempts.push(attempt);
+					}
+					intent.status = summarizeIntentStatus(intentAttempts);
+					intent.updatedAt = now();
+					yield* operation(() => em.flush());
+				}
+				return { intentsProcessed, attempts };
+			});
 		},
 	};
 }
-
 export type NotificationsApi = ReturnType<typeof createNotificationsApi>;
+export function createNotificationsApi(context: NotificationsApiContext) {
+	return promiseApi(createNotificationsEffects(context));
+}

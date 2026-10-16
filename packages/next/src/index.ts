@@ -12,3 +12,5 @@ export type {
 } from "./runtime";
 export { createPageGuards } from "./page-guards";
 export type { PageGuardOptions, PageGuards } from "./page-guards";
+
+export { createPageGuardEffects } from "./page-guards";

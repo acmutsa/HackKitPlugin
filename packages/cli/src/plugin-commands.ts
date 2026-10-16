@@ -1,9 +1,11 @@
+import { Effect } from "effect";
+import { runPromise, fromResult, boundaryError } from "@hackkit/core/effect";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
-import type { HackkitConfig } from "./config";
+import { type HackkitConfig } from "./config";
 import { createConfigLogger } from "./logger";
-import { PLUGIN_PACKAGE_BY_ID, loadPluginFactory } from "./plugin-manifest";
+import { PLUGIN_PACKAGE_BY_ID } from "./plugin-manifest";
 import { runPluginSync } from "./plugin-sync";
 
 export type PluginCommandContext = {
@@ -78,103 +80,131 @@ function removePluginFromConfig(
 	writeFileSync(configPath, source, "utf8");
 }
 
-export async function runPluginAdd(
+export function runPluginAdd(
 	context: PluginCommandContext,
 	pluginId: string,
 ): Promise<void> {
-	const manifest = PLUGIN_PACKAGE_BY_ID[pluginId];
-	if (!manifest) {
-		throw new Error(
-			`Unknown plugin '${pluginId}'. Known plugins: ${Object.keys(PLUGIN_PACKAGE_BY_ID).join(", ")}`,
-		);
-	}
+	return runPromise(
+		Effect.gen(function* () {
+			const manifest = PLUGIN_PACKAGE_BY_ID[pluginId];
+			if (!manifest) {
+				return yield* Effect.fail(
+					boundaryError(
+						new Error(
+							`Unknown plugin '${pluginId}'. Known plugins: ${Object.keys(PLUGIN_PACKAGE_BY_ID).join(", ")}`,
+						),
+					),
+				);
+			}
 
-	const packageJsonPath = join(context.projectRoot, "package.json");
-	const packageJson = readJson(packageJsonPath);
-	const dependencies =
-		(packageJson.dependencies as Record<string, string> | undefined) ?? {};
-	if (!dependencies[manifest.packageName]) {
-		dependencies[manifest.packageName] = "workspace:*";
-		packageJson.dependencies = dependencies;
-		writeJson(packageJsonPath, packageJson);
-		execSync("pnpm install", {
-			cwd: context.projectRoot,
-			stdio: "inherit",
-		});
-	}
+			const packageJsonPath = join(context.projectRoot, "package.json");
+			const packageJson = readJson(packageJsonPath);
+			const dependencies =
+				(packageJson.dependencies as
+					| Record<string, string>
+					| undefined) ?? {};
+			if (!dependencies[manifest.packageName]) {
+				dependencies[manifest.packageName] = "workspace:*";
+				packageJson.dependencies = dependencies;
+				writeJson(packageJsonPath, packageJson);
+				execSync("pnpm install", {
+					cwd: context.projectRoot,
+					stdio: "inherit",
+				});
+			}
 
-	const configPath = join(context.projectRoot, "hackkit.config.ts");
-	ensurePluginInConfig(
-		configPath,
-		pluginId,
-		manifest.packageName,
-		manifest.importName,
-	);
+			const configPath = join(context.projectRoot, "hackkit.config.ts");
+			ensurePluginInConfig(
+				configPath,
+				pluginId,
+				manifest.packageName,
+				manifest.importName,
+			);
 
-	const { loadConfig } = await import("./cli-config");
-	const refreshedConfig = await loadConfig("hackkit.config.ts", {
-		cwd: context.projectRoot,
-	});
-	await runPluginSyncAll({
-		projectRoot: context.projectRoot,
-		config: refreshedConfig,
-	});
-	createConfigLogger(context.config).log(
-		"info",
-		"Plugin configuration updated. Generate and review a database migration with hackkit db generate.",
+			const { loadConfig } = yield* fromResult(import("./cli-config"));
+			const refreshedConfig = yield* fromResult(
+				loadConfig("hackkit.config.ts", {
+					cwd: context.projectRoot,
+				}),
+			);
+			yield* fromResult(
+				runPluginSyncAll({
+					projectRoot: context.projectRoot,
+					config: refreshedConfig,
+				}),
+			);
+			createConfigLogger(context.config).log(
+				"info",
+				"Plugin configuration updated. Generate and review a database migration with hackkit db generate.",
+			);
+		}),
 	);
 }
 
-export async function runPluginRemove(
+export function runPluginRemove(
 	context: PluginCommandContext,
 	pluginId: string,
 ): Promise<void> {
-	const manifest = PLUGIN_PACKAGE_BY_ID[pluginId];
-	if (!manifest) {
-		throw new Error(`Unknown plugin '${pluginId}'.`);
-	}
+	return runPromise(
+		Effect.gen(function* () {
+			const manifest = PLUGIN_PACKAGE_BY_ID[pluginId];
+			if (!manifest) {
+				return yield* Effect.fail(
+					boundaryError(new Error(`Unknown plugin '${pluginId}'.`)),
+				);
+			}
 
-	const configPath = join(context.projectRoot, "hackkit.config.ts");
-	removePluginFromConfig(
-		configPath,
-		manifest.importName,
-		manifest.packageName,
-	);
+			const configPath = join(context.projectRoot, "hackkit.config.ts");
+			removePluginFromConfig(
+				configPath,
+				manifest.importName,
+				manifest.packageName,
+			);
 
-	const packageJsonPath = join(context.projectRoot, "package.json");
-	const packageJson = readJson(packageJsonPath);
-	const dependencies =
-		(packageJson.dependencies as Record<string, string> | undefined) ?? {};
-	delete dependencies[manifest.packageName];
-	packageJson.dependencies = dependencies;
-	writeJson(packageJsonPath, packageJson);
+			const packageJsonPath = join(context.projectRoot, "package.json");
+			const packageJson = readJson(packageJsonPath);
+			const dependencies =
+				(packageJson.dependencies as
+					| Record<string, string>
+					| undefined) ?? {};
+			delete dependencies[manifest.packageName];
+			packageJson.dependencies = dependencies;
+			writeJson(packageJsonPath, packageJson);
 
-	const nextConfig = {
-		...context.config,
-		plugins: (context.config.plugins ?? []).filter(
-			(plugin) => plugin.id !== pluginId,
-		),
-	};
-	await runPluginSync({
-		projectRoot: context.projectRoot,
-		plugins: nextConfig.plugins ?? [],
-	});
-	createConfigLogger(context.config).log(
-		"info",
-		"Plugin configuration updated. Generate and review a database migration with hackkit db generate.",
+			const nextConfig = {
+				...context.config,
+				plugins: (context.config.plugins ?? []).filter(
+					(plugin) => plugin.id !== pluginId,
+				),
+			};
+			yield* fromResult(
+				runPluginSync({
+					projectRoot: context.projectRoot,
+					plugins: nextConfig.plugins ?? [],
+				}),
+			);
+			createConfigLogger(context.config).log(
+				"info",
+				"Plugin configuration updated. Generate and review a database migration with hackkit db generate.",
+			);
+		}),
 	);
 }
 
-export async function runPluginSyncAll(
-	context: PluginCommandContext,
-): Promise<void> {
-	const logger = createConfigLogger(context.config);
-	const result = await runPluginSync({
-		projectRoot: context.projectRoot,
-		plugins: context.config.plugins ?? [],
-	});
-	logger.log(
-		"info",
-		`HackKit plugin sync completed (${result.routesWritten} routes, ${result.stubsRemoved} removed).`,
+export function runPluginSyncAll(context: PluginCommandContext): Promise<void> {
+	return runPromise(
+		Effect.gen(function* () {
+			const logger = createConfigLogger(context.config);
+			const result = yield* fromResult(
+				runPluginSync({
+					projectRoot: context.projectRoot,
+					plugins: context.config.plugins ?? [],
+				}),
+			);
+			logger.log(
+				"info",
+				`HackKit plugin sync completed (${result.routesWritten} routes, ${result.stubsRemoved} removed).`,
+			);
+		}),
 	);
 }

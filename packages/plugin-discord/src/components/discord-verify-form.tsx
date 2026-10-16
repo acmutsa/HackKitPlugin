@@ -1,10 +1,12 @@
 "use client";
 
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
-import type { DiscordEndpoints } from "../client";
+import { type DiscordEndpoints } from "../client";
 
 type DiscordVerifyFormProps = {
 	code: string;
@@ -16,20 +18,26 @@ export function DiscordVerifyForm({ code, username }: DiscordVerifyFormProps) {
 	const router = useRouter();
 	const [pending, setPending] = React.useState(false);
 
-	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setPending(true);
-		const result = await client("@post/discord/confirm-verification", {
-			body: { code },
-		});
-		setPending(false);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("Discord account linked.");
-		router.push("/discord");
-		router.refresh();
+	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		return runPromise(
+			Effect.gen(function* () {
+				event.preventDefault();
+				setPending(true);
+				const result = yield* fromResult(
+					client("@post/discord/confirm-verification", {
+						body: { code },
+					}),
+				);
+				setPending(false);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("Discord account linked.");
+				router.push("/discord");
+				router.refresh();
+			}),
+		);
 	}
 
 	return (

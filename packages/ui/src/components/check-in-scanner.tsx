@@ -1,13 +1,16 @@
 "use client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
-import type { User, Wire } from "@hackkit/core/client";
+import { type User, type Wire } from "@hackkit/core/client";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import * as React from "react";
 import { toast } from "sonner";
 import { cn } from "../lib/cn";
 import { useHackKitUI } from "../provider";
-import type { CheckInScannerProps } from "../types";
+import { type CheckInScannerProps } from "../types";
 import { Button } from "./ui/button";
 import {
 	Card,
@@ -23,66 +26,84 @@ export function CheckInScanner({ className, onDone }: CheckInScannerProps) {
 	const [rawQr, setRawQr] = React.useState<string | null>(null);
 	const [targetUser, setTargetUser] = React.useState<Wire<User> | null>(null);
 
-	async function handleScan(rawValue: string) {
-		if (rawQr) return;
+	function handleScan(rawValue: string) {
+		return runPromise(
+			Effect.gen(function* () {
+				if (rawQr) return;
 
-		setLoading(true);
-		const result = await client("@post/event-pass/preview", {
-			body: { rawQr: rawValue },
-		});
-		setLoading(false);
+				setLoading(true);
+				const result = yield* fromResult(
+					client("@post/event-pass/preview", {
+						body: { rawQr: rawValue },
+					}),
+				);
+				setLoading(false);
 
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		setRawQr(rawValue);
-		setTargetUser(result.data.user);
+				setRawQr(rawValue);
+				setTargetUser(result.data.user);
+			}),
+		);
 	}
 
-	async function handleCheckIn() {
-		if (!rawQr) return;
+	function handleCheckIn() {
+		return runPromise(
+			Effect.gen(function* () {
+				if (!rawQr) return;
 
-		setLoading(true);
-		const result = await client("@post/users/check-in", {
-			body: { rawQr },
-		});
-		setLoading(false);
+				setLoading(true);
+				const result = yield* fromResult(
+					client("@post/users/check-in", {
+						body: { rawQr },
+					}),
+				);
+				setLoading(false);
 
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		toast.success("Participant checked in.");
-		setRawQr(null);
-		setTargetUser(null);
-		onDone?.();
-		navigation.refresh();
+				toast.success("Participant checked in.");
+				setRawQr(null);
+				setTargetUser(null);
+				onDone?.();
+				navigation.refresh();
+			}),
+		);
 	}
 
-	async function handleClearCheckIn() {
-		if (!targetUser) return;
+	function handleClearCheckIn() {
+		return runPromise(
+			Effect.gen(function* () {
+				if (!targetUser) return;
 
-		setLoading(true);
-		const result = await client("@post/users/clear-check-in", {
-			body: {
-				targetAuthId: targetUser.id,
-			},
-		});
-		setLoading(false);
+				setLoading(true);
+				const result = yield* fromResult(
+					client("@post/users/clear-check-in", {
+						body: {
+							targetAuthId: targetUser.id,
+						},
+					}),
+				);
+				setLoading(false);
 
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		toast.success("Check-in cleared.");
-		setRawQr(null);
-		setTargetUser(null);
-		onDone?.();
-		navigation.refresh();
+				toast.success("Check-in cleared.");
+				setRawQr(null);
+				setTargetUser(null);
+				onDone?.();
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

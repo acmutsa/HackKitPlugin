@@ -1,44 +1,75 @@
+import { Cause, Effect } from "effect";
 import { HackKitError } from "./errors";
-import type {
-	DomainLogContext,
-	HackKitLogger,
-	LogLevel,
-} from "./adapters/logger";
-import { logDomain } from "./adapters/logger";
+import {
+	operation,
+	originalError,
+	runPromise,
+	type BoundaryError,
+} from "./effect";
 
-export async function withDomainLog<T>(
+import {
+	type DomainLogContext,
+	type HackKitLogger,
+	type LogLevel,
+	logDomain,
+} from "./adapters/logger";
+
+type LogContext = Omit<
+	DomainLogContext,
+	"outcome" | "errorCode" | "errorMessage"
+>;
+type LogOptions = { successLevel?: LogLevel; errorLevel?: LogLevel };
+
+export function withDomainLogEffect<T>(
 	logger: HackKitLogger,
 	action: string,
-	context: Omit<DomainLogContext, "outcome" | "errorCode" | "errorMessage">,
-	run: () => Promise<T>,
-	options?: { successLevel?: LogLevel; errorLevel?: LogLevel },
-): Promise<T> {
-	const successLevel = options?.successLevel ?? "info";
-	const errorLevel = options?.errorLevel ?? "warn";
+	context: LogContext,
+	run: () => Effect.Effect<T, BoundaryError> | Promise<T>,
+	options?: LogOptions,
+): Effect.Effect<T, BoundaryError> {
+	return operation(run).pipe(
+		Effect.tap(() =>
+			Effect.sync(() =>
+				logDomain(logger, options?.successLevel ?? "info", action, {
+					...context,
+					outcome: "success",
+				}),
+			),
+		),
+		Effect.tapErrorCause((cause) =>
+			Effect.sync(() => {
+				const error = originalError(Cause.squash(cause));
+				logDomain(
+					logger,
+					error instanceof HackKitError
+						? (options?.errorLevel ?? "warn")
+						: "error",
+					action,
+					{
+						...context,
+						outcome: "error",
+						...(error instanceof HackKitError
+							? { errorCode: error.code }
+							: {}),
+						errorMessage:
+							error instanceof Error
+								? error.message
+								: "Unknown error",
+					},
+				);
+			}),
+		),
+	);
+}
 
-	try {
-		const result = await run();
-		logDomain(logger, successLevel, action, {
-			...context,
-			outcome: "success",
-		});
-		return result;
-	} catch (error) {
-		if (error instanceof HackKitError) {
-			logDomain(logger, errorLevel, action, {
-				...context,
-				outcome: "error",
-				errorCode: error.code,
-				errorMessage: error.message,
-			});
-		} else {
-			logDomain(logger, "error", action, {
-				...context,
-				outcome: "error",
-				errorMessage:
-					error instanceof Error ? error.message : "Unknown error",
-			});
-		}
-		throw error;
-	}
+export function withDomainLog<T>(
+	logger: HackKitLogger,
+	action: string,
+	context: LogContext,
+	run: () => Promise<T>,
+	options?: LogOptions,
+): Promise<T> {
+	return runPromise(
+		withDomainLogEffect(logger, action, context, run, options),
+	);
 }

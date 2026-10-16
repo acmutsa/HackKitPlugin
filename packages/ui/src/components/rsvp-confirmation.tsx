@@ -1,12 +1,15 @@
 "use client";
-import type { Rsvp, Wire } from "@hackkit/core/client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
+import { type Rsvp, type Wire } from "@hackkit/core/client";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import { toast } from "sonner";
 import { cn } from "../lib/cn";
 import { useHackKitUI } from "../provider";
-import type { RsvpConfirmationProps } from "../types";
+import { type RsvpConfirmationProps } from "../types";
 import { Button } from "./ui/button";
 import {
 	Card,
@@ -37,19 +40,23 @@ export function RsvpConfirmation({
 		!isWaitlisted &&
 		(hasCapacity || summary.waitlistEnabled);
 
-	async function confirmRsvp() {
-		setIsSubmitting(true);
-		const result = await client("@post/rsvp/confirm");
-		setIsSubmitting(false);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		setCurrentRsvp(result.data);
-		toast.success(
-			result.data.status === "waitlisted"
-				? "You were added to the RSVP waitlist."
-				: "Your RSVP is confirmed.",
+	function confirmRsvp() {
+		return runPromise(
+			Effect.gen(function* () {
+				setIsSubmitting(true);
+				const result = yield* fromResult(client("@post/rsvp/confirm"));
+				setIsSubmitting(false);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				setCurrentRsvp(result.data);
+				toast.success(
+					result.data.status === "waitlisted"
+						? "You were added to the RSVP waitlist."
+						: "Your RSVP is confirmed.",
+				);
+			}),
 		);
 	}
 

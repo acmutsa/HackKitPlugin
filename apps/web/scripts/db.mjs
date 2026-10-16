@@ -1,3 +1,5 @@
+import { Cause, Effect } from "effect";
+import { operation, originalError, runPromise } from "@hackkit/core/effect";
 import { parseArgs } from "node:util";
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -13,9 +15,10 @@ nextEnv.loadEnvConfig(
 	true,
 );
 const jiti = createJiti(fileURLToPath(import.meta.url));
-const { runDatabaseCommand } = await jiti.import("./database.ts");
-
-try {
+const main = Effect.gen(function* () {
+	const { runDatabaseCommand } = yield* operation(() =>
+		jiti.import("./database.ts"),
+	);
 	const { values, positionals } = parseArgs({
 		allowPositionals: true,
 		options: {
@@ -48,19 +51,32 @@ try {
 	if (values.to !== undefined && !values.to.trim()) {
 		throw new Error("--to requires a migration name (or 0 for rollback).");
 	}
-	const config = await loadHackkitConfig(values.config);
-	const result = await runDatabaseCommand(config, { command, ...values });
+	const config = yield* operation(() => loadHackkitConfig(values.config));
+	const result = yield* operation(() =>
+		runDatabaseCommand(config, { command, ...values }),
+	);
 	// Native drivers can write diagnostics to stdout. A separate result file
 	// gives release jobs structured output without parsing their logs.
 	if (values.output) {
-		await writeFile(values.output, `${JSON.stringify(result, null, 2)}\n`);
+		yield* operation(() =>
+			writeFile(values.output, `${JSON.stringify(result, null, 2)}\n`),
+		);
 	}
 	console.log(JSON.stringify(result, null, 2));
 	if (result.command === "check" && !result.ok) process.exitCode = 1;
-} catch (error) {
-	// Print the operation's error without printing the config or connection URL.
-	console.error(
-		error instanceof Error ? error.message : "Database command failed.",
-	);
-	process.exitCode = 1;
-}
+}).pipe(
+	Effect.catchAllCause((cause) =>
+		Effect.sync(() => {
+			const error = originalError(Cause.squash(cause));
+			// Print the operation's error without printing the config or connection URL.
+			console.error(
+				error instanceof Error
+					? error.message
+					: "Database command failed.",
+			);
+			process.exitCode = 1;
+		}),
+	),
+);
+
+await runPromise(main);

@@ -20,6 +20,8 @@
 
 See [the reference app setup](apps/web/README.md) and [the persistence decision](docs/adr/0013-mikroorm-and-core-auth.md). This migration targets fresh databases.
 
+Application workflows use Effect while existing Promise APIs and schema-composition contracts remain compatible. See [the Effect guide](docs/guides/effect.md) and [the execution decision](docs/adr/0014-effect-execution-and-compatible-boundaries.md).
+
 ## Join The Team
 
 Want to help us build HackKit? Please reach out to us at `tech@acmutsa.org` or join us on [Discord](https://go.acmutsa.org/projectsdiscord)!

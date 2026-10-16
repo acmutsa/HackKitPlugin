@@ -48,7 +48,8 @@
     "@mikro-orm/migrations": "7.2.1",
     "@mikro-orm/core": "7.2.1",
     "jiti": "2.4.2",
-    "@next/env": "14.2.35"
+    "@next/env": "14.2.35",
+    "effect": "^3.22.3"
   },
   "devDependencies": {
     "@types/node": "22.18.6",

@@ -1,5 +1,7 @@
 "use client";
 
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,29 +15,37 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 	const [isPending, setIsPending] = useState(false);
 	const isSignUp = mode === "sign-up";
 
-	async function onSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setError(null);
-		setIsPending(true);
+	function onSubmit(event: FormEvent<HTMLFormElement>) {
+		return runPromise(
+			Effect.gen(function* () {
+				event.preventDefault();
+				setError(null);
+				setIsPending(true);
 
-		const form = new FormData(event.currentTarget);
-		const email = String(form.get("email") ?? "");
-		const password = String(form.get("password") ?? "");
-		const name = String(form.get("name") ?? email);
+				const form = new FormData(event.currentTarget);
+				const email = String(form.get("email") ?? "");
+				const password = String(form.get("password") ?? "");
+				const name = String(form.get("name") ?? email);
 
-		const result = isSignUp
-			? await authClient.signUp.email({ email, password, name })
-			: await authClient.signIn.email({ email, password });
+				const result = isSignUp
+					? yield* fromResult(
+							authClient.signUp.email({ email, password, name }),
+						)
+					: yield* fromResult(
+							authClient.signIn.email({ email, password }),
+						);
 
-		setIsPending(false);
+				setIsPending(false);
 
-		if (result.error) {
-			setError(result.error.message ?? "Authentication failed.");
-			return;
-		}
+				if (result.error) {
+					setError(result.error.message ?? "Authentication failed.");
+					return;
+				}
 
-		router.push(isSignUp ? "/register" : "/");
-		router.refresh();
+				router.push(isSignUp ? "/register" : "/");
+				router.refresh();
+			}),
+		);
 	}
 
 	return (

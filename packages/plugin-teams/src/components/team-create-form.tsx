@@ -1,10 +1,12 @@
 "use client";
 
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
-import type { TeamsEndpoints } from "../client";
+import { type TeamsEndpoints } from "../client";
 
 export function TeamCreateForm() {
 	const client = useHackkitClient<TeamsEndpoints>();
@@ -13,19 +15,25 @@ export function TeamCreateForm() {
 	const [tag, setTag] = React.useState("");
 	const [pending, setPending] = React.useState(false);
 
-	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setPending(true);
-		const result = await client("@post/teams/create", {
-			body: { name, tag },
-		});
-		setPending(false);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("Team created.");
-		router.refresh();
+	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		return runPromise(
+			Effect.gen(function* () {
+				event.preventDefault();
+				setPending(true);
+				const result = yield* fromResult(
+					client("@post/teams/create", {
+						body: { name, tag },
+					}),
+				);
+				setPending(false);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("Team created.");
+				router.refresh();
+			}),
+		);
 	}
 
 	return (

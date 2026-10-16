@@ -24,7 +24,8 @@
   },
   "dependencies": {
     "@hackkit/core": "workspace:*",
-    "jiti": "^2.4.2"
+    "jiti": "^2.4.2",
+    "effect": "^3.22.3"
   },
   "devDependencies": {
     "@types/node": "22.18.6",

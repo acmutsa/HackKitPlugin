@@ -1,3 +1,5 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { randomUUID } from "node:crypto";
 import {
 	GetObjectCommand,
@@ -5,12 +7,11 @@ import {
 	S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type {
-	BlobStorageAdapterWithView,
-	BlobUploadTarget,
-	BlobViewResult,
+import {
+	type BlobStorageAdapterWithView,
+	type BlobUploadTarget,
+	type BlobViewResult,
 } from "@hackkit/core";
-
 export type S3BlobStorageOptions = {
 	bucket: string;
 	region: string;
@@ -20,18 +21,15 @@ export type S3BlobStorageOptions = {
 	filesRoutePrefix?: string;
 	presignExpiresInSeconds?: number;
 };
-
 function buildStoredFileReference(
 	filesRoutePrefix: string,
 	key: string,
 ): string {
 	return `${filesRoutePrefix}/view?key=${encodeURIComponent(key)}`;
 }
-
 export type S3BlobStorage = BlobStorageAdapterWithView & {
 	getPresignedViewUrl(key: string): Promise<string>;
 };
-
 export function createS3BlobStorage(
 	options: S3BlobStorageOptions,
 ): S3BlobStorage {
@@ -48,57 +46,67 @@ export function createS3BlobStorage(
 					}
 				: undefined,
 	});
-
 	return {
-		async getUploadTarget(input): Promise<BlobUploadTarget> {
-			const extension = input.fileName.includes(".")
-				? input.fileName.split(".").pop()
-				: undefined;
-			const key = `${input.location}/${randomUUID()}${extension ? `.${extension}` : ""}`;
-			const uploadUrl = await getSignedUrl(
-				client,
-				new PutObjectCommand({
-					Bucket: options.bucket,
-					Key: key,
+		getUploadTarget(input): Promise<BlobUploadTarget> {
+			return runPromise(
+				Effect.gen(function* () {
+					const extension = input.fileName.includes(".")
+						? input.fileName.split(".").pop()
+						: undefined;
+					const key = `${input.location}/${randomUUID()}${extension ? `.${extension}` : ""}`;
+					const uploadUrl = yield* fromResult(
+						getSignedUrl(
+							client,
+							new PutObjectCommand({
+								Bucket: options.bucket,
+								Key: key,
+							}),
+							{ expiresIn },
+						),
+					);
+					return {
+						uploadUrl,
+						storedFileReference: buildStoredFileReference(
+							filesRoutePrefix,
+							key,
+						),
+					};
 				}),
-				{ expiresIn },
 			);
-			return {
-				uploadUrl,
-				storedFileReference: buildStoredFileReference(
-					filesRoutePrefix,
-					key,
+		},
+		readObject(input): Promise<BlobViewResult | null> {
+			return runPromise(
+				Effect.gen(function* () {
+					const response = yield* fromResult(
+						client.send(
+							new GetObjectCommand({
+								Bucket: options.bucket,
+								Key: input.key,
+							}),
+						),
+					);
+					if (!response.Body) return null;
+					const bytes = yield* fromResult(
+						response.Body.transformToByteArray(),
+					);
+					return { body: bytes, contentType: response.ContentType };
+				}).pipe(Effect.catchAllCause(() => Effect.succeed(null))),
+			);
+		},
+		getPresignedViewUrl(key: string): Promise<string> {
+			return runPromise(
+				Effect.suspend(() =>
+					fromResult(
+						getSignedUrl(
+							client,
+							new GetObjectCommand({
+								Bucket: options.bucket,
+								Key: key,
+							}),
+							{ expiresIn },
+						),
+					),
 				),
-			};
-		},
-
-		async readObject(input): Promise<BlobViewResult | null> {
-			try {
-				const response = await client.send(
-					new GetObjectCommand({
-						Bucket: options.bucket,
-						Key: input.key,
-					}),
-				);
-				if (!response.Body) return null;
-				const bytes = await response.Body.transformToByteArray();
-				return {
-					body: bytes,
-					contentType: response.ContentType,
-				};
-			} catch {
-				return null;
-			}
-		},
-
-		async getPresignedViewUrl(key: string): Promise<string> {
-			return getSignedUrl(
-				client,
-				new GetObjectCommand({
-					Bucket: options.bucket,
-					Key: key,
-				}),
-				{ expiresIn },
 			);
 		},
 	};

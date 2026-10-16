@@ -1,22 +1,38 @@
 import { MikroORM } from "@mikro-orm/core";
 import { createOrmOptions, type HackKitDriver } from "@hackkit/core";
+import {
+	operation,
+	runPromise,
+	type BoundaryError,
+} from "@hackkit/core/effect";
+import { Effect } from "effect";
 import { createJiti } from "jiti";
-import type { HackkitConfig } from "./config";
+import { type HackkitConfig } from "./config";
 
 const jiti = createJiti(import.meta.url);
 
-/** CLI commands own their connections and always release them. */
-export async function withOrm<T>(
+/** CLI commands own their connections and release them on every exit. */
+export function withOrmEffect<T>(
 	config: HackkitConfig,
-	operation: (orm: MikroORM<HackKitDriver>) => Promise<T>,
+	run: (
+		orm: MikroORM<HackKitDriver>,
+	) => Effect.Effect<T, BoundaryError> | Promise<T>,
+): Effect.Effect<T, BoundaryError> {
+	return Effect.acquireUseRelease(
+		operation(() =>
+			MikroORM.init({
+				...createOrmOptions(config),
+				dynamicImportProvider: (id) => jiti.import(id),
+			}),
+		),
+		(orm) => operation(() => run(orm)),
+		(orm) => operation(() => orm.close()).pipe(Effect.orDie),
+	).pipe(Effect.uninterruptible);
+}
+
+export function withOrm<T>(
+	config: HackkitConfig,
+	run: (orm: MikroORM<HackKitDriver>) => Promise<T>,
 ): Promise<T> {
-	const orm = await MikroORM.init({
-		...createOrmOptions(config),
-		dynamicImportProvider: (id) => jiti.import(id),
-	});
-	try {
-		return await operation(orm);
-	} finally {
-		await orm.close();
-	}
+	return runPromise(withOrmEffect(config, run));
 }

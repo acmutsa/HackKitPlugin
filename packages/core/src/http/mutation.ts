@@ -1,16 +1,19 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "../effect";
 import { createEndpoint, type Endpoint } from "better-call";
 import { z } from "zod";
 import { HackKitError } from "../errors";
 import { toJsonDto } from "./http-contract";
-import type { HackKit } from "../hackkit";
-
-export type AuthenticatedScope = { hackkit: HackKit; actorAuthId: string };
+import { type HackKit } from "../hackkit";
+export type AuthenticatedScope = {
+	hackkit: HackKit;
+	actorAuthId: string;
+};
 export type RequestRunner = <T>(
 	request: Request,
 	operation: (scope: AuthenticatedScope) => Promise<T>,
 ) => Promise<T>;
 export type EndpointFactory = (run: RequestRunner) => Record<string, Endpoint>;
-
 /** Schemas own browser inputs. The request runner supplies the authenticated actor. */
 export function createMutationFactory(run: RequestRunner) {
 	return function mutation<
@@ -28,20 +31,28 @@ export function createMutationFactory(run: RequestRunner) {
 		return createEndpoint(
 			path,
 			{ method: "POST", body, requireRequest: true },
-			async (context) =>
-				toJsonDto(
-					await run(context.request, (scope) =>
-						operation(scope, context.body),
-					),
+			(context) =>
+				runPromise(
+					Effect.gen(function* () {
+						return toJsonDto(
+							yield* fromResult(
+								run(context.request, (scope) =>
+									operation(scope, context.body),
+								),
+							),
+						);
+					}),
 				),
 		);
 	};
 }
-
 /** Connect the dynamic plugin registry to the API type declared by its setup factory. */
 export function createPluginMutationFactory<TApi extends object>(
 	run: RequestRunner,
-	plugin: { id: string; setup: (...args: never[]) => TApi },
+	plugin: {
+		id: string;
+		setup: (...args: never[]) => TApi;
+	},
 ) {
 	const post = createMutationFactory(run);
 	return function mutation<
@@ -52,7 +63,10 @@ export function createPluginMutationFactory<TApi extends object>(
 		path: TPath,
 		body: TSchema,
 		operation: (
-			scope: { api: TApi; actorAuthId: string },
+			scope: {
+				api: TApi;
+				actorAuthId: string;
+			},
 			input: z.output<TSchema>,
 		) => Promise<TOutput>,
 	) {

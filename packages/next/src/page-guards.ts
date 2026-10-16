@@ -1,17 +1,21 @@
-import type {
-	Hacker,
-	HackKit,
-	PermissionKey,
-	SettingKey,
-	SettingValue,
-	User,
-	UserBan,
-	UserData,
+import { promiseApi, type BoundaryError } from "@hackkit/core/effect";
+import { Cause, Effect } from "effect";
+import { runPromise, fromResult, originalError } from "@hackkit/core/effect";
+import {
+	type Hacker,
+	type HackKit,
+	type PermissionKey,
+	type SettingKey,
+	type SettingValue,
+	type User,
+	type UserBan,
+	type UserData,
+	CoreSetting,
+	HackKitError,
+	type AccessPrincipal,
 } from "@hackkit/core";
-import { CoreSetting, HackKitError } from "@hackkit/core";
-import type { AccessPrincipal } from "@hackkit/core";
-import { notFound, redirect } from "next/navigation";
 
+import { notFound, redirect } from "next/navigation";
 export type PageGuardOptions = {
 	onForbidden?: "notFound" | "redirect" | ((error: HackKitError) => never);
 	redirectTo?: string;
@@ -22,14 +26,12 @@ export type PageGuardOptions = {
 	getCurrentUser?: () => Promise<User>;
 	getSettingValue?: (key: SettingKey) => Promise<SettingValue>;
 };
-
 export type CompetitorOnboardingState = {
 	user: User;
 	userData: UserData;
 	hacker: Hacker;
 };
-
-export function createPageGuards(
+export function createPageGuardEffects(
 	hackkit: HackKit,
 	getAuthId: () => Promise<string>,
 	options: PageGuardOptions = {},
@@ -42,7 +44,6 @@ export function createPageGuards(
 	const registrationClosedRedirectTo =
 		options.registrationClosedRedirectTo ?? "/registration-closed";
 	const suspendedRedirectTo = options.suspendedRedirectTo ?? "/suspended";
-
 	function handleForbidden(error: unknown): never {
 		if (error instanceof HackKitError && error.code === "FORBIDDEN") {
 			if (onForbidden === "notFound") notFound();
@@ -51,142 +52,178 @@ export function createPageGuards(
 		}
 		throw error;
 	}
-
-	async function getCurrentUser(): Promise<User> {
-		if (options.getCurrentUser) return options.getCurrentUser();
-		const authId = await getAuthId();
-		const user = await hackkit.users.getUser(authId);
-		if (user) return user;
-		handleForbidden(new HackKitError("FORBIDDEN", "User is required."));
+	function getCurrentUser(): Effect.Effect<User, BoundaryError> {
+		return Effect.gen(function* () {
+			if (options.getCurrentUser)
+				return yield* fromResult(options.getCurrentUser());
+			const authId = yield* fromResult(getAuthId());
+			const user = yield* fromResult(hackkit.users.getUser(authId));
+			if (user) return user;
+			handleForbidden(new HackKitError("FORBIDDEN", "User is required."));
+		});
 	}
-
-	async function getSettingValue(key: SettingKey): Promise<SettingValue> {
-		return options.getSettingValue
-			? options.getSettingValue(key)
-			: hackkit.settings.getValue(key);
+	function getSettingValue(
+		key: SettingKey,
+	): Effect.Effect<SettingValue, BoundaryError> {
+		return Effect.suspend(() =>
+			fromResult(
+				options.getSettingValue
+					? options.getSettingValue(key)
+					: hackkit.settings.getValue(key),
+			),
+		);
 	}
-
-	async function requireNotBannedForAuthId(
+	function requireNotBannedForAuthId(
 		authId: string,
-	): Promise<UserBan | null> {
-		const ban = await hackkit.users.getUserBan(authId);
-		if (ban) redirect(suspendedRedirectTo);
-		return null;
+	): Effect.Effect<UserBan | null, BoundaryError> {
+		return Effect.gen(function* () {
+			const ban = yield* fromResult(hackkit.users.getUserBan(authId));
+			if (ban) redirect(suspendedRedirectTo);
+			return null;
+		});
 	}
-
-	async function requireNotBanned(): Promise<UserBan | null> {
-		return requireNotBannedForAuthId(await getAuthId());
-	}
-
-	async function requireApprovedUser(): Promise<User> {
-		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.id);
-		if (!user.isApproved) redirect(approvalRedirectTo);
-		return user;
-	}
-
-	async function requireCompletedOnboarding(): Promise<CompetitorOnboardingState> {
-		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.id);
-
-		if (!user.hackTag) redirect(onboardingRedirectTo);
-
-		const [userData, hacker] = await Promise.all([
-			hackkit.userData.getUserData(user.id),
-			hackkit.hackers.getHacker(user.id),
-		]);
-
-		if (!userData) redirect("/onboarding/user-data");
-		if (!hacker) {
-			const registrationOpen = await getSettingValue(
-				CoreSetting.RegistrationOpen,
+	function requireNotBanned(): Effect.Effect<UserBan | null, BoundaryError> {
+		return Effect.gen(function* () {
+			return yield* fromResult(
+				requireNotBannedForAuthId(yield* fromResult(getAuthId())),
 			);
-			if (!registrationOpen) redirect(registrationClosedRedirectTo);
-			redirect("/onboarding/hacker");
-		}
-
-		return { user, userData, hacker };
+		});
 	}
-
-	async function requireParticipantAccess(): Promise<CompetitorOnboardingState> {
-		const state = await requireCompletedOnboarding();
-		if (!state.user.isApproved) redirect(approvalRedirectTo);
-		return state;
+	function requireApprovedUser(): Effect.Effect<User, BoundaryError> {
+		return Effect.gen(function* () {
+			const user = yield* fromResult(getCurrentUser());
+			yield* fromResult(requireNotBannedForAuthId(user.id));
+			if (!user.isApproved) redirect(approvalRedirectTo);
+			return user;
+		});
 	}
-
-	async function requireOnboardingAccess(): Promise<User> {
-		const user = await getCurrentUser();
-		await requireNotBannedForAuthId(user.id);
-
-		if (!user.hackTag) return user;
-		const [userData, hacker] = await Promise.all([
-			hackkit.userData.getUserData(user.id),
-			hackkit.hackers.getHacker(user.id),
-		]);
-
-		if (!userData || !hacker) return user;
-		if (!user.isApproved) redirect(approvalRedirectTo);
-		redirect(redirectTo);
-	}
-
-	async function requireApprovalPendingAccess(): Promise<CompetitorOnboardingState> {
-		const state = await requireCompletedOnboarding();
-		if (state.user.isApproved) redirect(redirectTo);
-		return state;
-	}
-
-	return {
-		async requirePermission(
-			permission: PermissionKey,
-		): Promise<AccessPrincipal> {
-			try {
-				const authId = await getAuthId();
-				await requireNotBannedForAuthId(authId);
-				return await hackkit.accessControl.requirePermission(
-					authId,
-					permission,
+	function requireCompletedOnboarding(): Effect.Effect<
+		CompetitorOnboardingState,
+		BoundaryError
+	> {
+		return Effect.gen(function* () {
+			const user = yield* fromResult(getCurrentUser());
+			yield* fromResult(requireNotBannedForAuthId(user.id));
+			if (!user.hackTag) redirect(onboardingRedirectTo);
+			const [userData, hacker] = yield* Effect.all(
+				[
+					fromResult(hackkit.userData.getUserData(user.id)),
+					fromResult(hackkit.hackers.getHacker(user.id)),
+				],
+				{ concurrency: "unbounded" },
+			);
+			if (!userData) redirect("/onboarding/user-data");
+			if (!hacker) {
+				const registrationOpen = yield* fromResult(
+					getSettingValue(CoreSetting.RegistrationOpen),
 				);
-			} catch (error) {
-				handleForbidden(error);
+				if (!registrationOpen) redirect(registrationClosedRedirectTo);
+				redirect("/onboarding/hacker");
 			}
-		},
-
-		async requireHackerRegistrationOpenForNewHacker(): Promise<void> {
-			const authId = await getAuthId();
-			const existing = await hackkit.hackers.getHacker(authId);
-			if (existing) return;
-			const registrationOpen = await getSettingValue(
-				CoreSetting.RegistrationOpen,
+			return { user, userData, hacker };
+		});
+	}
+	function requireParticipantAccess(): Effect.Effect<
+		CompetitorOnboardingState,
+		BoundaryError
+	> {
+		return Effect.gen(function* () {
+			const state = yield* fromResult(requireCompletedOnboarding());
+			if (!state.user.isApproved) redirect(approvalRedirectTo);
+			return state;
+		});
+	}
+	function requireOnboardingAccess(): Effect.Effect<User, BoundaryError> {
+		return Effect.gen(function* () {
+			const user = yield* fromResult(getCurrentUser());
+			yield* fromResult(requireNotBannedForAuthId(user.id));
+			if (!user.hackTag) return user;
+			const [userData, hacker] = yield* Effect.all(
+				[
+					fromResult(hackkit.userData.getUserData(user.id)),
+					fromResult(hackkit.hackers.getHacker(user.id)),
+				],
+				{ concurrency: "unbounded" },
 			);
-			if (registrationOpen) return;
-			redirect(registrationClosedRedirectTo);
-		},
-
-		requireNotBanned,
-
-		requireApprovedUser,
-
-		requireCompletedOnboarding,
-
-		requireParticipantAccess,
-
-		requireOnboardingAccess,
-
-		requireApprovalPendingAccess,
-
-		async getOptionalPermission(
+			if (!userData || !hacker) return user;
+			if (!user.isApproved) redirect(approvalRedirectTo);
+			redirect(redirectTo);
+		});
+	}
+	function requireApprovalPendingAccess(): Effect.Effect<
+		CompetitorOnboardingState,
+		BoundaryError
+	> {
+		return Effect.gen(function* () {
+			const state = yield* fromResult(requireCompletedOnboarding());
+			if (state.user.isApproved) redirect(redirectTo);
+			return state;
+		});
+	}
+	return {
+		requirePermission(
 			permission: PermissionKey,
-		): Promise<AccessPrincipal | null> {
-			const authId = await getAuthId();
-			await requireNotBannedForAuthId(authId);
-			const allowed = await hackkit.accessControl.hasPermission(
-				authId,
-				permission,
+		): Effect.Effect<AccessPrincipal, BoundaryError> {
+			return Effect.gen(function* () {
+				const authId = yield* fromResult(getAuthId());
+				yield* fromResult(requireNotBannedForAuthId(authId));
+				return yield* fromResult(
+					hackkit.accessControl.requirePermission(authId, permission),
+				);
+			}).pipe(
+				Effect.catchAllCause((cause) =>
+					Effect.sync(() =>
+						handleForbidden(originalError(Cause.squash(cause))),
+					),
+				),
 			);
-			if (!allowed) return null;
-			return hackkit.accessControl.getPrincipal(authId);
+		},
+		requireHackerRegistrationOpenForNewHacker(): Effect.Effect<
+			void,
+			BoundaryError
+		> {
+			return Effect.gen(function* () {
+				const authId = yield* fromResult(getAuthId());
+				const existing = yield* fromResult(
+					hackkit.hackers.getHacker(authId),
+				);
+				if (existing) return;
+				const registrationOpen = yield* fromResult(
+					getSettingValue(CoreSetting.RegistrationOpen),
+				);
+				if (registrationOpen) return;
+				redirect(registrationClosedRedirectTo);
+			});
+		},
+		requireNotBanned,
+		requireApprovedUser,
+		requireCompletedOnboarding,
+		requireParticipantAccess,
+		requireOnboardingAccess,
+		requireApprovalPendingAccess,
+		getOptionalPermission(
+			permission: PermissionKey,
+		): Effect.Effect<AccessPrincipal | null, BoundaryError> {
+			return Effect.gen(function* () {
+				const authId = yield* fromResult(getAuthId());
+				yield* fromResult(requireNotBannedForAuthId(authId));
+				const allowed = yield* fromResult(
+					hackkit.accessControl.hasPermission(authId, permission),
+				);
+				if (!allowed) return null;
+				return yield* fromResult(
+					hackkit.accessControl.getPrincipal(authId),
+				);
+			});
 		},
 	};
 }
-
 export type PageGuards = ReturnType<typeof createPageGuards>;
+
+export function createPageGuards(
+	hackkit: HackKit,
+	getAuthId: () => Promise<string>,
+	options: PageGuardOptions = {},
+) {
+	return promiseApi(createPageGuardEffects(hackkit, getAuthId, options));
+}

@@ -1,17 +1,18 @@
+import { promiseApi, type BoundaryError, fromResult } from "../effect";
+import { Effect } from "effect";
+
 import { serialize } from "@mikro-orm/core";
-import { withOperationLock } from "../mikro/operation";
+import { withOperationLockEffect } from "../mikro/operation";
 import { HackKitError } from "../errors";
-import type { HackkitRuntimeContext } from "../hackkit-context";
+import { type HackkitRuntimeContext } from "../hackkit-context";
 import { coreModels } from "../models";
-import type { AuthId, Hacker } from "../types";
-import type { HackkitGroup } from "../groups";
-import { getEnabledGroups } from "../groups";
+import { type AuthId, type Hacker } from "../types";
+import { type HackkitGroup, getEnabledGroups } from "../groups";
 
 export type GroupsApiContext = Pick<
 	HackkitRuntimeContext,
 	"em" | "now" | "groups"
 >;
-
 function countAssignments(
 	hackers: readonly Hacker[],
 	groups: readonly HackkitGroup[],
@@ -23,87 +24,114 @@ function countAssignments(
 	}
 	return counts;
 }
-
-export function createGroupsApi(context: GroupsApiContext) {
+export function createGroupsEffects(context: GroupsApiContext) {
 	const { em, now, groups } = context;
-
-	async function assignGroupToHacker(
+	function assignGroupToHacker(
 		authId: AuthId,
 		groupId: string,
-	): Promise<Hacker> {
-		const group = groups.find((candidate) => candidate.id === groupId);
-		if (!group) {
-			throw new HackKitError("NOT_FOUND", "Group not found.");
-		}
-		const updated = await em.findOne(coreModels.hacker, { userId: authId });
-		if (updated) {
-			em.assign(
-				updated,
-				{ group: group.id, updatedAt: now() },
-				{ ignoreUndefined: true },
+	): Effect.Effect<Hacker, BoundaryError> {
+		return Effect.gen(function* () {
+			const group = groups.find((candidate) => candidate.id === groupId);
+			if (!group) {
+				return yield* Effect.fail(
+					new HackKitError("NOT_FOUND", "Group not found."),
+				);
+			}
+			const updated = yield* fromResult(
+				em.findOne(coreModels.hacker, { userId: authId }),
 			);
-			await em.flush();
-		}
-		if (!updated) {
-			throw new HackKitError("NOT_FOUND", "Hacker not found.");
-		}
-		return serialize(updated);
+			if (updated) {
+				em.assign(
+					updated,
+					{ group: group.id, updatedAt: now() },
+					{ ignoreUndefined: true },
+				);
+				yield* fromResult(em.flush());
+			}
+			if (!updated) {
+				return yield* Effect.fail(
+					new HackKitError("NOT_FOUND", "Hacker not found."),
+				);
+			}
+			return serialize(updated);
+		});
 	}
-
 	return {
 		listGroups(): readonly HackkitGroup[] {
 			return groups;
 		},
-
-		async getGroupForAuthId(authId: AuthId): Promise<HackkitGroup | null> {
-			const hacker = await em.findOne(coreModels.hacker, {
-				userId: authId,
+		getGroupForAuthId(
+			authId: AuthId,
+		): Effect.Effect<HackkitGroup | null, BoundaryError> {
+			return Effect.gen(function* () {
+				const hacker = yield* fromResult(
+					em.findOne(coreModels.hacker, {
+						userId: authId,
+					}),
+				);
+				if (!hacker?.group) return null;
+				return (
+					groups.find((group) => group.id === hacker.group) ?? null
+				);
 			});
-			if (!hacker?.group) return null;
-			return groups.find((group) => group.id === hacker.group) ?? null;
 		},
-
-		async assignGroup(input: {
+		assignGroup(input: {
 			authId: AuthId;
 			groupId: string;
-		}): Promise<Hacker> {
-			return withOperationLock(em, "groups", async () => {
-				return assignGroupToHacker(input.authId, input.groupId);
-			});
+		}): Effect.Effect<Hacker, BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(em, "groups", () =>
+					Effect.suspend(() =>
+						assignGroupToHacker(input.authId, input.groupId),
+					),
+				),
+			);
 		},
-
-		async assignNextGroup(authId: AuthId): Promise<Hacker | null> {
-			return withOperationLock(em, "groups", async () => {
-				const hacker = await em.findOne(coreModels.hacker, {
-					userId: authId,
-				});
-				if (!hacker) return null;
-				if (hacker.group) return serialize(hacker);
-
-				const enabledGroups = getEnabledGroups(groups);
-				if (enabledGroups.length === 0) return serialize(hacker);
-
-				const hackers = await em.find(coreModels.hacker, {});
-				const counts = countAssignments(hackers, enabledGroups);
-				const [nextGroup] = [...enabledGroups].sort((left, right) => {
-					const countDelta =
-						(counts.get(left.id) ?? 0) -
-						(counts.get(right.id) ?? 0);
-					if (countDelta !== 0) return countDelta;
-					return (
-						enabledGroups.findIndex(
-							(group) => group.id === left.id,
-						) -
-						enabledGroups.findIndex(
-							(group) => group.id === right.id,
-						)
-					);
-				});
-				if (!nextGroup) return serialize(hacker);
-				return assignGroupToHacker(authId, nextGroup.id);
-			});
+		assignNextGroup(
+			authId: AuthId,
+		): Effect.Effect<Hacker | null, BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(em, "groups", () =>
+					Effect.gen(function* () {
+						const hacker = yield* fromResult(
+							em.findOne(coreModels.hacker, {
+								userId: authId,
+							}),
+						);
+						if (!hacker) return null;
+						if (hacker.group) return serialize(hacker);
+						const enabledGroups = getEnabledGroups(groups);
+						if (enabledGroups.length === 0)
+							return serialize(hacker);
+						const hackers = yield* fromResult(
+							em.find(coreModels.hacker, {}),
+						);
+						const counts = countAssignments(hackers, enabledGroups);
+						const [nextGroup] = [...enabledGroups].sort(
+							(left, right) => {
+								const countDelta =
+									(counts.get(left.id) ?? 0) -
+									(counts.get(right.id) ?? 0);
+								if (countDelta !== 0) return countDelta;
+								return (
+									enabledGroups.findIndex(
+										(group) => group.id === left.id,
+									) -
+									enabledGroups.findIndex(
+										(group) => group.id === right.id,
+									)
+								);
+							},
+						);
+						if (!nextGroup) return serialize(hacker);
+						return yield* assignGroupToHacker(authId, nextGroup.id);
+					}),
+				),
+			);
 		},
 	};
 }
-
 export type GroupsApi = ReturnType<typeof createGroupsApi>;
+export function createGroupsApi(context: GroupsApiContext) {
+	return promiseApi(createGroupsEffects(context));
+}

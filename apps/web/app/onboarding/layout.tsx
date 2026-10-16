@@ -1,14 +1,20 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import type * as React from "react";
 import { getPageGuards } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
-export default async function OnboardingLayout({
+export default function OnboardingLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const guards = await getPageGuards();
-	await guards.requireOnboardingAccess();
-	return children;
+	return runPromise(
+		Effect.gen(function* () {
+			const guards = yield* fromResult(getPageGuards());
+			yield* fromResult(guards.requireOnboardingAccess());
+			return yield* fromResult(children);
+		}),
+	);
 }

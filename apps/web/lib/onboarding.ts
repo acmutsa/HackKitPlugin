@@ -1,5 +1,6 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import "server-only";
-
 import {
 	buildCompetitorOnboardingSteps,
 	getNextOnboardingStepHref,
@@ -8,47 +9,72 @@ import {
 import { CoreSetting } from "@hackkit/core";
 import { hackKitUIRoutes } from "./hackkit-ui-routes";
 import { getCurrentUser, getHackkit, getRuntime } from "./runtime";
-
-async function loadCompetitorOnboardingInput(currentPath: string) {
-	const user = await getCurrentUser();
-	const hackkit = await getHackkit();
-	const runtime = await getRuntime();
-	const [userData, hacker, requireApproval] = await Promise.all([
-		hackkit.userData.getUserData(user.id),
-		hackkit.hackers.getHacker(user.id),
-		runtime.getSettingValue(CoreSetting.RequireApproval),
-	]);
-	return {
-		user,
-		userData,
-		hacker,
-		requireApproval: Boolean(requireApproval),
-		currentPath,
-		routes: hackKitUIRoutes,
-	};
+function loadCompetitorOnboardingInput(currentPath: string) {
+	return runPromise(
+		Effect.gen(function* () {
+			const user = yield* fromResult(getCurrentUser());
+			const hackkit = yield* fromResult(getHackkit());
+			const runtime = yield* fromResult(getRuntime());
+			const [userData, hacker, requireApproval] = yield* Effect.all(
+				[
+					fromResult(hackkit.userData.getUserData(user.id)),
+					fromResult(hackkit.hackers.getHacker(user.id)),
+					fromResult(
+						runtime.getSettingValue(CoreSetting.RequireApproval),
+					),
+				],
+				{ concurrency: "unbounded" },
+			);
+			return {
+				user,
+				userData,
+				hacker,
+				requireApproval: Boolean(requireApproval),
+				currentPath,
+				routes: hackKitUIRoutes,
+			};
+		}),
+	);
 }
-
-export async function getOnboardingSteps(
+export function getOnboardingSteps(
 	currentPath: string,
 ): Promise<CompetitorOnboardingStep[]> {
-	const input = await loadCompetitorOnboardingInput(currentPath);
-	return buildCompetitorOnboardingSteps(input);
+	return runPromise(
+		Effect.gen(function* () {
+			const input = yield* fromResult(
+				loadCompetitorOnboardingInput(currentPath),
+			);
+			return buildCompetitorOnboardingSteps(input);
+		}),
+	);
 }
-
-export async function getCompetitorOnboardingState(currentPath: string) {
-	const input = await loadCompetitorOnboardingInput(currentPath);
-	const steps = buildCompetitorOnboardingSteps(input);
-	return {
-		steps,
-		nextHref: getNextOnboardingStepHref(steps),
-		user: input.user,
-		userData: input.userData,
-		hacker: input.hacker,
-	};
+export function getCompetitorOnboardingState(currentPath: string) {
+	return runPromise(
+		Effect.gen(function* () {
+			const input = yield* fromResult(
+				loadCompetitorOnboardingInput(currentPath),
+			);
+			const steps = buildCompetitorOnboardingSteps(input);
+			return {
+				steps,
+				nextHref: getNextOnboardingStepHref(steps),
+				user: input.user,
+				userData: input.userData,
+				hacker: input.hacker,
+			};
+		}),
+	);
 }
-
-export async function getRequireApproval(): Promise<boolean> {
-	return Boolean(
-		await (await getRuntime()).getSettingValue(CoreSetting.RequireApproval),
+export function getRequireApproval(): Promise<boolean> {
+	return runPromise(
+		Effect.gen(function* () {
+			return Boolean(
+				yield* fromResult(
+					(yield* fromResult(getRuntime())).getSettingValue(
+						CoreSetting.RequireApproval,
+					),
+				),
+			);
+		}),
 	);
 }

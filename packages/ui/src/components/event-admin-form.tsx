@@ -1,4 +1,7 @@
 "use client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
@@ -7,9 +10,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { cn } from "../lib/cn";
-import { toDateTimeLocalValue } from "../lib/datetime-local";
+
 import { useHackKitUI } from "../provider";
-import type { EventAdminFormProps, EventFormValues } from "../types";
+import { type EventAdminFormProps, type EventFormValues } from "../types";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
@@ -106,26 +109,34 @@ export function EventAdminForm({
 		},
 	});
 
-	async function handleSubmit(values: EventFormValues) {
-		const input = {
-			...values,
-			startTime: new Date(values.startTime).toISOString(),
-			endTime: new Date(values.endTime).toISOString(),
-		};
-		const result = eventId
-			? await client("@post/events/update", {
-					body: { eventId, ...input },
-				})
-			: await client("@post/events/create", { body: input });
+	function handleSubmit(values: EventFormValues) {
+		return runPromise(
+			Effect.gen(function* () {
+				const input = {
+					...values,
+					startTime: new Date(values.startTime).toISOString(),
+					endTime: new Date(values.endTime).toISOString(),
+				};
+				const result = eventId
+					? yield* fromResult(
+							client("@post/events/update", {
+								body: { eventId, ...input },
+							}),
+						)
+					: yield* fromResult(
+							client("@post/events/create", { body: input }),
+						);
 
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		toast.success(eventId ? "Event updated." : "Event created.");
-		navigation.push(redirectTo);
-		navigation.refresh();
+				toast.success(eventId ? "Event updated." : "Event created.");
+				navigation.push(redirectTo);
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

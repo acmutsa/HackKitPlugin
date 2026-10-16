@@ -1,11 +1,12 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "../effect";
 import { createRouter, APIError, type Endpoint } from "better-call";
 import { createLogger, type HackKitLoggerOptions } from "../adapters/logger";
 import { HackKitError } from "../errors";
-import type { HackKitRuntime } from "../runtime";
+import { type HackKitRuntime } from "../runtime";
 import { createCoreEndpoints } from "./endpoints";
 import { protectHttpHandler, httpError } from "./http-server";
-import type { RequestRunner } from "./mutation";
-
+import { type RequestRunner } from "./mutation";
 /** Mount Core and enabled plugins once. Only connections and endpoint definitions are shared. */
 export function createHackkitHandler(options: {
 	runtime: HackKitRuntime;
@@ -19,21 +20,33 @@ export function createHackkitHandler(options: {
 		options.onUnexpectedError ??
 		((error) => logger.log("error", "HackKit HTTP request failed.", error));
 	const sessionHeaders = new WeakMap<Request, Headers>();
-	const run: RequestRunner = async (request, operation) => {
-		const session = await options.runtime.auth.api.getSession({
-			headers: request.headers,
-			query: { disableCookieCache: true },
-			returnHeaders: true,
-		});
-		sessionHeaders.set(request, session.headers);
-		if (!session.response)
-			throw new HackKitError("UNAUTHORIZED", "Sign in to continue.");
-		const actorAuthId = session.response.user.id;
-		return options.runtime.run(
-			({ hackkit }) => operation({ hackkit, actorAuthId }),
-			actorAuthId,
+	const run: RequestRunner = (request, operation) =>
+		runPromise(
+			Effect.gen(function* () {
+				const session = yield* fromResult(
+					options.runtime.auth.api.getSession({
+						headers: request.headers,
+						query: { disableCookieCache: true },
+						returnHeaders: true,
+					}),
+				);
+				sessionHeaders.set(request, session.headers);
+				if (!session.response)
+					return yield* Effect.fail(
+						new HackKitError(
+							"UNAUTHORIZED",
+							"Sign in to continue.",
+						),
+					);
+				const actorAuthId = session.response.user.id;
+				return yield* fromResult(
+					options.runtime.run(
+						({ hackkit }) => operation({ hackkit, actorAuthId }),
+						actorAuthId,
+					),
+				);
+			}),
 		);
-	};
 	const endpoints: Record<string, Endpoint> = {
 		...createCoreEndpoints(
 			run,
@@ -70,14 +83,17 @@ export function createHackkitHandler(options: {
 		},
 	});
 	return protectHttpHandler(
-		async (request: Request) => {
-			const response = await router.handler(request);
-			const headers = sessionHeaders.get(request);
-			sessionHeaders.delete(request);
-			for (const cookie of headers?.getSetCookie() ?? [])
-				response.headers.append("set-cookie", cookie);
-			return response;
-		},
+		(request: Request) =>
+			runPromise(
+				Effect.gen(function* () {
+					const response = yield* fromResult(router.handler(request));
+					const headers = sessionHeaders.get(request);
+					sessionHeaders.delete(request);
+					for (const cookie of headers?.getSetCookie() ?? [])
+						response.headers.append("set-cookie", cookie);
+					return response;
+				}),
+			),
 		{ ...options, onUnexpectedError },
 	);
 }

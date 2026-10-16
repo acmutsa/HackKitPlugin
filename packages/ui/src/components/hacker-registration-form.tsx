@@ -1,4 +1,6 @@
 "use client";
+import { Effect } from "effect";
+import { operation, originalError, runPromise } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
@@ -8,7 +10,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useHackKitUI } from "../provider";
-import type { HackerRegistrationFormValues } from "../types";
+import { type HackerRegistrationFormValues } from "../types";
 import { cn } from "../lib/cn";
 import { usePersistedFormState } from "../lib/use-persisted-form-state";
 import { Button } from "./ui/button";
@@ -149,44 +151,46 @@ export function HackerRegistrationForm({
 	});
 	const clearPersistedState = usePersistedFormState(form, localStorageKey);
 
-	async function onSubmit(values: HackerRegistrationFormValues) {
-		let resumeUrl = values.resumeUrl;
-		if (resumeFile && uploadResume) {
-			try {
-				resumeUrl = await uploadResume(resumeFile);
-			} catch (error) {
-				toast.error(
-					error instanceof Error
-						? error.message
-						: "Could not upload resume.",
+	function onSubmit(values: HackerRegistrationFormValues) {
+		return runPromise(
+			Effect.gen(function* () {
+				let resumeUrl = values.resumeUrl;
+				if (resumeFile && uploadResume) {
+					const uploaded = yield* Effect.either(
+						operation(() => uploadResume(resumeFile)),
+					);
+					if (uploaded._tag === "Left") {
+						const error = originalError(uploaded.left);
+						toast.error(
+							error instanceof Error
+								? error.message
+								: "Could not upload resume.",
+						);
+						return;
+					}
+					resumeUrl = uploaded.right;
+				}
+				const body = { ...values, resumeUrl: resumeUrl || undefined };
+				const response = yield* Effect.either(
+					operation(() => client("@post/hackers/register", { body })),
 				);
-				return;
-			}
-		}
-
-		let result;
-		try {
-			result = await client("@post/hackers/register", {
-				body: {
-					...values,
-					resumeUrl: resumeUrl || undefined,
-				},
-			});
-		} catch {
-			toast.error(
-				"Could not complete registration. Your details are still available; please retry.",
-			);
-			return;
-		}
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-
-		clearPersistedState();
-		toast.success("Hacker registration complete.");
-		navigation.push(redirectTo);
-		navigation.refresh();
+				if (response._tag === "Left") {
+					toast.error(
+						"Could not complete registration. Your details are still available; please retry.",
+					);
+					return;
+				}
+				const result = response.right;
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				clearPersistedState();
+				toast.success("Hacker registration complete.");
+				navigation.push(redirectTo);
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

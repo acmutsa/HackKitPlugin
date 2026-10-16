@@ -1,13 +1,16 @@
 "use client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
-import type { EventScan, User, Wire } from "@hackkit/core/client";
+import { type EventScan, type User, type Wire } from "@hackkit/core/client";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import * as React from "react";
 import { toast } from "sonner";
 import { cn } from "../lib/cn";
 import { useHackKitUI } from "../provider";
-import type { EventScannerProps } from "../types";
+import { type EventScannerProps } from "../types";
 import { Button } from "./ui/button";
 import {
 	Card,
@@ -24,56 +27,68 @@ export function EventScanner({ event, className, onDone }: EventScannerProps) {
 	const [targetUser, setTargetUser] = React.useState<Wire<User> | null>(null);
 	const [priorScans, setPriorScans] = React.useState<Wire<EventScan>[]>([]);
 
-	async function handleScan(rawValue: string) {
-		if (rawQr) return;
+	function handleScan(rawValue: string) {
+		return runPromise(
+			Effect.gen(function* () {
+				if (rawQr) return;
 
-		setLoading(true);
-		const result = await client("@post/event-pass/preview", {
-			body: {
-				rawQr: rawValue,
-				eventId: event.id,
-			},
-		});
-		setLoading(false);
+				setLoading(true);
+				const result = yield* fromResult(
+					client("@post/event-pass/preview", {
+						body: {
+							rawQr: rawValue,
+							eventId: event.id,
+						},
+					}),
+				);
+				setLoading(false);
 
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		setRawQr(rawValue);
-		setTargetUser(result.data.user);
-		setPriorScans(result.data.priorScans);
+				setRawQr(rawValue);
+				setTargetUser(result.data.user);
+				setPriorScans(result.data.priorScans);
+			}),
+		);
 	}
 
-	async function handleConfirmScan() {
-		if (!rawQr) return;
+	function handleConfirmScan() {
+		return runPromise(
+			Effect.gen(function* () {
+				if (!rawQr) return;
 
-		setLoading(true);
-		const result = await client("@post/events/record-scan", {
-			body: {
-				eventId: event.id,
-				rawQr,
-			},
-		});
-		setLoading(false);
+				setLoading(true);
+				const result = yield* fromResult(
+					client("@post/events/record-scan", {
+						body: {
+							eventId: event.id,
+							rawQr,
+						},
+					}),
+				);
+				setLoading(false);
 
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		if (result.data?.hadPriorScans) {
-			toast.success("Additional scan recorded.");
-		} else {
-			toast.success("Scan recorded.");
-		}
+				if (result.data?.hadPriorScans) {
+					toast.success("Additional scan recorded.");
+				} else {
+					toast.success("Scan recorded.");
+				}
 
-		setRawQr(null);
-		setTargetUser(null);
-		setPriorScans([]);
-		onDone?.();
-		navigation.refresh();
+				setRawQr(null);
+				setTargetUser(null);
+				setPriorScans([]);
+				onDone?.();
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

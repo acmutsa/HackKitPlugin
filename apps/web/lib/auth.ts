@@ -1,11 +1,23 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import "server-only";
 import { headers } from "next/headers";
 import { getCoreRuntime } from "./runtime";
-
-export async function getAuth() {
-	return (await getCoreRuntime()).auth;
+export function getAuth() {
+	return runPromise(
+		Effect.gen(function* () {
+			return (yield* fromResult(getCoreRuntime())).auth;
+		}),
+	);
 }
-
-export async function getAuthSession() {
-	return (await getAuth()).api.getSession({ headers: await headers() });
+export function getAuthSession() {
+	return runPromise(
+		Effect.gen(function* () {
+			return yield* fromResult(
+				(yield* fromResult(getAuth())).api.getSession({
+					headers: headers(),
+				}),
+			);
+		}),
+	);
 }

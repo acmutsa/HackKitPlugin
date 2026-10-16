@@ -23,7 +23,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hackkit/core": "workspace:*"
+    "@hackkit/core": "workspace:*",
+    "effect": "^3.22.3"
   },
   "devDependencies": {
     "@types/node": "22.18.6",

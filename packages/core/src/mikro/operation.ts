@@ -3,44 +3,68 @@ import {
 	UniqueConstraintViolationException,
 	type EntityManager,
 } from "@mikro-orm/core";
+import { Effect } from "effect";
 import { CoreOperationLock } from "../models";
 import { HackKitError } from "../errors";
+import {
+	operation,
+	originalError,
+	runPromise,
+	type BoundaryError,
+} from "../effect";
 
-/** Serialize a read/check/write decision across connections, including SQLite.
- * The upsert writes before any reads, acquiring the database's write/row lock.
- * A fresh token forces a write even when the lock row is already managed.
- * Callbacks contain database work only; deliver external effects after commit.
+/** Keep the transaction alive until all database work finishes, including interruption.
+ * The lock write precedes reads. External delivery belongs after commit.
  */
-export async function withOperationLock<T>(
+export function withOperationLockEffect<T>(
 	em: EntityManager,
 	key: string,
-	operation: () => Promise<T>,
-): Promise<T> {
-	const ownsTransaction = !em.isInTransaction();
-	try {
-		return await em.transactional(
-			async (transaction) => {
-				await transaction.upsert(CoreOperationLock, {
-					key,
-					token: crypto.randomUUID(),
-				});
-				await transaction.flush();
-				return operation();
-			},
-			{ clear: true, propagation: TransactionPropagation.REQUIRED },
+	run: () => Effect.Effect<T, BoundaryError> | Promise<T>,
+): Effect.Effect<T, BoundaryError> {
+	return Effect.suspend(() => {
+		const ownsTransaction = !em.isInTransaction();
+		return operation(() =>
+			em.transactional(
+				(transaction) =>
+					runPromise(
+						Effect.gen(function* () {
+							yield* operation(() =>
+								transaction.upsert(CoreOperationLock, {
+									key,
+									token: crypto.randomUUID(),
+								}),
+							);
+							yield* operation(() => transaction.flush());
+							return yield* operation(run);
+						}),
+					),
+				{ clear: true, propagation: TransactionPropagation.REQUIRED },
+			),
+		).pipe(
+			Effect.mapError((error) =>
+				originalError(error) instanceof
+				UniqueConstraintViolationException
+					? new HackKitError(
+							"CONFLICT",
+							"A record with these unique values already exists.",
+							{ cause: originalError(error) },
+						)
+					: error,
+			),
+			Effect.ensuring(
+				Effect.sync(() => {
+					if (ownsTransaction) em.clear();
+				}),
+			),
+			Effect.uninterruptible,
 		);
-	} catch (error) {
-		if (error instanceof UniqueConstraintViolationException) {
-			throw new HackKitError(
-				"CONFLICT",
-				"A record with these unique values already exists.",
-				{ cause: error },
-			);
-		}
-		throw error;
-	} finally {
-		// A completed operation is a unit-of-work boundary. Reload subsequent reads
-		// from the database, and never retain entities from a rolled-back operation.
-		if (ownsTransaction) em.clear();
-	}
+	});
+}
+
+export function withOperationLock<T>(
+	em: EntityManager,
+	key: string,
+	run: () => Promise<T>,
+): Promise<T> {
+	return runPromise(withOperationLockEffect(em, key, run));
 }

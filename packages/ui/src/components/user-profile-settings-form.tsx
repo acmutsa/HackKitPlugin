@@ -1,4 +1,6 @@
 "use client";
+import { Effect } from "effect";
+import { operation, originalError, runPromise } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
@@ -12,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useHackKitUI } from "../provider";
-import type { UserProfileFormValues } from "../types";
+import { type UserProfileFormValues } from "../types";
 import { cn } from "../lib/cn";
 import { Button } from "./ui/button";
 import {
@@ -100,49 +102,57 @@ export function UserProfileSettingsForm({
 		};
 	}, [profilePhotoFile, previewPhoto]);
 
-	async function onSubmit(values: FormValues) {
-		let profilePhotoUrl = values.profilePhotoUrl;
-		if (profilePhotoFile && uploadProfilePhoto) {
-			try {
-				profilePhotoUrl = await uploadProfilePhoto(profilePhotoFile);
-			} catch (error) {
-				toast.error(
-					error instanceof Error
-						? error.message
-						: "Could not upload profile photo.",
+	function onSubmit(values: FormValues) {
+		return runPromise(
+			Effect.gen(function* () {
+				let profilePhotoUrl = values.profilePhotoUrl;
+				if (profilePhotoFile && uploadProfilePhoto) {
+					const uploaded = yield* Effect.either(
+						operation(() => uploadProfilePhoto(profilePhotoFile)),
+					);
+					if (uploaded._tag === "Left") {
+						const error = originalError(uploaded.left);
+						toast.error(
+							error instanceof Error
+								? error.message
+								: "Could not upload profile photo.",
+						);
+						return;
+					}
+					profilePhotoUrl = uploaded.right;
+				}
+				const body: UserProfileFormValues = {
+					name: values.name,
+					hackTag: values.hackTag,
+					bio: values.bio,
+					pronouns: values.pronouns,
+					skills: textToSkills(values.skillsText),
+					isProfileSearchable: values.isProfileSearchable ?? true,
+					discordDisplayHandle: values.discordDisplayHandle,
+					profilePhotoUrl,
+				};
+				const response = yield* Effect.either(
+					operation(() =>
+						client("@post/users/update-profile", { body }),
+					),
 				);
-				return;
-			}
-		}
-
-		const payload: UserProfileFormValues = {
-			name: values.name,
-			hackTag: values.hackTag,
-			bio: values.bio,
-			pronouns: values.pronouns,
-			skills: textToSkills(values.skillsText),
-			isProfileSearchable: values.isProfileSearchable ?? true,
-			discordDisplayHandle: values.discordDisplayHandle,
-			profilePhotoUrl,
-		};
-		let result;
-		try {
-			result = await client("@post/users/update-profile", {
-				body: payload,
-			});
-		} catch {
-			toast.error("Could not save your profile. Please try again.");
-			return;
-		}
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-
-		form.reset(userToFormValues(result.data));
-		setProfilePhotoFile(null);
-		toast.success("Profile saved.");
-		navigation.refresh();
+				if (response._tag === "Left") {
+					toast.error(
+						"Could not save your profile. Please try again.",
+					);
+					return;
+				}
+				const result = response.right;
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				form.reset(userToFormValues(result.data));
+				setProfilePhotoFile(null);
+				toast.success("Profile saved.");
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

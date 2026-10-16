@@ -1,4 +1,7 @@
 "use client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
@@ -12,7 +15,7 @@ import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useHackKitUI } from "../provider";
-import type { UserDataFormValues } from "../types";
+import { type UserDataFormValues } from "../types";
 import { cn } from "../lib/cn";
 import { usePersistedFormState } from "../lib/use-persisted-form-state";
 import { Button } from "./ui/button";
@@ -352,19 +355,25 @@ export function UserDataForm({
 	});
 	const clearPersistedState = usePersistedFormState(form, localStorageKey);
 
-	async function onSubmit(values: UserDataFormValues) {
-		const result = await client("@post/user-data/complete", {
-			body: values,
-		});
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
+	function onSubmit(values: UserDataFormValues) {
+		return runPromise(
+			Effect.gen(function* () {
+				const result = yield* fromResult(
+					client("@post/user-data/complete", {
+						body: values,
+					}),
+				);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
 
-		clearPersistedState();
-		toast.success("User data saved.");
-		navigation.push(redirectTo);
-		navigation.refresh();
+				clearPersistedState();
+				toast.success("User data saved.");
+				navigation.push(redirectTo);
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

@@ -1,19 +1,29 @@
-import { withOperationLock } from "../mikro/operation";
-import type { HackKitLogger } from "../adapters/logger";
-import type { EntityManager } from "@mikro-orm/core";
+import {
+	operation,
+	promiseApi,
+	type BoundaryError,
+	runPromise,
+	fromResult,
+} from "../effect";
+
+import { Effect } from "effect";
+
+import { withOperationLockEffect } from "../mikro/operation";
+import { type HackKitLogger } from "../adapters/logger";
+import { type EntityManager } from "@mikro-orm/core";
 import { HackKitError } from "../errors";
 import { coreModels } from "../models";
 import { CorePermission } from "../permissions";
-import type {
-	CoreSettingValueMap,
-	HackathonSettingDefinition,
-	ResolvedHackathonSetting,
-	SettingKey,
-	SettingValue,
+import {
+	type CoreSettingValueMap,
+	type HackathonSettingDefinition,
+	type ResolvedHackathonSetting,
+	type SettingKey,
+	type SettingValue,
+	validateSettingValue,
 } from "../settings";
-import { validateSettingValue } from "../settings";
-import type { AuthId, PermissionKey } from "../types";
 
+import { type AuthId, type PermissionKey } from "../types";
 type SettingsApiContext = {
 	em: EntityManager;
 	now: () => Date;
@@ -24,30 +34,27 @@ type SettingsApiContext = {
 		permission: PermissionKey,
 	) => Promise<unknown>;
 };
-
 type SettingRow = import("../types").HackathonSetting;
-
 export type SetHackathonSettingInput = {
 	actorAuthId: AuthId;
 	key: SettingKey;
 	value: unknown;
 };
-
 export type SetManyHackathonSettingsInput = {
 	actorAuthId: AuthId;
-	values: readonly { key: SettingKey; value: unknown }[];
+	values: readonly {
+		key: SettingKey;
+		value: unknown;
+	}[];
 };
-
 export type ResetHackathonSettingInput = {
 	actorAuthId: AuthId;
 	key: SettingKey;
 };
-
 export type ResetManyHackathonSettingsInput = {
 	actorAuthId: AuthId;
 	keys: readonly SettingKey[];
 };
-
 function createDefinitionMap(
 	definitions: readonly HackathonSettingDefinition[],
 ) {
@@ -55,7 +62,6 @@ function createDefinitionMap(
 		definitions.map((definition) => [definition.key, definition]),
 	);
 }
-
 function getDefinition(
 	definitions: Map<SettingKey, HackathonSettingDefinition>,
 	key: SettingKey,
@@ -69,7 +75,6 @@ function getDefinition(
 	}
 	return definition;
 }
-
 function resolveSetting(
 	definition: HackathonSettingDefinition,
 	row: SettingRow | null,
@@ -91,179 +96,256 @@ function resolveSetting(
 		updatedByAuthId: row.updatedByAuthId,
 	} as ResolvedHackathonSetting;
 }
-
-export function createSettingsApi(context: SettingsApiContext) {
+export function createSettingsEffects(context: SettingsApiContext) {
 	const definitions = createDefinitionMap(context.settings);
-
-	async function requireManage(actorAuthId: AuthId) {
-		await context.requirePermission(
-			actorAuthId,
-			CorePermission.SettingsManage,
+	function requireManage(actorAuthId: AuthId) {
+		return Effect.gen(function* () {
+			yield* fromResult(
+				context.requirePermission(
+					actorAuthId,
+					CorePermission.SettingsManage,
+				),
+			);
+		});
+	}
+	function getRow(
+		key: SettingKey,
+	): Effect.Effect<SettingRow | null, BoundaryError> {
+		return Effect.suspend(() =>
+			fromResult(context.em.findOne(coreModels.setting, { key })),
 		);
 	}
-
-	async function getRow(key: SettingKey): Promise<SettingRow | null> {
-		return context.em.findOne(coreModels.setting, { key });
+	function getValue(
+		key: SettingKey,
+	): Effect.Effect<SettingValue, BoundaryError> {
+		return Effect.gen(function* () {
+			const definition = yield* operation(() =>
+				getDefinition(definitions, key),
+			);
+			const row = yield* getRow(key);
+			return (yield* operation(() => resolveSetting(definition, row)))
+				.value;
+		});
 	}
-
-	async function getValue(key: SettingKey): Promise<SettingValue> {
-		const definition = getDefinition(definitions, key);
-		return resolveSetting(definition, await getRow(key)).value;
-	}
-
-	async function writeSetting(
+	function writeSetting(
 		actorAuthId: AuthId,
 		key: SettingKey,
 		value: SettingValue,
-	): Promise<void> {
-		const timestamp = context.now();
-		const existing = await getRow(key);
-		if (existing) {
-			{
-				const updatedRows = await context.em.find(coreModels.setting, {
-					key,
-				});
-				for (const row of updatedRows)
-					context.em.assign(
-						row,
-						{
-							value,
-							updatedAt: timestamp,
-							updatedByAuthId: actorAuthId,
-						},
-						{ ignoreUndefined: true },
+	): Effect.Effect<void, BoundaryError> {
+		return Effect.gen(function* () {
+			const timestamp = context.now();
+			const existing = yield* getRow(key);
+			if (existing) {
+				{
+					const updatedRows = yield* fromResult(
+						context.em.find(coreModels.setting, {
+							key,
+						}),
 					);
-				await context.em.flush();
+					for (const row of updatedRows)
+						context.em.assign(
+							row,
+							{
+								value,
+								updatedAt: timestamp,
+								updatedByAuthId: actorAuthId,
+							},
+							{ ignoreUndefined: true },
+						);
+					yield* fromResult(context.em.flush());
+				}
+			} else {
+				{
+					context.em.create(coreModels.setting, {
+						key,
+						value,
+						createdAt: timestamp,
+						createdByAuthId: actorAuthId,
+						updatedAt: timestamp,
+						updatedByAuthId: actorAuthId,
+					});
+					yield* fromResult(context.em.flush());
+				}
 			}
-		} else {
-			{
-				context.em.create(coreModels.setting, {
-					key,
-					value,
-					createdAt: timestamp,
-					createdByAuthId: actorAuthId,
-					updatedAt: timestamp,
-					updatedByAuthId: actorAuthId,
-				});
-				await context.em.flush();
-			}
-		}
-		context.logger.log("info", "hackathon setting changed", {
-			action: "settings.set",
-			actorAuthId,
-			settingKey: key,
-			outcome: "success",
+			context.logger.log("info", "hackathon setting changed", {
+				action: "settings.set",
+				actorAuthId,
+				settingKey: key,
+				outcome: "success",
+			});
 		});
 	}
-
-	async function resetSetting(
+	function resetSetting(
 		actorAuthId: AuthId,
 		key: SettingKey,
-	): Promise<void> {
-		await context.em.nativeDelete(coreModels.setting, { key });
-		context.logger.log("info", "hackathon setting reset", {
-			action: "settings.reset",
-			actorAuthId,
-			settingKey: key,
-			outcome: "success",
+	): Effect.Effect<void, BoundaryError> {
+		return Effect.gen(function* () {
+			yield* fromResult(
+				context.em.nativeDelete(coreModels.setting, { key }),
+			);
+			context.logger.log("info", "hackathon setting reset", {
+				action: "settings.reset",
+				actorAuthId,
+				settingKey: key,
+				outcome: "success",
+			});
 		});
 	}
-
 	return {
 		getValue: getValue as {
 			<TKey extends keyof CoreSettingValueMap>(
 				key: TKey,
-			): Promise<CoreSettingValueMap[TKey]>;
-			(key: SettingKey): Promise<SettingValue>;
+			): Effect.Effect<CoreSettingValueMap[TKey], BoundaryError>;
+			(key: SettingKey): Effect.Effect<SettingValue, BoundaryError>;
 		},
-
-		async get(input: {
+		get(input: {
 			actorAuthId: AuthId;
 			key: SettingKey;
-		}): Promise<ResolvedHackathonSetting> {
-			await requireManage(input.actorAuthId);
-			const definition = getDefinition(definitions, input.key);
-			return resolveSetting(definition, await getRow(input.key));
-		},
-
-		async list(input: {
-			actorAuthId: AuthId;
-		}): Promise<ResolvedHackathonSetting[]> {
-			await requireManage(input.actorAuthId);
-			const rows = new Map(
-				(await context.em.find(coreModels.setting, {})).map((row) => [
-					row.key,
-					row,
-				]),
-			);
-			return context.settings.map((definition) =>
-				resolveSetting(definition, rows.get(definition.key) ?? null),
-			);
-		},
-
-		async set(
-			input: SetHackathonSettingInput,
-		): Promise<ResolvedHackathonSetting> {
-			const [setting] = await this.setMany({
-				actorAuthId: input.actorAuthId,
-				values: [{ key: input.key, value: input.value }],
-			});
-			return setting;
-		},
-
-		async setMany(
-			input: SetManyHackathonSettingsInput,
-		): Promise<ResolvedHackathonSetting[]> {
-			return withOperationLock(context.em, "settings", async () => {
-				await requireManage(input.actorAuthId);
-				const parsed = input.values.map(({ key, value }) => {
-					const definition = getDefinition(definitions, key);
-					return {
-						key,
+		}): Effect.Effect<ResolvedHackathonSetting, BoundaryError> {
+			return Effect.gen(function* () {
+				yield* requireManage(input.actorAuthId);
+				const definition = yield* operation(() =>
+					getDefinition(definitions, input.key),
+				);
+				return yield* operation(
+					resolveSetting.bind(
+						undefined,
 						definition,
-						value: validateSettingValue(definition, value),
-					};
-				});
-				for (const update of parsed) {
-					await writeSetting(
-						input.actorAuthId,
-						update.key,
-						update.value,
-					);
-				}
-				return Promise.all(
-					parsed.map(async ({ key, definition }) =>
-						resolveSetting(definition, await getRow(key)),
+						yield* getRow(input.key),
 					),
 				);
 			});
 		},
-
-		async reset(
-			input: ResetHackathonSettingInput,
-		): Promise<ResolvedHackathonSetting> {
-			const [setting] = await this.resetMany({
-				actorAuthId: input.actorAuthId,
-				keys: [input.key],
+		list(input: {
+			actorAuthId: AuthId;
+		}): Effect.Effect<ResolvedHackathonSetting[], BoundaryError> {
+			return Effect.gen(function* () {
+				yield* requireManage(input.actorAuthId);
+				const rows = new Map(
+					(yield* fromResult(
+						context.em.find(coreModels.setting, {}),
+					)).map((row) => [row.key, row]),
+				);
+				return yield* operation(() =>
+					context.settings.map((definition) =>
+						resolveSetting(
+							definition,
+							rows.get(definition.key) ?? null,
+						),
+					),
+				);
 			});
-			return setting;
 		},
-
-		async resetMany(
-			input: ResetManyHackathonSettingsInput,
-		): Promise<ResolvedHackathonSetting[]> {
-			return withOperationLock(context.em, "settings", async () => {
-				await requireManage(input.actorAuthId);
-				const definitionsToReset = input.keys.map((key) =>
-					getDefinition(definitions, key),
-				);
-				for (const definition of definitionsToReset) {
-					await resetSetting(input.actorAuthId, definition.key);
-				}
-				return definitionsToReset.map((definition) =>
-					resolveSetting(definition, null),
-				);
+		set(
+			input: SetHackathonSettingInput,
+		): Effect.Effect<ResolvedHackathonSetting, BoundaryError> {
+			return Effect.gen(this, function* () {
+				const [setting] = yield* this.setMany({
+					actorAuthId: input.actorAuthId,
+					values: [{ key: input.key, value: input.value }],
+				});
+				return setting;
 			});
+		},
+		setMany(
+			input: SetManyHackathonSettingsInput,
+		): Effect.Effect<ResolvedHackathonSetting[], BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(context.em, "settings", () =>
+					Effect.gen(function* () {
+						yield* requireManage(input.actorAuthId);
+						const parsed = yield* operation(() =>
+							input.values.map(({ key, value }) => {
+								const definition = getDefinition(
+									definitions,
+									key,
+								);
+								return {
+									key,
+									definition,
+									value: validateSettingValue(
+										definition,
+										value,
+									),
+								};
+							}),
+						);
+						for (const update of parsed) {
+							yield* writeSetting(
+								input.actorAuthId,
+								update.key,
+								update.value,
+							);
+						}
+						return yield* Effect.forEach(
+							parsed,
+							({ key, definition }) =>
+								Effect.gen(function* () {
+									const row = yield* getRow(key);
+									return yield* operation(() =>
+										resolveSetting(definition, row),
+									);
+								}),
+							{ concurrency: "unbounded" },
+						);
+					}),
+				),
+			);
+		},
+		reset(
+			input: ResetHackathonSettingInput,
+		): Effect.Effect<ResolvedHackathonSetting, BoundaryError> {
+			return Effect.gen(this, function* () {
+				const [setting] = yield* this.resetMany({
+					actorAuthId: input.actorAuthId,
+					keys: [input.key],
+				});
+				return setting;
+			});
+		},
+		resetMany(
+			input: ResetManyHackathonSettingsInput,
+		): Effect.Effect<ResolvedHackathonSetting[], BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(context.em, "settings", () =>
+					Effect.gen(function* () {
+						yield* requireManage(input.actorAuthId);
+						const definitionsToReset = yield* operation(() =>
+							input.keys.map((key) =>
+								getDefinition(definitions, key),
+							),
+						);
+						for (const definition of definitionsToReset) {
+							yield* resetSetting(
+								input.actorAuthId,
+								definition.key,
+							);
+						}
+						return yield* operation(() =>
+							definitionsToReset.map((definition) =>
+								resolveSetting(definition, null),
+							),
+						);
+					}),
+				),
+			);
 		},
 	};
+}
+export function settingsToPromise(
+	effects: ReturnType<typeof createSettingsEffects>,
+) {
+	const api = promiseApi(effects);
+	// Keep the existing key-specific overloads at the public boundary.
+	const getValue = ((key: SettingKey) =>
+		runPromise(effects.getValue(key))) as {
+		<TKey extends keyof CoreSettingValueMap>(
+			key: TKey,
+		): Promise<CoreSettingValueMap[TKey]>;
+		(key: SettingKey): Promise<SettingValue>;
+	};
+	return { ...api, getValue };
+}
+export function createSettingsApi(context: SettingsApiContext) {
+	return settingsToPromise(createSettingsEffects(context));
 }

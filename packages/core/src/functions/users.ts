@@ -1,12 +1,17 @@
+import { operation } from "../effect";
+import { decodeInput } from "../effect-schema";
+import { promiseApi, type BoundaryError, fromResult } from "../effect";
+import { Effect } from "effect";
+
 import { serialize } from "@mikro-orm/core";
-import { withOperationLock } from "../mikro/operation";
+import { withOperationLockEffect } from "../mikro/operation";
 import { readUser } from "../mikro/user";
-import type { HackkitRuntimeContext } from "../hackkit-context";
-import { HackKitError, parseInput } from "../errors";
-import { withDomainLog } from "../domain-log";
+import { type HackkitRuntimeContext } from "../hackkit-context";
+import { HackKitError } from "../errors";
+import { withDomainLogEffect } from "../domain-log";
 import { coreModels } from "../models";
 import { CorePermission } from "../permissions";
-import type { CompetitorRegistrationPolicy } from "./registration-policy";
+import { type CompetitorRegistrationPolicy } from "./registration-policy";
 import {
 	approveUserSchema,
 	banUserSchema,
@@ -16,8 +21,12 @@ import {
 	unbanUserSchema,
 	updateUserProfileSchema,
 } from "../schemas";
-import type { AuthId, PublicUserProfile, User, UserBan } from "../types";
-
+import {
+	type AuthId,
+	type PublicUserProfile,
+	type User,
+	type UserBan,
+} from "../types";
 export type UsersApiContext = Pick<
 	HackkitRuntimeContext,
 	| "em"
@@ -29,10 +38,11 @@ export type UsersApiContext = Pick<
 	| "assertCanManageRole"
 > & {
 	registrationPolicy: CompetitorRegistrationPolicy;
-	groups: { assignNextGroup(authId: AuthId): Promise<unknown> };
+	groups: {
+		assignNextGroup(authId: AuthId): Promise<unknown>;
+	};
 };
-
-export function createUsersApi(context: UsersApiContext) {
+export function createUsersEffects(context: UsersApiContext) {
 	const {
 		em,
 		now,
@@ -44,371 +54,550 @@ export function createUsersApi(context: UsersApiContext) {
 		registrationPolicy,
 		groups,
 	} = context;
-
 	return {
-		async getUser(authId: AuthId): Promise<User | null> {
-			return readUser(em, { id: authId });
-		},
-
-		async getUserByHackTag(hackTag: string): Promise<User | null> {
-			const parsedHackTag = parseInput(
-				claimHackTagSchema.shape.hackTag,
-				hackTag,
+		getUser(authId: AuthId): Effect.Effect<User | null, BoundaryError> {
+			return Effect.suspend(() =>
+				fromResult(readUser(em, { id: authId })),
 			);
-			return readUser(em, { hackTag: parsedHackTag });
 		},
-
-		async getPublicProfileByHackTag(
+		getUserByHackTag(
 			hackTag: string,
-		): Promise<PublicUserProfile | null> {
-			const user = await this.getUserByHackTag(hackTag);
-			if (!user || !user.isProfileSearchable) return null;
-			const [hacker, role] = await Promise.all([
-				em.findOne(coreModels.hacker, { userId: user.id }),
-				user.roleId
-					? em.findOne(coreModels.role, { id: user.roleId })
-					: null,
-			]);
-			return {
-				user: {
-					id: user.id,
-					name: user.name,
-					profilePhotoUrl: user.profilePhotoUrl,
-					hackTag: user.hackTag,
-					bio: user.bio,
-					pronouns: user.pronouns,
-					skills: user.skills,
-					discordDisplayHandle: user.discordDisplayHandle,
-				},
-				hacker: hacker
-					? {
-							university: hacker.university,
-							major: hacker.major,
-							levelOfStudy: hacker.levelOfStudy,
-							githubUrl: hacker.githubUrl,
-							linkedInUrl: hacker.linkedInUrl,
-							personalWebsiteUrl: hacker.personalWebsiteUrl,
-						}
-					: null,
-				role: role ? serialize(role) : null,
-			};
-		},
-
-		async getUserBan(authId: AuthId): Promise<UserBan | null> {
-			const record = await em.findOne(coreModels.userBan, { authId });
-			return record ? serialize(record) : null;
-		},
-
-		async listUsers(input?: { actorAuthId?: AuthId }): Promise<User[]> {
-			if (input?.actorAuthId)
-				await requirePermission(
-					input.actorAuthId,
-					CorePermission.UsersView,
+		): Effect.Effect<User | null, BoundaryError> {
+			return Effect.gen(function* () {
+				const parsedHackTag = yield* decodeInput(
+					claimHackTagSchema.shape.hackTag,
+					hackTag,
 				);
-			const users = await em.find(
-				coreModels.user,
-				{},
-				{ orderBy: { createdAt: "desc" } },
-			);
-			return serialize(users);
-		},
-
-		async claimHackTag(input: unknown): Promise<User> {
-			const parsed = parseInput(claimHackTagSchema, input);
-			const profileKey = `profile:${parsed.authId}`;
-			return withOperationLock(em, profileKey, async () => {
-				return withDomainLog(
-					logger,
-					"users.claimHackTag",
-					{ targetAuthId: parsed.authId },
-					async () => {
-						await getUserOrThrow(parsed.authId);
-						const existing = await em.findOne(coreModels.user, {
-							hackTag: parsed.hackTag,
-						});
-						if (existing && existing.id !== parsed.authId) {
-							throw new HackKitError(
-								"CONFLICT",
-								"HackTag is already claimed.",
-							);
-						}
-						const updated = await em.findOne(coreModels.user, {
-							id: parsed.authId,
-						});
-						if (updated) {
-							em.assign(
-								updated,
-								{
-									hackTag: parsed.hackTag,
-									updatedAt: now(),
-								},
-								{ ignoreUndefined: true },
-							);
-							await em.flush();
-						}
-						if (!updated)
-							throw new HackKitError(
-								"NOT_FOUND",
-								"User not found.",
-							);
-						return getUserOrThrow(updated.id);
-					},
+				return yield* fromResult(
+					readUser(em, { hackTag: parsedHackTag }),
 				);
 			});
 		},
-
-		async updateProfile(input: unknown): Promise<User> {
-			const parsed = parseInput(updateUserProfileSchema, input);
-			const profileKey = `profile:${parsed.authId}`;
-			return withOperationLock(em, profileKey, async () => {
-				return withDomainLog(
-					logger,
-					"users.updateProfile",
-					{ targetAuthId: parsed.authId },
-					async () => {
-						await getUserOrThrow(parsed.authId);
-						if (parsed.hackTag) {
-							const existing = await em.findOne(coreModels.user, {
-								hackTag: parsed.hackTag,
-							});
-							if (existing && existing.id !== parsed.authId) {
-								throw new HackKitError(
-									"CONFLICT",
-									"HackTag is already claimed.",
-								);
+		getPublicProfileByHackTag(
+			hackTag: string,
+		): Effect.Effect<PublicUserProfile | null, BoundaryError> {
+			return Effect.gen(this, function* () {
+				const user = yield* this.getUserByHackTag(hackTag);
+				if (!user || !user.isProfileSearchable) return null;
+				const [hacker, role] = yield* Effect.all(
+					[
+						fromResult(
+							em.findOne(coreModels.hacker, {
+								userId: user.id,
+							}),
+						),
+						fromResult(
+							user.roleId
+								? em.findOne(coreModels.role, {
+										id: user.roleId,
+									})
+								: null,
+						),
+					],
+					{ concurrency: "unbounded" },
+				);
+				return {
+					user: {
+						id: user.id,
+						name: user.name,
+						profilePhotoUrl: user.profilePhotoUrl,
+						hackTag: user.hackTag,
+						bio: user.bio,
+						pronouns: user.pronouns,
+						skills: user.skills,
+						discordDisplayHandle: user.discordDisplayHandle,
+					},
+					hacker: hacker
+						? {
+								university: hacker.university,
+								major: hacker.major,
+								levelOfStudy: hacker.levelOfStudy,
+								githubUrl: hacker.githubUrl,
+								linkedInUrl: hacker.linkedInUrl,
+								personalWebsiteUrl: hacker.personalWebsiteUrl,
 							}
-						}
-						const updated = await em.findOne(coreModels.user, {
-							id: parsed.authId,
-						});
-						if (updated) {
-							em.assign(
-								updated,
-								{
-									name: parsed.name,
-									profilePhotoUrl: parsed.profilePhotoUrl,
-									hackTag: parsed.hackTag,
-									bio: parsed.bio,
-									pronouns: parsed.pronouns,
-									skills: parsed.skills?.map((skill) =>
-										skill.toLowerCase(),
-									),
-									isProfileSearchable:
-										parsed.isProfileSearchable,
-									discordDisplayHandle:
-										parsed.discordDisplayHandle,
-									updatedAt: now(),
-								},
-								{ ignoreUndefined: true },
-							);
-							await em.flush();
-						}
-						if (!updated)
-							throw new HackKitError(
-								"NOT_FOUND",
-								"User not found.",
-							);
-						return getUserOrThrow(updated.id);
-					},
+						: null,
+					role: role ? serialize(role) : null,
+				};
+			});
+		},
+		getUserBan(
+			authId: AuthId,
+		): Effect.Effect<UserBan | null, BoundaryError> {
+			return Effect.gen(function* () {
+				const record = yield* fromResult(
+					em.findOne(coreModels.userBan, { authId }),
+				);
+				return record ? serialize(record) : null;
+			});
+		},
+		listUsers(input?: {
+			actorAuthId?: AuthId;
+		}): Effect.Effect<User[], BoundaryError> {
+			return Effect.gen(function* () {
+				if (input?.actorAuthId)
+					yield* fromResult(
+						requirePermission(
+							input.actorAuthId,
+							CorePermission.UsersView,
+						),
+					);
+				const users = yield* fromResult(
+					em.find(
+						coreModels.user,
+						{},
+						{ orderBy: { createdAt: "desc" } },
+					),
+				);
+				return serialize(users);
+			});
+		},
+		claimHackTag(input: unknown): Effect.Effect<User, BoundaryError> {
+			return Effect.gen(function* () {
+				const parsed = yield* decodeInput(claimHackTagSchema, input);
+				const profileKey = `profile:${parsed.authId}`;
+				return yield* withOperationLockEffect(em, profileKey, () =>
+					Effect.suspend(() =>
+						withDomainLogEffect(
+							logger,
+							"users.claimHackTag",
+							{ targetAuthId: parsed.authId },
+							() =>
+								Effect.gen(function* () {
+									yield* fromResult(
+										getUserOrThrow(parsed.authId),
+									);
+									const existing = yield* fromResult(
+										em.findOne(coreModels.user, {
+											hackTag: parsed.hackTag,
+										}),
+									);
+									if (
+										existing &&
+										existing.id !== parsed.authId
+									) {
+										return yield* Effect.fail(
+											new HackKitError(
+												"CONFLICT",
+												"HackTag is already claimed.",
+											),
+										);
+									}
+									const updated = yield* fromResult(
+										em.findOne(coreModels.user, {
+											id: parsed.authId,
+										}),
+									);
+									if (updated) {
+										em.assign(
+											updated,
+											{
+												hackTag: parsed.hackTag,
+												updatedAt: now(),
+											},
+											{
+												ignoreUndefined: true,
+											},
+										);
+										yield* fromResult(em.flush());
+									}
+									if (!updated)
+										return yield* Effect.fail(
+											new HackKitError(
+												"NOT_FOUND",
+												"User not found.",
+											),
+										);
+									return yield* fromResult(
+										getUserOrThrow(updated.id),
+									);
+								}),
+						),
+					),
 				);
 			});
 		},
-
-		async approveUser(input: unknown): Promise<User> {
-			return withOperationLock(em, "registration", async () => {
-				const parsed = parseInput(approveUserSchema, input);
-				return withDomainLog(
-					logger,
-					"users.approveUser",
-					{
-						actorAuthId: parsed.actorAuthId,
-						targetAuthId: parsed.targetAuthId,
-					},
-					async () => {
-						const principal = await requirePermission(
-							parsed.actorAuthId,
-							CorePermission.UsersApprove,
+		updateProfile(input: unknown): Effect.Effect<User, BoundaryError> {
+			return Effect.gen(function* () {
+				const parsed = yield* decodeInput(
+					updateUserProfileSchema,
+					input,
+				);
+				const profileKey = `profile:${parsed.authId}`;
+				return yield* withOperationLockEffect(em, profileKey, () =>
+					Effect.suspend(() =>
+						withDomainLogEffect(
+							logger,
+							"users.updateProfile",
+							{ targetAuthId: parsed.authId },
+							() =>
+								Effect.gen(function* () {
+									yield* fromResult(
+										getUserOrThrow(parsed.authId),
+									);
+									if (parsed.hackTag) {
+										const existing = yield* fromResult(
+											em.findOne(coreModels.user, {
+												hackTag: parsed.hackTag,
+											}),
+										);
+										if (
+											existing &&
+											existing.id !== parsed.authId
+										) {
+											return yield* Effect.fail(
+												new HackKitError(
+													"CONFLICT",
+													"HackTag is already claimed.",
+												),
+											);
+										}
+									}
+									const updated = yield* fromResult(
+										em.findOne(coreModels.user, {
+											id: parsed.authId,
+										}),
+									);
+									if (updated) {
+										em.assign(
+											updated,
+											{
+												name: parsed.name,
+												profilePhotoUrl:
+													parsed.profilePhotoUrl,
+												hackTag: parsed.hackTag,
+												bio: parsed.bio,
+												pronouns: parsed.pronouns,
+												skills: parsed.skills?.map(
+													(skill) =>
+														skill.toLowerCase(),
+												),
+												isProfileSearchable:
+													parsed.isProfileSearchable,
+												discordDisplayHandle:
+													parsed.discordDisplayHandle,
+												updatedAt: now(),
+											},
+											{
+												ignoreUndefined: true,
+											},
+										);
+										yield* fromResult(em.flush());
+									}
+									if (!updated)
+										return yield* Effect.fail(
+											new HackKitError(
+												"NOT_FOUND",
+												"User not found.",
+											),
+										);
+									return yield* fromResult(
+										getUserOrThrow(updated.id),
+									);
+								}),
+						),
+					),
+				);
+			});
+		},
+		approveUser(input: unknown): Effect.Effect<User, BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(em, "registration", () =>
+					Effect.gen(function* () {
+						const parsed = yield* decodeInput(
+							approveUserSchema,
+							input,
 						);
-						const target = await getUserOrThrow(
-							parsed.targetAuthId,
+						return yield* withDomainLogEffect(
+							logger,
+							"users.approveUser",
+							{
+								actorAuthId: parsed.actorAuthId,
+								targetAuthId: parsed.targetAuthId,
+							},
+							() =>
+								Effect.gen(function* () {
+									const principal = yield* fromResult(
+										requirePermission(
+											parsed.actorAuthId,
+											CorePermission.UsersApprove,
+										),
+									);
+									const target = yield* fromResult(
+										getUserOrThrow(parsed.targetAuthId),
+									);
+									if (parsed.approved && !target.isApproved) {
+										yield* fromResult(
+											registrationPolicy.assertCanApproveUser(
+												parsed.targetAuthId,
+											),
+										);
+									}
+									if (target.roleId)
+										yield* operation(
+											assertCanManageRole.bind(
+												undefined,
+												principal,
+												yield* fromResult(
+													getRoleOrThrow(
+														target.roleId,
+													),
+												),
+											),
+										);
+									const updated = yield* fromResult(
+										em.findOne(coreModels.user, {
+											id: parsed.targetAuthId,
+										}),
+									);
+									if (updated) {
+										em.assign(
+											updated,
+											{
+												isApproved: parsed.approved,
+												updatedAt: now(),
+											},
+											{
+												ignoreUndefined: true,
+											},
+										);
+										yield* fromResult(em.flush());
+									}
+									if (!updated)
+										return yield* Effect.fail(
+											new HackKitError(
+												"NOT_FOUND",
+												"User not found.",
+											),
+										);
+									if (parsed.approved) {
+										yield* fromResult(
+											groups.assignNextGroup(
+												parsed.targetAuthId,
+											),
+										);
+									}
+									return yield* fromResult(
+										getUserOrThrow(updated.id),
+									);
+								}),
 						);
-						if (parsed.approved && !target.isApproved) {
-							await registrationPolicy.assertCanApproveUser(
-								parsed.targetAuthId,
-							);
-						}
+					}),
+				),
+			);
+		},
+		banUser(input: unknown): Effect.Effect<UserBan, BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(em, "bans", () =>
+					Effect.gen(function* () {
+						const parsed = yield* decodeInput(banUserSchema, input);
+						const principal = yield* fromResult(
+							requirePermission(
+								parsed.actorAuthId,
+								CorePermission.UsersBan,
+							),
+						);
+						const target = yield* fromResult(
+							getUserOrThrow(parsed.targetAuthId),
+						);
 						if (target.roleId)
-							assertCanManageRole(
-								principal,
-								await getRoleOrThrow(target.roleId),
+							yield* operation(
+								assertCanManageRole.bind(
+									undefined,
+									principal,
+									yield* fromResult(
+										getRoleOrThrow(target.roleId),
+									),
+								),
 							);
-						const updated = await em.findOne(coreModels.user, {
-							id: parsed.targetAuthId,
-						});
-						if (updated) {
-							em.assign(
-								updated,
-								{
-									isApproved: parsed.approved,
-									updatedAt: now(),
-								},
-								{ ignoreUndefined: true },
-							);
-							await em.flush();
-						}
-						if (!updated)
-							throw new HackKitError(
-								"NOT_FOUND",
-								"User not found.",
-							);
-						if (parsed.approved) {
-							await groups.assignNextGroup(parsed.targetAuthId);
-						}
-						return getUserOrThrow(updated.id);
-					},
-				);
-			});
-		},
-
-		async banUser(input: unknown): Promise<UserBan> {
-			return withOperationLock(em, "bans", async () => {
-				const parsed = parseInput(banUserSchema, input);
-				const principal = await requirePermission(
-					parsed.actorAuthId,
-					CorePermission.UsersBan,
-				);
-				const target = await getUserOrThrow(parsed.targetAuthId);
-				if (target.roleId)
-					assertCanManageRole(
-						principal,
-						await getRoleOrThrow(target.roleId),
-					);
-				const existing = await em.findOne(coreModels.userBan, {
-					authId: parsed.targetAuthId,
-				});
-				if (existing) return existing;
-				{
-					const created = em.create(coreModels.userBan, {
-						authId: parsed.targetAuthId,
-						reason: parsed.reason,
-						bannedByAuthId: parsed.actorAuthId,
-						createdAt: now(),
-					});
-					await em.flush();
-					return serialize(created);
-				}
-			});
-		},
-
-		async unbanUser(input: unknown): Promise<void> {
-			return withOperationLock(em, "bans", async () => {
-				const parsed = parseInput(unbanUserSchema, input);
-				const principal = await requirePermission(
-					parsed.actorAuthId,
-					CorePermission.UsersBan,
-				);
-				const target = await getUserOrThrow(parsed.targetAuthId);
-				if (target.roleId)
-					assertCanManageRole(
-						principal,
-						await getRoleOrThrow(target.roleId),
-					);
-				await em.nativeDelete(coreModels.userBan, {
-					authId: parsed.targetAuthId,
-				});
-			});
-		},
-
-		async checkIn(input: unknown): Promise<User> {
-			return withOperationLock(em, "check-in", async () => {
-				const parsed = parseInput(checkInUserSchema, input);
-				return withDomainLog(
-					logger,
-					"users.checkIn",
-					{
-						actorAuthId: parsed.actorAuthId,
-						targetAuthId: parsed.targetAuthId,
-					},
-					async () => {
-						await requirePermission(
-							parsed.actorAuthId,
-							CorePermission.UsersCheckIn,
+						const existing = yield* fromResult(
+							em.findOne(coreModels.userBan, {
+								authId: parsed.targetAuthId,
+							}),
 						);
-						const target = await getUserOrThrow(
-							parsed.targetAuthId,
-						);
-						if (target.checkedInAt) {
-							throw new HackKitError(
-								"INVALID_OPERATION",
-								"User is already checked in.",
-							);
+						if (existing) return existing;
+						{
+							const created = em.create(coreModels.userBan, {
+								authId: parsed.targetAuthId,
+								reason: parsed.reason,
+								bannedByAuthId: parsed.actorAuthId,
+								createdAt: now(),
+							});
+							yield* fromResult(em.flush());
+							return serialize(created);
 						}
-						const timestamp = now();
-						const updated = await em.findOne(coreModels.user, {
-							id: parsed.targetAuthId,
-						});
-						if (updated) {
-							em.assign(
-								updated,
-								{
-									checkedInAt: timestamp,
-									updatedAt: timestamp,
-								},
-								{ ignoreUndefined: true },
-							);
-							await em.flush();
-						}
-						if (!updated)
-							throw new HackKitError(
-								"NOT_FOUND",
-								"User not found.",
-							);
-						return getUserOrThrow(updated.id);
-					},
-				);
-			});
+					}),
+				),
+			);
 		},
-
-		async clearCheckIn(input: unknown): Promise<User> {
-			return withOperationLock(em, "check-in", async () => {
-				const parsed = parseInput(clearCheckInUserSchema, input);
-				return withDomainLog(
-					logger,
-					"users.clearCheckIn",
-					{
-						actorAuthId: parsed.actorAuthId,
-						targetAuthId: parsed.targetAuthId,
-					},
-					async () => {
-						await requirePermission(
-							parsed.actorAuthId,
-							CorePermission.UsersCheckIn,
+		unbanUser(input: unknown): Effect.Effect<void, BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(em, "bans", () =>
+					Effect.gen(function* () {
+						const parsed = yield* decodeInput(
+							unbanUserSchema,
+							input,
 						);
-						await getUserOrThrow(parsed.targetAuthId);
-						const timestamp = now();
-						const updated = await em.findOne(coreModels.user, {
-							id: parsed.targetAuthId,
-						});
-						if (updated) {
-							em.assign(
-								updated,
-								{
-									checkedInAt: null,
-									updatedAt: timestamp,
-								},
-								{ ignoreUndefined: true },
+						const principal = yield* fromResult(
+							requirePermission(
+								parsed.actorAuthId,
+								CorePermission.UsersBan,
+							),
+						);
+						const target = yield* fromResult(
+							getUserOrThrow(parsed.targetAuthId),
+						);
+						if (target.roleId)
+							yield* operation(
+								assertCanManageRole.bind(
+									undefined,
+									principal,
+									yield* fromResult(
+										getRoleOrThrow(target.roleId),
+									),
+								),
 							);
-							await em.flush();
-						}
-						if (!updated)
-							throw new HackKitError(
-								"NOT_FOUND",
-								"User not found.",
-							);
-						return getUserOrThrow(updated.id);
-					},
-				);
-			});
+						yield* fromResult(
+							em.nativeDelete(coreModels.userBan, {
+								authId: parsed.targetAuthId,
+							}),
+						);
+					}),
+				),
+			);
+		},
+		checkIn(input: unknown): Effect.Effect<User, BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(em, "check-in", () =>
+					Effect.gen(function* () {
+						const parsed = yield* decodeInput(
+							checkInUserSchema,
+							input,
+						);
+						return yield* withDomainLogEffect(
+							logger,
+							"users.checkIn",
+							{
+								actorAuthId: parsed.actorAuthId,
+								targetAuthId: parsed.targetAuthId,
+							},
+							() =>
+								Effect.gen(function* () {
+									yield* fromResult(
+										requirePermission(
+											parsed.actorAuthId,
+											CorePermission.UsersCheckIn,
+										),
+									);
+									const target = yield* fromResult(
+										getUserOrThrow(parsed.targetAuthId),
+									);
+									if (target.checkedInAt) {
+										return yield* Effect.fail(
+											new HackKitError(
+												"INVALID_OPERATION",
+												"User is already checked in.",
+											),
+										);
+									}
+									const timestamp = now();
+									const updated = yield* fromResult(
+										em.findOne(coreModels.user, {
+											id: parsed.targetAuthId,
+										}),
+									);
+									if (updated) {
+										em.assign(
+											updated,
+											{
+												checkedInAt: timestamp,
+												updatedAt: timestamp,
+											},
+											{
+												ignoreUndefined: true,
+											},
+										);
+										yield* fromResult(em.flush());
+									}
+									if (!updated)
+										return yield* Effect.fail(
+											new HackKitError(
+												"NOT_FOUND",
+												"User not found.",
+											),
+										);
+									return yield* fromResult(
+										getUserOrThrow(updated.id),
+									);
+								}),
+						);
+					}),
+				),
+			);
+		},
+		clearCheckIn(input: unknown): Effect.Effect<User, BoundaryError> {
+			return Effect.suspend(() =>
+				withOperationLockEffect(em, "check-in", () =>
+					Effect.gen(function* () {
+						const parsed = yield* decodeInput(
+							clearCheckInUserSchema,
+							input,
+						);
+						return yield* withDomainLogEffect(
+							logger,
+							"users.clearCheckIn",
+							{
+								actorAuthId: parsed.actorAuthId,
+								targetAuthId: parsed.targetAuthId,
+							},
+							() =>
+								Effect.gen(function* () {
+									yield* fromResult(
+										requirePermission(
+											parsed.actorAuthId,
+											CorePermission.UsersCheckIn,
+										),
+									);
+									yield* fromResult(
+										getUserOrThrow(parsed.targetAuthId),
+									);
+									const timestamp = now();
+									const updated = yield* fromResult(
+										em.findOne(coreModels.user, {
+											id: parsed.targetAuthId,
+										}),
+									);
+									if (updated) {
+										em.assign(
+											updated,
+											{
+												checkedInAt: null,
+												updatedAt: timestamp,
+											},
+											{
+												ignoreUndefined: true,
+											},
+										);
+										yield* fromResult(em.flush());
+									}
+									if (!updated)
+										return yield* Effect.fail(
+											new HackKitError(
+												"NOT_FOUND",
+												"User not found.",
+											),
+										);
+									return yield* fromResult(
+										getUserOrThrow(updated.id),
+									);
+								}),
+						);
+					}),
+				),
+			);
 		},
 	};
+}
+export function createUsersApi(context: UsersApiContext) {
+	return promiseApi(createUsersEffects(context));
 }

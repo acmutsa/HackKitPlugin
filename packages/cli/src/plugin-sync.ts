@@ -1,3 +1,5 @@
+import { Effect } from "effect";
+import { runPromise } from "@hackkit/core/effect";
 import {
 	existsSync,
 	mkdirSync,
@@ -6,7 +8,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import type { HackKitPlugin } from "@hackkit/core";
+import { type HackKitPlugin } from "@hackkit/core";
 import {
 	createEmptyLockfile,
 	HACKKIT_LOCKFILE,
@@ -21,9 +23,7 @@ import {
 	isProtectedPath,
 	normalizeAppPath,
 } from "./protected-paths";
-
 const GENERATED_HEADER = "// @hackkit-generated — do not edit";
-
 const DEFAULT_EXPORT_ROUTE_FILES = new Set([
 	"page.tsx",
 	"page.ts",
@@ -46,22 +46,23 @@ const DEFAULT_EXPORT_ROUTE_FILES = new Set([
 	"global-error.tsx",
 	"global-error.ts",
 ]);
-
 export type PluginSyncOptions = {
 	projectRoot: string;
 	plugins: readonly HackKitPlugin[];
 	protectedPaths?: readonly string[];
 };
-
 export type PluginSyncResult = {
 	lockfile: HackkitLockfile;
 	routesWritten: number;
 	stubsRemoved: number;
 };
-
 function renderRouteStub(
 	plugin: HackkitLockPlugin,
-	route: { host: string; source: string; fileName: string },
+	route: {
+		host: string;
+		source: string;
+		fileName: string;
+	},
 ): string {
 	const lines = [
 		GENERATED_HEADER,
@@ -74,13 +75,11 @@ function renderRouteStub(
 	lines.push("");
 	return lines.join("\n");
 }
-
 function collectRouteClaims(
 	resolvedPlugins: ReturnType<typeof resolvePluginPackage>[],
 	protectedPaths: readonly string[],
 ): Map<string, string> {
 	const claims = new Map<string, string>();
-
 	for (const resolved of resolvedPlugins) {
 		for (const route of resolved.routes) {
 			const host = normalizeAppPath(route.host);
@@ -98,79 +97,80 @@ function collectRouteClaims(
 			claims.set(host, resolved.plugin.id);
 		}
 	}
-
 	return claims;
 }
-
 function writeGeneratedFile(path: string, content: string): void {
 	mkdirSync(dirname(path), { recursive: true });
 	writeFileSync(path, content, "utf8");
 }
-
-export async function runPluginSync(
+export function runPluginSync(
 	options: PluginSyncOptions,
 ): Promise<PluginSyncResult> {
-	const projectRoot = options.projectRoot;
-	const protectedPaths = options.protectedPaths ?? DEFAULT_PROTECTED_PATHS;
-	const lockfilePath = join(projectRoot, HACKKIT_LOCKFILE);
-	const previousLockfile = existsSync(lockfilePath)
-		? readLockfile(readFileSync(lockfilePath, "utf8"))
-		: createEmptyLockfile();
-
-	const resolvedPlugins = options.plugins.map((plugin) =>
-		resolvePluginPackage(plugin, projectRoot),
+	return runPromise(
+		Effect.gen(function* () {
+			const projectRoot = options.projectRoot;
+			const protectedPaths =
+				options.protectedPaths ?? DEFAULT_PROTECTED_PATHS;
+			const lockfilePath = join(projectRoot, HACKKIT_LOCKFILE);
+			const previousLockfile = existsSync(lockfilePath)
+				? readLockfile(readFileSync(lockfilePath, "utf8"))
+				: createEmptyLockfile();
+			const resolvedPlugins = options.plugins.map((plugin) =>
+				resolvePluginPackage(plugin, projectRoot),
+			);
+			collectRouteClaims(resolvedPlugins, protectedPaths);
+			const nextLockfile: HackkitLockfile = {
+				version: 1,
+				plugins: resolvedPlugins.map((resolved) => ({
+					id: resolved.plugin.id,
+					package: resolved.packageName,
+					version: resolved.version,
+					routes: resolved.routes.map(({ host, source }) => ({
+						host,
+						source,
+					})),
+				})),
+			};
+			const nextStubPaths = new Set<string>();
+			let routesWritten = 0;
+			for (const resolved of resolvedPlugins) {
+				const lockPlugin = nextLockfile.plugins.find(
+					(entry) => entry.id === resolved.plugin.id,
+				);
+				if (!lockPlugin) continue;
+				for (const route of resolved.routes) {
+					const hostPath = join(projectRoot, route.host);
+					nextStubPaths.add(normalizeAppPath(route.host));
+					writeGeneratedFile(
+						hostPath,
+						renderRouteStub(lockPlugin, route),
+					);
+					routesWritten += 1;
+				}
+			}
+			let stubsRemoved = 0;
+			for (const plugin of previousLockfile.plugins) {
+				for (const route of plugin.routes) {
+					const host = normalizeAppPath(route.host);
+					if (nextStubPaths.has(host)) continue;
+					const hostPath = join(projectRoot, route.host);
+					if (!existsSync(hostPath)) continue;
+					const content = readFileSync(hostPath, "utf8");
+					if (!content.startsWith(GENERATED_HEADER)) continue;
+					rmSync(hostPath);
+					stubsRemoved += 1;
+				}
+			}
+			writeFileSync(
+				lockfilePath,
+				serializeLockfile(nextLockfile),
+				"utf8",
+			);
+			return {
+				lockfile: nextLockfile,
+				routesWritten,
+				stubsRemoved,
+			};
+		}),
 	);
-	collectRouteClaims(resolvedPlugins, protectedPaths);
-
-	const nextLockfile: HackkitLockfile = {
-		version: 1,
-		plugins: resolvedPlugins.map((resolved) => ({
-			id: resolved.plugin.id,
-			package: resolved.packageName,
-			version: resolved.version,
-			routes: resolved.routes.map(({ host, source }) => ({
-				host,
-				source,
-			})),
-		})),
-	};
-
-	const nextStubPaths = new Set<string>();
-	let routesWritten = 0;
-
-	for (const resolved of resolvedPlugins) {
-		const lockPlugin = nextLockfile.plugins.find(
-			(entry) => entry.id === resolved.plugin.id,
-		);
-		if (!lockPlugin) continue;
-
-		for (const route of resolved.routes) {
-			const hostPath = join(projectRoot, route.host);
-			nextStubPaths.add(normalizeAppPath(route.host));
-			writeGeneratedFile(hostPath, renderRouteStub(lockPlugin, route));
-			routesWritten += 1;
-		}
-	}
-
-	let stubsRemoved = 0;
-	for (const plugin of previousLockfile.plugins) {
-		for (const route of plugin.routes) {
-			const host = normalizeAppPath(route.host);
-			if (nextStubPaths.has(host)) continue;
-			const hostPath = join(projectRoot, route.host);
-			if (!existsSync(hostPath)) continue;
-			const content = readFileSync(hostPath, "utf8");
-			if (!content.startsWith(GENERATED_HEADER)) continue;
-			rmSync(hostPath);
-			stubsRemoved += 1;
-		}
-	}
-
-	writeFileSync(lockfilePath, serializeLockfile(nextLockfile), "utf8");
-
-	return {
-		lockfile: nextLockfile,
-		routesWritten,
-		stubsRemoved,
-	};
 }

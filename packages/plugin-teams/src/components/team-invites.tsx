@@ -1,11 +1,13 @@
 "use client";
 
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, useHackkitClient, showHackkitError } from "@hackkit/ui";
-import type { TeamsEndpoints } from "../client";
-import type { PendingTeamInvite } from "../api";
+import { type TeamsEndpoints } from "../client";
+import { type PendingTeamInvite } from "../api";
 
 type TeamInvitesProps = {
 	invites: PendingTeamInvite[];
@@ -16,18 +18,24 @@ export function TeamInvites({ invites }: TeamInvitesProps) {
 	const router = useRouter();
 	const [pendingId, setPendingId] = React.useState<string | null>(null);
 
-	async function handleRespond(inviteId: string, accept: boolean) {
-		setPendingId(inviteId);
-		const result = await client("@post/teams/respond-to-invite", {
-			body: { inviteId, accept },
-		});
-		setPendingId(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success(accept ? "Invite accepted." : "Invite declined.");
-		router.refresh();
+	function handleRespond(inviteId: string, accept: boolean) {
+		return runPromise(
+			Effect.gen(function* () {
+				setPendingId(inviteId);
+				const result = yield* fromResult(
+					client("@post/teams/respond-to-invite", {
+						body: { inviteId, accept },
+					}),
+				);
+				setPendingId(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success(accept ? "Invite accepted." : "Invite declined.");
+				router.refresh();
+			}),
+		);
 	}
 
 	if (invites.length === 0) {

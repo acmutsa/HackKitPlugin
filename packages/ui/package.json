@@ -37,7 +37,8 @@
     "react-hook-form": "7.52.1",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.4.0",
-    "zod": "^3.25.67"
+    "zod": "^3.25.67",
+    "effect": "^3.22.3"
   },
   "peerDependencies": {
     "next": ">=14",

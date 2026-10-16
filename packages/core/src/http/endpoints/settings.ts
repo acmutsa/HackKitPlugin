@@ -1,19 +1,23 @@
+import { Effect } from "effect";
+import { runPromise, fromResult } from "../../effect";
 import { z } from "zod";
-import type { SettingKey } from "../../settings";
+import { type SettingKey } from "../../settings";
 import { createMutationFactory, type RequestRunner } from "../mutation";
-
 const settingKey = z
 	.string()
 	.refine((value): value is SettingKey => /^[^.]+\..+$/.test(value));
-
 export function createSettingEndpoints(run: RequestRunner) {
 	const post = createMutationFactory(run);
 	return {
 		listSettings: post(
 			"/settings/list",
 			z.undefined(),
-			async ({ hackkit, actorAuthId }, input) =>
-				hackkit.settings.list({ actorAuthId }),
+			({ hackkit, actorAuthId }, input) =>
+				runPromise(
+					Effect.suspend(() =>
+						fromResult(hackkit.settings.list({ actorAuthId })),
+					),
+				),
 		),
 		setSettings: post(
 			"/settings/set",
@@ -29,14 +33,32 @@ export function createSettingEndpoints(run: RequestRunner) {
 					),
 				})
 				.strict(),
-			async ({ hackkit, actorAuthId }, input) =>
-				hackkit.settings.setMany({ actorAuthId, values: input.values }),
+			({ hackkit, actorAuthId }, input) =>
+				runPromise(
+					Effect.suspend(() =>
+						fromResult(
+							hackkit.settings.setMany({
+								actorAuthId,
+								values: input.values,
+							}),
+						),
+					),
+				),
 		),
 		resetSetting: post(
 			"/settings/reset",
 			z.object({ key: settingKey }).strict(),
-			async ({ hackkit, actorAuthId }, input) =>
-				hackkit.settings.reset({ actorAuthId, key: input.key }),
+			({ hackkit, actorAuthId }, input) =>
+				runPromise(
+					Effect.suspend(() =>
+						fromResult(
+							hackkit.settings.reset({
+								actorAuthId,
+								key: input.key,
+							}),
+						),
+					),
+				),
 		),
 	};
 }

@@ -1,7 +1,9 @@
 "use client";
+import { Effect } from "effect";
+import { runSync } from "@hackkit/core/effect";
 
 import * as React from "react";
-import type { FieldValues, UseFormReturn } from "react-hook-form";
+import { type FieldValues, type UseFormReturn } from "react-hook-form";
 
 function jsonReplacer(_key: string, value: unknown) {
 	if (typeof value === "number" && !Number.isFinite(value)) {
@@ -22,31 +24,32 @@ export function usePersistedFormState<TValues extends FieldValues>(
 			return;
 		}
 
-		try {
-			const stored = window.localStorage.getItem(storageKey);
-			if (stored) {
-				const values = JSON.parse(stored) as Partial<TValues>;
-				form.reset({ ...form.getValues(), ...values });
-			}
-		} catch {
-			// Ignore invalid or unavailable localStorage state.
-		} finally {
-			setHydrated(true);
-		}
+		runSync(
+			Effect.try(() => {
+				const stored = window.localStorage.getItem(storageKey);
+				if (stored) {
+					const values = JSON.parse(stored) as Partial<TValues>;
+					form.reset({ ...form.getValues(), ...values });
+				}
+			}).pipe(
+				Effect.ignore,
+				Effect.ensuring(Effect.sync(() => setHydrated(true))),
+			),
+		);
 	}, [form, storageKey]);
 
 	React.useEffect(() => {
 		if (!storageKey || !hydrated) return;
 
 		const subscription = form.watch((values) => {
-			try {
-				window.localStorage.setItem(
-					storageKey,
-					JSON.stringify(values, jsonReplacer),
-				);
-			} catch {
-				// Ignore quota/security errors; form submission still works.
-			}
+			runSync(
+				Effect.try(() => {
+					window.localStorage.setItem(
+						storageKey,
+						JSON.stringify(values, jsonReplacer),
+					);
+				}).pipe(Effect.ignore),
+			);
 		});
 
 		return () => subscription.unsubscribe();
@@ -54,10 +57,10 @@ export function usePersistedFormState<TValues extends FieldValues>(
 
 	return React.useCallback(() => {
 		if (!storageKey) return;
-		try {
-			window.localStorage.removeItem(storageKey);
-		} catch {
-			// Ignore unavailable localStorage.
-		}
+		runSync(
+			Effect.try(() => window.localStorage.removeItem(storageKey)).pipe(
+				Effect.ignore,
+			),
+		);
 	}, [storageKey]);
 }

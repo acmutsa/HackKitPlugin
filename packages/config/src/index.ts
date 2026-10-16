@@ -1,13 +1,15 @@
-import type {
-	HackKitDatabaseOptions,
-	HackKitAuthOptions,
-	InitializeHackkitOptions,
-	EventTypesInput,
-	HackKitLoggerOptions,
-	GroupsInput,
-	HackKitPlugin,
-	SeedRoleInput,
-	UserDataOptionsInput,
+import { Effect } from "effect";
+import { operation, originalError, runPromise } from "@hackkit/core/effect";
+import {
+	type HackKitDatabaseOptions,
+	type HackKitAuthOptions,
+	type InitializeHackkitOptions,
+	type EventTypesInput,
+	type HackKitLoggerOptions,
+	type GroupsInput,
+	type HackKitPlugin,
+	type SeedRoleInput,
+	type UserDataOptionsInput,
 } from "@hackkit/core";
 import { createJiti } from "jiti";
 import { resolve } from "node:path";
@@ -96,20 +98,29 @@ export function resolveHackkitConfig<
 
 const jiti = createJiti(fileURLToPath(import.meta.url));
 
-export async function loadHackkitConfig(
+export function loadHackkitConfig(
 	configFile = "hackkit.config.ts",
 	options: { cwd?: string } = {},
 ): Promise<NormalizedHackkitConfig> {
-	const configPath = resolve(options.cwd ?? process.cwd(), configFile);
-	const module = await jiti.import(configPath);
-	const config = ((module as { default?: HackkitConfig }).default ??
-		module) as HackkitConfig;
-	try {
-		return resolveHackkitConfig(config);
-	} catch (error) {
-		if (error instanceof Error) {
-			throw new Error(`${error.message} Config path: ${configPath}`);
-		}
-		throw error;
-	}
+	return runPromise(
+		Effect.gen(function* () {
+			const configPath = resolve(
+				options.cwd ?? process.cwd(),
+				configFile,
+			);
+			const module = yield* operation(() => jiti.import(configPath));
+			const config = ((module as { default?: HackkitConfig }).default ??
+				module) as HackkitConfig;
+			return yield* operation(() => resolveHackkitConfig(config)).pipe(
+				Effect.mapError((failure) => {
+					const error = originalError(failure);
+					return error instanceof Error
+						? new Error(
+								`${error.message} Config path: ${configPath}`,
+							)
+						: failure;
+				}),
+			);
+		}),
+	);
 }

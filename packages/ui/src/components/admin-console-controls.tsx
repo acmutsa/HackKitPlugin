@@ -1,14 +1,18 @@
 "use client";
-import type { ApiResult } from "@hackkit/core/client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
+import {
+	type ApiResult,
+	type AdminUserRecord,
+	type PermissionKey,
+	type Role,
+	CorePermission,
+} from "@hackkit/core/client";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
-import type {
-	AdminUserRecord,
-	PermissionKey,
-	Role,
-} from "@hackkit/core/client";
-import { CorePermission } from "@hackkit/core/client";
+
 import { toast } from "sonner";
 import { useHackKitUI } from "../provider";
 import { Button } from "./ui/button";
@@ -60,20 +64,24 @@ export function AdminUserActions({
 	const [roleId, setRoleId] = React.useState(record.user.roleId ?? "");
 	const [banReason, setBanReason] = React.useState(record.ban?.reason ?? "");
 
-	async function run<T>(
+	function run<T>(
 		action: PendingAction,
 		task: () => Promise<ApiResult<T>>,
 		successMessage: string,
 	) {
-		setPendingAction(action);
-		const result = await task();
-		setPendingAction(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success(successMessage);
-		navigation.refresh();
+		return runPromise(
+			Effect.gen(function* () {
+				setPendingAction(action);
+				const result = yield* fromResult(task());
+				setPendingAction(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success(successMessage);
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (
@@ -344,44 +352,56 @@ export function AdminRoleManager({
 		);
 	}
 
-	async function createRole(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setPendingAction("createRole");
-		const result = await client("@post/roles/create", {
-			body: {
-				name,
-				position,
-				color: color.trim() || undefined,
-				permissions: selectedPermissions,
-			},
-		});
-		setPendingAction(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("Role created.");
-		setName("");
-		setPosition(roles.length + 2);
-		setColor("");
-		setSelectedPermissions([]);
-		navigation.refresh();
+	function createRole(event: React.FormEvent<HTMLFormElement>) {
+		return runPromise(
+			Effect.gen(function* () {
+				event.preventDefault();
+				setPendingAction("createRole");
+				const result = yield* fromResult(
+					client("@post/roles/create", {
+						body: {
+							name,
+							position,
+							color: color.trim() || undefined,
+							permissions: selectedPermissions,
+						},
+					}),
+				);
+				setPendingAction(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("Role created.");
+				setName("");
+				setPosition(roles.length + 2);
+				setColor("");
+				setSelectedPermissions([]);
+				navigation.refresh();
+			}),
+		);
 	}
 
-	async function deleteRole(role: Role) {
-		if (!window.confirm(`Delete ${role.name}?`)) return;
-		const actionId = `deleteRole:${role.id}` as const;
-		setPendingAction(actionId);
-		const result = await client("@post/roles/delete", {
-			body: { roleId: role.id },
-		});
-		setPendingAction(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("Role deleted.");
-		navigation.refresh();
+	function deleteRole(role: Role) {
+		return runPromise(
+			Effect.gen(function* () {
+				if (!window.confirm(`Delete ${role.name}?`)) return;
+				const actionId = `deleteRole:${role.id}` as const;
+				setPendingAction(actionId);
+				const result = yield* fromResult(
+					client("@post/roles/delete", {
+						body: { roleId: role.id },
+					}),
+				);
+				setPendingAction(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("Role deleted.");
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (
@@ -518,25 +538,31 @@ function RoleEditor({
 		);
 	}
 
-	async function updateRole(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setPendingAction(actionId);
-		const result = await client("@post/roles/update", {
-			body: {
-				roleId: role.id,
-				name,
-				position,
-				color: color.trim() || undefined,
-				permissions: selectedPermissions,
-			},
-		});
-		setPendingAction(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		toast.success("Role updated.");
-		navigation.refresh();
+	function updateRole(event: React.FormEvent<HTMLFormElement>) {
+		return runPromise(
+			Effect.gen(function* () {
+				event.preventDefault();
+				setPendingAction(actionId);
+				const result = yield* fromResult(
+					client("@post/roles/update", {
+						body: {
+							roleId: role.id,
+							name,
+							position,
+							color: color.trim() || undefined,
+							permissions: selectedPermissions,
+						},
+					}),
+				);
+				setPendingAction(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				toast.success("Role updated.");
+				navigation.refresh();
+			}),
+		);
 	}
 
 	return (

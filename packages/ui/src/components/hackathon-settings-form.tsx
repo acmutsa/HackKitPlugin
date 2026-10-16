@@ -1,15 +1,18 @@
 "use client";
+
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { showHackkitError } from "../http-error";
 
 import * as React from "react";
 import { toast } from "sonner";
 import { cn } from "../lib/cn";
 import { useHackKitUI } from "../provider";
-import type { HackathonSettingsFormProps } from "../types";
-import type {
-	ResolvedHackathonSetting as DomainSetting,
-	Wire,
-	SettingKey,
+import { type HackathonSettingsFormProps } from "../types";
+import {
+	type ResolvedHackathonSetting as DomainSetting,
+	type Wire,
+	type SettingKey,
 } from "@hackkit/core/client";
 import { Button } from "./ui/button";
 import {
@@ -135,45 +138,57 @@ export function HackathonSettingsForm({
 		}));
 	}
 
-	async function saveChanges() {
-		if (!hasDirty || hasInvalidNumbers) return;
-		setIsSaving(true);
-		const result = await client("@post/settings/set", {
-			body: {
-				values: dirtyUpdates.map((update) => ({
-					key: update.key,
-					value: update.value,
-				})),
-			},
-		});
-		setIsSaving(false);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		setCurrentSettings((existing) =>
-			existing.map(
-				(setting) =>
-					result.data.find(
-						(updated) => updated.key === setting.key,
-					) ?? setting,
-			),
+	function saveChanges() {
+		return runPromise(
+			Effect.gen(function* () {
+				if (!hasDirty || hasInvalidNumbers) return;
+				setIsSaving(true);
+				const result = yield* fromResult(
+					client("@post/settings/set", {
+						body: {
+							values: dirtyUpdates.map((update) => ({
+								key: update.key,
+								value: update.value,
+							})),
+						},
+					}),
+				);
+				setIsSaving(false);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				setCurrentSettings((existing) =>
+					existing.map(
+						(setting) =>
+							result.data.find(
+								(updated) => updated.key === setting.key,
+							) ?? setting,
+					),
+				);
+				toast.success("Settings saved.");
+			}),
 		);
-		toast.success("Settings saved.");
 	}
 
-	async function resetSetting(setting: ResolvedHackathonSetting) {
-		setResettingKey(setting.key);
-		const result = await client("@post/settings/reset", {
-			body: { key: setting.key },
-		});
-		setResettingKey(null);
-		if (result.error) {
-			showHackkitError(result.error);
-			return;
-		}
-		updateSettingInState(result.data);
-		toast.success(`${setting.label} reset to default.`);
+	function resetSetting(setting: ResolvedHackathonSetting) {
+		return runPromise(
+			Effect.gen(function* () {
+				setResettingKey(setting.key);
+				const result = yield* fromResult(
+					client("@post/settings/reset", {
+						body: { key: setting.key },
+					}),
+				);
+				setResettingKey(null);
+				if (result.error) {
+					showHackkitError(result.error);
+					return;
+				}
+				updateSettingInState(result.data);
+				toast.success(`${setting.label} reset to default.`);
+			}),
+		);
 	}
 
 	return (

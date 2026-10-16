@@ -48,3 +48,5 @@ export {
 	type ResendEmailProviderOptions,
 	type SmtpEmailProviderOptions,
 } from "./providers";
+
+export { createEmailNotificationsEffects } from "./api";

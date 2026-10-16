@@ -1,5 +1,7 @@
 "use client";
 
+import { Effect } from "effect";
+import { runPromise, fromResult } from "@hackkit/core/effect";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,11 +29,15 @@ export function ProfileMenu({
 			.map((part) => part[0]?.toUpperCase())
 			.join("") || "U";
 
-	async function signOut() {
-		setIsSigningOut(true);
-		await authClient.signOut();
-		router.push("/sign-in");
-		router.refresh();
+	function signOut() {
+		return runPromise(
+			Effect.gen(function* () {
+				setIsSigningOut(true);
+				yield* fromResult(authClient.signOut());
+				router.push("/sign-in");
+				router.refresh();
+			}),
+		);
 	}
 
 	return (
