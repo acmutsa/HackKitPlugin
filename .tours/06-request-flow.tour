@@ -1,0 +1,113 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "06. HTTP, Next integration, and browser UI",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Goal: follow a browser mutation through JSON validation, origin checks, session resolution, a fresh Core scope, domain execution, and a typed response. Then compare that path with server-rendered reads.\n\nUse the Teams create request from chapter 04 as the running example. A request body contains the requested change. The session determines who requested it."
+		},
+		{
+			"file": "templates/nextjs-full/app/api/hackkit/[...path]/route.ts",
+			"pattern": "export const POST",
+			"title": "Mount the central HackKit handler",
+			"description": "The catch-all route exports the application's handler as POST. Endpoint definitions stay in Core and plugins rather than one generated Next route per operation.\n\nBetter Auth has its own catch-all auth route. File upload/view routes remain host routes because they handle storage and access policy outside this JSON mutation handler. Next passes a Request to the host, which initializes the reusable endpoint router when needed."
+		},
+		{
+			"file": "packages/next/src/runtime.ts",
+			"pattern": "export function createHackkitRuntimeFromConfig",
+			"title": "Create the Next host and initialize lazily mounted transport",
+			"description": "The host normalizes config, requires an explicit auth base URL, and accepts a static trusted-origins list. It starts Core initialization with Better Auth's `nextCookies` plugin.\n\nIt shares the Core promise and mounts the HTTP handler on first use. `getRuntime` is wrapped with React `cache`, whose reuse belongs to the server render. This does not authorize storing the current user's runtime globally. The global integration registration stores a provider function."
+		},
+		{
+			"file": "packages/core/src/http/handler.ts",
+			"pattern": "export function createHackkitHandler",
+			"title": "Build endpoint definitions once",
+			"description": "The handler constructs a request runner, mounts Core endpoints, and asks each enabled plugin's endpoint factory for its definitions. It rejects plugin paths outside `/<plugin.id>/`, non-POST endpoints, and duplicate POST paths.\n\nOnly definitions and shared runtime resources persist in this handler. A plugin factory receives the runner so its eventual callback can obtain a fresh scope. The default base path is `/api/hackkit`."
+		},
+		{
+			"file": "packages/core/src/http/http-server.ts",
+			"pattern": "export function protectHttpHandler",
+			"title": "Reject untrusted mutation origins before dispatch",
+			"description": "The outer wrapper requires an allowed Origin for methods other than GET/HEAD and rejects requests marked cross-site. A nonempty mutation body must use application/json. Empty POST streams receive special handling because Next can expose a stream for a bodyless request.\n\nThis policy runs before router dispatch. It reduces cross-site mutation risk but does not replace session authentication or domain permissions. The configured origin must describe the actual host that makes browser requests."
+		},
+		{
+			"file": "packages/core/src/http/handler.ts",
+			"pattern": "const run: RequestRunner = async \\(request, operation\\) => \\{",
+			"title": "Resolve the actor from a fresh session lookup",
+			"description": "For an endpoint operation, the runner asks Better Auth for a session with cookie cache disabled and requests response headers. No session produces `UNAUTHORIZED`.\n\nIt takes `session.response.user.id` as actorAuthId, then calls `runtime.run` to create a fresh domain scope. The callback receives that scope's `hackkit` plus the trusted actor. Session headers are stored per Request and later propagated as Set-Cookie headers. They are not shared actor state."
+		},
+		{
+			"file": "packages/core/src/http/mutation.ts",
+			"pattern": "export function createMutationFactory",
+			"title": "Connect validated bodies to domain operations",
+			"description": "`createMutationFactory(run)` returns a typed POST endpoint builder. Each endpoint declares a literal path, Zod body schema, and callback. Better-call parses the body before the callback uses `context.body`.\n\nThe endpoint invokes the request runner, passes the authenticated scope to the operation, then converts the domain result to its JSON DTO. Registration endpoints omit authId/userId from browser schemas and insert the session ID. That is how transport prevents a caller from choosing another participant as themselves."
+		},
+		{
+			"file": "packages/core/src/http/endpoints/registration.ts",
+			"pattern": "export function createRegistrationEndpoints",
+			"title": "Bind personal writes to the session identity",
+			"description": "The personal-data schema omits authId and the hacker-registration schema omits userId. Both become strict browser schemas. Their callbacks insert the session's actorAuthId into the Core call.\n\nA browser cannot nominate another user's ID in these bodies or smuggle one through an extra field. Direct server calls use Core's target-bearing inputs, so server code remains responsible for choosing a trusted identity when it bypasses this adapter."
+		},
+		{
+			"file": "packages/core/src/http/mutation.ts",
+			"pattern": "export function createPluginMutationFactory",
+			"title": "Resolve the plugin API inside the authenticated scope",
+			"description": "The plugin mutation factory wraps the Core mutation builder. It verifies the plugin path prefix and retrieves `scope.hackkit.plugins[plugin.id]` during execution. The API therefore uses the current request's EntityManager.\n\nThe setup factory in the declaration provides the API type used for inference. A small type assertion connects the dynamic registry lookup to that contract. Runtime plugin enablement and route validation still matter; compile-time inference cannot prove a deployed plugin is enabled."
+		},
+		{
+			"file": "packages/core/src/http/http-contract.ts",
+			"pattern": "export function toJsonDto",
+			"title": "Make the declared wire type match JSON",
+			"description": "`toJsonDto` serializes and parses the domain value, converting Date values to strings and void/undefined results to null. The recursive `Wire<T>` type models these conversions for client inference.\n\nA server DTO may contain Date instances while a browser receives ISO strings. UI code must parse a date when it needs Date methods. Matching the inferred endpoint output to the actual JSON avoids presenting browser callers with impossible runtime types."
+		},
+		{
+			"file": "packages/core/src/http/http-server.ts",
+			"pattern": "export function httpError",
+			"title": "Return useful domain errors and hide exception details",
+			"description": "Known HackKit errors map to stable HTTP statuses and `{ code, message }`. Expected Better-call errors retain useful client messages. Unexpected exceptions become a generic 500 response, while the server callback logs details.\n\nThe final response policy below normalizes router results, applies JSON and no-store headers, and handles empty success responses. The client can therefore handle domain failure through its structured result instead of parsing arbitrary exception text."
+		},
+		{
+			"file": "packages/core/src/http/client.ts",
+			"pattern": "export function createHackkitClient",
+			"title": "Infer paths without bundling endpoint implementations",
+			"description": "The browser client combines Core endpoint types with any plugin endpoint types supplied by the caller. It defaults to `/api/hackkit`, same-origin credentials, no retries, and errors returned through the result.\n\nType-only imports connect inference to server declarations without executing those modules in the browser. The transport still makes a real HTTP request. A path such as `@post/teams/create` selects a declared route and infers its body and response."
+		},
+		{
+			"file": "packages/ui/src/provider.tsx",
+			"pattern": "export function useHackkitClient",
+			"title": "Share client settings and navigation through React context",
+			"description": "`HackKitUIProvider` holds the HTTP client, navigation adapter, and event-pass lifetime. Without an override it uses Next's router and the resolved route map. `useHackkitClient<TEndpoints>` creates a typed client using the provider's same options.\n\nPlugin forms can add endpoint types without replacing the application's provider. Shared Core components under `packages/ui/src/components` use the same transport and error helpers. The provider stores UI dependencies, not an EntityManager or auth secret."
+		},
+		{
+			"file": "packages/next/src/runtime.ts",
+			"pattern": "export async function createHackkitRuntime<",
+			"title": "Compare server-rendered reads with HTTP mutations",
+			"description": "The server-render runtime reads Next request headers, resolves the session, and creates a scope. It exposes `getAuthId`, `getCurrentUser`, settings reads, and page guards. Unauthenticated required identity redirects to sign-in.\n\nServer pages call these domain APIs directly. They do not need to fetch their own browser endpoint. Unlike the HTTP runner, this function directly creates a scope rather than calling `runtime.run`; do not describe these two paths as identical RequestContext execution."
+		},
+		{
+			"file": "packages/next/src/page-guards.ts",
+			"pattern": "async function requireParticipantAccess\\(\\)",
+			"title": "Gate pages with onboarding and approval state",
+			"description": "`requireParticipantAccess` requires completed onboarding and approval. Its helper checks a current user, bans, HackTag, personal data, and hacker registration, redirecting to the appropriate step when something is missing.\n\nPermission guards call Core access control and translate forbidden access into the configured Next navigation behavior. These guards control page entry. Domain mutations still need their own rules when accessed directly over HTTP."
+		},
+		{
+			"file": "packages/core/src/http/event-pass.ts",
+			"pattern": "export function resolveEventPassTargetAuthId",
+			"title": "Decode the event pass and bound its age",
+			"description": "The pass payload contains authId and qrIssuedAt as JSON. Parsing checks field types, then validates the timestamp against a lifetime and a one-minute future tolerance. The resolver returns the target auth ID for scanner endpoints.\n\nThis is a timestamped identifier payload, not a cryptographic signature. Scanner authorization and target checks still run on the server. Changing its security properties would require changing both the payload producer and server validation, not just the QR renderer."
+		},
+		{
+			"file": "packages/core/src/http/endpoints/event-pass.ts",
+			"pattern": "export function createEventPassEndpoints",
+			"title": "Authorize scanner preview before returning participant data",
+			"description": "The preview endpoint chooses EventsScan or UsersCheckIn permission according to whether an eventId is supplied. It reads the configured QR lifetime, resolves the target, loads the user, and optionally loads prior event scans.\n\nThe browser's raw QR text identifies a target; it does not authorize the scanner. Domain check-in and event-scan endpoints perform the final writes. Keep preview and mutation behavior distinct when adding scan warnings."
+		},
+		{
+			"file": "tooling/check-client-bundle.mjs",
+			"pattern": "const forbidden = files\\.filter",
+			"title": "Check the actual provider bundle for server dependencies",
+			"description": "The script bundles providers.tsx for both templates and the demo using browser-targeted esbuild. It inspects metafile input paths and rejects MikroORM, Better Auth, and specified server implementation modules. It prints bundle size and module counts for each target.\n\nThis verifies the dependency boundary for these entry points. It does not prove every possible browser entry is safe, that a production Next build passes, or that permissions work. Use it alongside the relevant behavior checks."
+		}
+	],
+	"nextTour": "07. Notifications, Discord, storage, and deployed apps"
+}

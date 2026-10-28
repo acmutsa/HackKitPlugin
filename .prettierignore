@@ -2,4 +2,16 @@ pnpm-lock.yaml
 pnpm-workspace.yaml
 **/package.json
 *.json
-apps/web/db/migrations/**
+templates/*/db/migrations/**
+
+e2e/playwright-report/
+e2e/test-results/
+
+apps/docs/.source/
+apps/docs/out/
+apps/demo/playwright-report/
+apps/demo/test-results/
+
+apps/demo/lib/generated/
+apps/demo/db/migrations/
+apps/demo/worker/env.d.ts

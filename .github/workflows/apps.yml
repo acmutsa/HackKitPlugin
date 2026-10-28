@@ -1,0 +1,82 @@
+name: Demo and documentation
+
+on:
+    pull_request:
+        paths:
+            - "apps/demo/**"
+            - "apps/docs/**"
+            - "packages/**"
+            - "package.json"
+            - "pnpm-workspace.yaml"
+            - ".npmrc"
+            - "pnpm-lock.yaml"
+            - "turbo.json"
+            - "tooling/**"
+            - ".github/workflows/apps.yml"
+
+jobs:
+    docs:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm build:docs
+            - run: pnpm --filter @hackkit/docs typecheck
+            - run: pnpm --filter @hackkit/docs deploy:check
+    demo:
+        runs-on: ubuntu-latest
+        services:
+            libsql:
+                image: ghcr.io/tursodatabase/libsql-server:latest
+                env:
+                    SQLD_NODE: standalone
+                    SQLD_HTTP_LISTEN_ADDR: 0.0.0.0:8080
+                ports:
+                    - 8080:8080
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm exec turbo run build --filter=@hackkit/demo^...
+            - run: pnpm --filter @hackkit/demo plugin:sync
+            - run: git diff --exit-code -- apps/demo/app apps/demo/hackkit.lock
+            - run: pnpm --filter @hackkit/demo typecheck
+            - run: node tooling/check-client-bundle.mjs
+            - name: Configure disposable database and local Worker bindings
+              run: |
+                  mkdir -p apps/demo/.wrangler
+                  cat > apps/demo/.dev.vars <<'EOF'
+                  TURSO_DATABASE_URL=http://127.0.0.1:8080
+                  TURSO_AUTH_TOKEN=local-ci-no-remote-access
+                  BETTER_AUTH_SECRET=ci-only-secret-for-disposable-demo-testing
+                  BETTER_AUTH_URL=http://localhost:3001
+                  EOF
+                  curl --fail --retry 20 --retry-connrefused --retry-delay 2 http://127.0.0.1:8080/health
+            - run: pnpm --filter @hackkit/demo db:demo
+            - run: pnpm --filter @hackkit/demo db:check
+            - run: pnpm --filter @hackkit/demo test:database
+            - run: pnpm --filter @hackkit/demo build
+            - run: pnpm --filter @hackkit/demo deploy:check
+            - run: pnpm --filter @hackkit/demo exec playwright install --with-deps chromium
+            - run: pnpm --filter @hackkit/demo test:smoke
+              env:
+                  DEMO_TEST_URL: http://localhost:3001
+            - name: Upload failure diagnostics
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: demo-diagnostics
+                  path: |
+                      apps/demo/test-results
+                      apps/demo/playwright-report
+                      apps/demo/.wrangler/ci-server.log
+                  if-no-files-found: ignore

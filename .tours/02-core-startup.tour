@@ -1,0 +1,83 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "02. Core startup and persistence",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Goal: explain which resources are shared and which are rebuilt for each execution. Trace configuration into the entity registry, ORM, Better Auth, and a scoped `hackkit` object. Then inspect migration and role-seeding ownership.\n\nA database connection can be shared through an ORM instance. Managed entity objects and the current actor must belong to the execution that uses them."
+		},
+		{
+			"file": "packages/core/src/runtime.ts",
+			"pattern": "export async function initializeHackkit",
+			"title": "Initialize shared resources once",
+			"description": "`initializeHackkit` receives database/auth options, plugins, optional app entities, and domain configuration. It builds a registry, initializes MikroORM using `createOrmOptions`, and creates Better Auth with the same ORM.\n\nIf auth construction fails after ORM initialization, it closes the ORM before rethrowing. The returned runtime exposes the shared `orm`, `auth`, and `registry`, plus factories for isolated executions. Startup does not apply migrations or seed roles."
+		},
+		{
+			"file": "packages/core/src/plugins.ts",
+			"pattern": "export function createPluginRegistry",
+			"title": "Discover the complete schema",
+			"description": "The registry begins with Better Auth entities, Core models, Core permissions, and Core settings. Each plugin contributes its declarations, and application entities are appended afterward.\n\nThe function rejects duplicate plugin IDs, invalid plugin namespaces, duplicate setting/permission values, and duplicate entity names or tables. These checks run before the ORM relies on the schema. The plugin chapter will examine the runtime API contract separately."
+		},
+		{
+			"file": "packages/core/src/mikro/options.ts",
+			"pattern": "export function createOrmOptions",
+			"title": "Use the same entity collection for runtime and migrations",
+			"description": "`createOrmOptions` rebuilds the registry from config, verifies that auth's requested tables and fields exist, and returns native MikroORM options with that entity list. It adds the Migrator extension while retaining configured extensions.\n\nBoth runtime initialization and database tools call this function. A plugin entity therefore enters ORM metadata through the same path in both places. Metadata discovery describes the desired schema; committed migrations still control changes to an existing database."
+		},
+		{
+			"file": "packages/core/src/models.ts",
+			"pattern": "export const HackKitUser = defineEntity\\(\\{",
+			"title": "Keep one canonical user record",
+			"description": "`HackKitUser` maps to `core_user`. It contains auth identity fields and domain fields such as HackTag, role ID, approval status, and check-in time. The role reference maps to a primary key and uses a nullable foreign key.\n\nThe `p` builders define native MikroORM properties, defaults, relationships, and indexes. Nearby Core entities represent participant data, hacker registration, events, RSVP, settings, notifications, and operation locks. Plain domain types describe returned values; entity definitions describe persistence."
+		},
+		{
+			"file": "packages/core/src/mikro/auth.ts",
+			"pattern": "export function resolveHackKitAuthOptions",
+			"title": "Map Better Auth onto Core's user table",
+			"description": "The application provides auth settings, but Core forces the user model to `core_user` and maps Better Auth's `image` field to `profilePhotoUrl`. Core creates the MikroORM database adapter in `createHackKitAuth`.\n\nThis avoids a second application profile row that would need synchronization with the auth user. Credentials, session policy, and providers still come from host options. Domain privileges stay behind Core APIs."
+		},
+		{
+			"file": "packages/core/src/mikro/auth.ts",
+			"pattern": "export function assertAuthEntitySchema",
+			"title": "Reject unsupported auth schema before use",
+			"description": "Better Auth can require tables and fields according to its configuration. This function compares those requirements with registered entity metadata. A missing model or property throws with a request for a native entity and reviewed migration.\n\nIt also rejects exposing Core-owned user properties through auth field configuration. Enabling an auth feature is therefore a schema decision, not just a new provider option."
+		},
+		{
+			"file": "packages/core/src/runtime.ts",
+			"pattern": "function createScope\\(actorAuthId\\?: string\\)",
+			"title": "Fork the EntityManager and construct scoped APIs",
+			"description": "Each call forks `orm.em` with context support and calls `createHackkit` using the fork, the shared registry, and the optional actor ID. A fork has its own identity map, the set of managed entity instances used by that execution.\n\nThe resulting scope contains `em` and `hackkit`. Plugin setup receives this same EntityManager. Do not retain this scoped API object as a global singleton. A later request must create its own scope."
+		},
+		{
+			"file": "packages/core/src/runtime.ts",
+			"pattern": "return RequestContext\\.create\\(scope\\.em, \\(\\) => operation\\(scope\\)\\);",
+			"title": "Run a non-render operation in an ORM context",
+			"description": "`run` creates a scope, then executes the callback inside MikroORM's RequestContext. The callback receives the scope and returns a promise whose result becomes the result of `run`.\n\nThe HTTP handler uses this path after resolving a session. Context-aware ORM operations can resolve the correct manager during async work. Creating a request context is not a transaction around the whole request; domain operations create transactions where required."
+		},
+		{
+			"file": "packages/core/src/hackkit.ts",
+			"pattern": "export function createHackkit",
+			"title": "Assemble Core around explicit dependencies",
+			"description": "`createHackkit` accepts an existing EntityManager. It resolves clock, ID generator, registration choices, event types, groups, and logger. It creates access control, settings, notifications, plugin APIs, and the domain API groups.\n\nThe function returns methods, not a listening server. Tests can inject time and ID functions. HTTP and Next integrations decide how to obtain the actor and invoke these methods. Keep transport details out of this composition function."
+		},
+		{
+			"file": "templates/nextjs-full/scripts/database.ts",
+			"pattern": "export async function runDatabaseCommand",
+			"title": "Keep schema changes explicit and application-owned",
+			"description": "The template's database command runner owns generate, migrate, rollback, status, check, seed, and reset operations. It uses `createOrmOptions`, so it sees Core/auth/plugin/app entities, and always closes the ORM in `finally`.\n\n`check` examines pending migration history, entity-versus-snapshot differences, and live schema SQL. `reset` is destructive and restricted to a local SQLite database in development or tests. Reading this tour does not invoke it. Migration directories remain in the template that owns the deployed database."
+		},
+		{
+			"file": "packages/core/src/seed.ts",
+			"pattern": "export async function seedRoles",
+			"title": "Seed roles without overwriting existing policy",
+			"description": "`seedRoles` inserts configured role IDs that are missing and skips IDs already present. It returns inserted and skipped IDs. Re-running it does not overwrite an administrator's existing role permissions.\n\nInitialization does not assign owner privileges automatically. Configured seed roles and the host's owner bootstrap procedure are separate concerns. Follow the template README before administering a real instance."
+		},
+		{
+			"file": "packages/core/src/runtime.test.ts",
+			"pattern": "it\\(\"shares auth and connections while isolating domain execution scopes\"",
+			"title": "Check the shared-versus-scoped contract",
+			"description": "This test inspects runtime behavior across scopes. Read the assertions for different EntityManagers and domain reads, rather than assuming that shared auth implies shared managed entities.\n\nAlso inspect [auth lifecycle tests](./packages/core/src/mikro/auth-lifecycle.test.ts) for canonical user updates and privileged-field handling. These are source references, not a claim that the tests ran while authoring this tour. Continue with [03. Core domain behavior]."
+		}
+	],
+	"nextTour": "03. Core domain behavior"
+}

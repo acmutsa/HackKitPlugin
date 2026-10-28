@@ -38,6 +38,7 @@ type FormValues = z.input<typeof formSchema>;
 export type UserProfileSettingsFormProps = {
 	currentUser: User;
 	uploadProfilePhoto?: (file: File) => Promise<string>;
+	showDiscordHandle?: boolean;
 	className?: string;
 };
 
@@ -74,6 +75,7 @@ function userToFormValues(user: User | Wire<User>): FormValues {
 export function UserProfileSettingsForm({
 	currentUser,
 	uploadProfilePhoto,
+	showDiscordHandle = true,
 	className,
 }: UserProfileSettingsFormProps) {
 	const { client, navigation } = useHackKitUI();
@@ -150,8 +152,9 @@ export function UserProfileSettingsForm({
 			<CardHeader>
 				<CardTitle>Profile</CardTitle>
 				<CardDescription>
-					Update your public profile, HackTag, and Discord display
-					handle.
+					{showDiscordHandle
+						? "Update your public profile, HackTag, and Discord display handle."
+						: "Update your public profile and HackTag."}
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -222,21 +225,23 @@ export function UserProfileSettingsForm({
 								}
 							/>
 						</div>
-						<div className="space-y-2">
-							<Label htmlFor="discordDisplayHandle">
-								Discord display handle
-							</Label>
-							<Input
-								id="discordDisplayHandle"
-								{...form.register("discordDisplayHandle")}
-							/>
-							<FieldError
-								message={
-									form.formState.errors.discordDisplayHandle
-										?.message
-								}
-							/>
-						</div>
+						{showDiscordHandle ? (
+							<div className="space-y-2">
+								<Label htmlFor="discordDisplayHandle">
+									Discord display handle
+								</Label>
+								<Input
+									id="discordDisplayHandle"
+									{...form.register("discordDisplayHandle")}
+								/>
+								<FieldError
+									message={
+										form.formState.errors
+											.discordDisplayHandle?.message
+									}
+								/>
+							</div>
+						) : null}
 					</div>
 
 					<div className="space-y-2">

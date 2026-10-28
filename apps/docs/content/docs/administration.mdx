@@ -1,0 +1,20 @@
+---
+title: "Administration"
+description: "Bootstrap an owner explicitly, then manage access through the console."
+---
+
+Creating an account does not grant organizer access. `db:seed` creates roles but never automatically assigns an owner.
+
+For a real installation, create the intended account, verify its canonical Core user ID, and use a controlled administrative database operation to assign the seeded `core.owner` role to that ID. Keep this operation outside public application routes. The template README describes this bootstrap boundary.
+
+Once bootstrapped, an owner can open `/admin`, inspect users, manage roles and settings, and export participant data. Full also provides event administration, check-in, and scanner pages.
+
+## Registration policy
+
+Settings control whether registration is open, whether approval is required, registration limits, and event capacity. Guards route incomplete accounts back to onboarding. Approval-pending and suspended accounts have dedicated states. Core checks these policies on the server.
+
+Use a separate participant account to confirm permissions after changing roles. Hiding an admin navigation link does not replace permission checks.
+
+## Demo access
+
+The public demo seeds a fictional organizer through an explicit database command. This is a demo-specific bootstrap operation. It does not add automatic owner assignment to either template.

@@ -2,28 +2,28 @@
 
 The application owns one ordered migration history for Core, Better Auth, installed plugins, and application entities. Core supplies native entity definitions and a shared registry. The reference app supplies runnable scripts and database-specific configuration. Package authors supply reviewed transformation SQL and upgrade instructions when their schema changes require them.
 
-The scripts live in `apps/web/scripts/database.ts`, with `scripts/db.mjs` as the Node entry point. They use MikroORM's native migrator and its `mikro_orm_migrations` history table. They do not call the HackKit CLI. Plugin route/action synchronization continues to use the existing CLI.
+The scripts live in `templates/nextjs-full/scripts/database.ts`, with `scripts/db.mjs` as the Node entry point. They use MikroORM's native migrator and its `mikro_orm_migrations` history table. They do not call the HackKit CLI. Plugin route/action synchronization continues to use the existing CLI.
 
 ## Commands
 
 Run from the repository root after installing dependencies and building workspace packages:
 
-| Command                                                             | Behavior                                                                                                                            |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter web db:generate --name describe_change`              | Generates a migration and updates the target snapshot. Outputs the SQL proposal and potentially destructive statements.             |
-| `pnpm --filter web db:generate --name backfill --blank`             | Creates a migration for authored SQL.                                                                                               |
-| `pnpm --filter web db:status`                                       | Lists applied and pending migrations.                                                                                               |
-| `pnpm --filter web db:check`                                        | Checks metadata against the snapshot, pending history, and the live schema. Exits with status 1 when any check differs.             |
-| `pnpm --filter web db:migrate`                                      | Applies all pending migrations.                                                                                                     |
-| `pnpm --filter web db:migrate --to Migration20261006120000_expand`  | Applies up to and including the named migration.                                                                                    |
-| `pnpm --filter web db:rollback`                                     | Runs the latest applied migration's `down()` method.                                                                                |
-| `pnpm --filter web db:rollback --to Migration20261006120000_expand` | Reverts later migrations, leaving the named migration applied. `--to 0` reverts all.                                                |
-| `pnpm --filter web db:seed`                                         | Inserts missing configured role IDs. Existing roles and assignments remain unchanged.                                               |
-| `pnpm --filter web db:reset`                                        | In development/tests, drops registered tables and migration history in the selected local SQLite database, then migrates and seeds. |
+| Command                                                                                       | Behavior                                                                                                                            |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @hackkit/template-nextjs-full db:generate --name describe_change`              | Generates a migration and updates the target snapshot. Outputs the SQL proposal and potentially destructive statements.             |
+| `pnpm --filter @hackkit/template-nextjs-full db:generate --name backfill --blank`             | Creates a migration for authored SQL.                                                                                               |
+| `pnpm --filter @hackkit/template-nextjs-full db:status`                                       | Lists applied and pending migrations.                                                                                               |
+| `pnpm --filter @hackkit/template-nextjs-full db:check`                                        | Checks metadata against the snapshot, pending history, and the live schema. Exits with status 1 when any check differs.             |
+| `pnpm --filter @hackkit/template-nextjs-full db:migrate`                                      | Applies all pending migrations.                                                                                                     |
+| `pnpm --filter @hackkit/template-nextjs-full db:migrate --to Migration20261006120000_expand`  | Applies up to and including the named migration.                                                                                    |
+| `pnpm --filter @hackkit/template-nextjs-full db:rollback`                                     | Runs the latest applied migration's `down()` method.                                                                                |
+| `pnpm --filter @hackkit/template-nextjs-full db:rollback --to Migration20261006120000_expand` | Reverts later migrations, leaving the named migration applied. `--to 0` reverts all.                                                |
+| `pnpm --filter @hackkit/template-nextjs-full db:seed`                                         | Inserts missing configured role IDs. Existing roles and assignments remain unchanged.                                               |
+| `pnpm --filter @hackkit/template-nextjs-full db:reset`                                        | In development/tests, drops registered tables and migration history in the selected local SQLite database, then migrates and seeds. |
 
 Every command accepts `--config path/to/hackkit.config.ts` and optional `--output path/to/result.json`. The output file contains the command result separately from driver diagnostics; a failed `check` still writes its result and exits with status 1. The entry point loads `.env` files with Next's environment precedence before loading the config. Explicit shell environment variables take precedence. Configuration paths and relative database paths are resolved from the application directory.
 
-The selected dialect determines the migration directory. PostgreSQL, MySQL, and SQLite have separate histories in `apps/web/db/migrations`; libSQL uses the SQLite history. Generate and test each supported history when changing a shared entity. A generated migration for one dialect is not a replacement for the other dialects' histories.
+The selected dialect determines the migration directory. PostgreSQL, MySQL, and SQLite have separate histories in `templates/nextjs-full/db/migrations`; libSQL uses the SQLite history. Generate and test each supported history when changing a shared entity. A generated migration for one dialect is not a replacement for the other dialects' histories.
 
 `status` and `check` use native migration history APIs. These APIs may create the tracking table if it does not exist. They do not apply application migrations or seed data. A database connection failure is an error, not a successful status check. Generation can use a committed snapshot without connecting; without a snapshot, MikroORM needs a database for its starting schema.
 
@@ -90,8 +90,8 @@ Reset rejects production and all non-SQLite drivers, including local libSQL. It 
 
 ## Validation
 
-`pnpm --filter web test` exercises the app scripts against SQLite/local libSQL. It checks existing-data expansion/backfill/contraction, staged migration, plugin upgrade, rollback/reapply, live drift, disabled-schema retention, destructive uninstall proposals, fresh replay, and reset/seed behavior.
+`corepack pnpm test:e2e:db` exercises the app scripts against SQLite/local libSQL. It checks existing-data expansion/backfill/contraction, staged migration, plugin upgrade, rollback/reapply, live drift, disabled-schema retention, destructive uninstall proposals, fresh replay, and reset/seed behavior.
 
-`pnpm --filter web test:db-matrix` runs the same upgrade flow after auth/domain validation on each configured target. CI requires PostgreSQL, MySQL, and HTTP libSQL URLs; missing local targets are reported as skipped. Test URLs must name empty, disposable databases. The native libSQL client can hang when repeatedly creating and destroying ORM instances in one Node process. The HTTP upgrade test uses one Node process per command, matching the utility scripts’ release-job lifecycle. Do not run a sequence of these commands inside a long-lived application process. Hosted Turso authentication/TLS and deployment-specific runtime behavior need separate validation.
+`corepack pnpm test:e2e:db` runs the same upgrade flow after auth/domain validation on each configured target. CI requires PostgreSQL, MySQL, and HTTP libSQL URLs; missing local targets are reported as skipped. Test URLs must name empty, disposable databases. The native libSQL client can hang when repeatedly creating and destroying ORM instances in one Node process. The HTTP upgrade test uses one Node process per command, matching the utility scripts’ release-job lifecycle. Do not run a sequence of these commands inside a long-lived application process. Hosted Turso authentication/TLS and deployment-specific runtime behavior need separate validation.
 
 Primary reference: [MikroORM 7.2 migrations](https://mikro-orm.io/docs/migrations).

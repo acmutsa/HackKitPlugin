@@ -1,0 +1,38 @@
+---
+title: "Getting started"
+description: "Run the minimal workspace example with SQLite and local uploads."
+---
+
+## Prerequisites
+
+Use Node.js 22.17 or newer and the repository-pinned pnpm 12.15.0 through Corepack. Start from the repository root.
+
+```sh
+corepack enable
+corepack pnpm install
+corepack pnpm exec turbo run build --filter='./packages/*'
+```
+
+## Configure the minimal template
+
+```sh
+cp templates/nextjs-minimal/.env.example templates/nextjs-minimal/.env
+corepack pnpm --filter @hackkit/template-nextjs-minimal plugin:sync
+corepack pnpm --filter @hackkit/template-nextjs-minimal db:migrate
+corepack pnpm --filter @hackkit/template-nextjs-minimal db:seed
+corepack pnpm dev:minimal
+```
+
+Open [localhost:3000](http://localhost:3000). Create an account and complete HackTag, user data, and hacker registration. No cloud credentials are needed for local development.
+
+The committed `.env.example` documents the variables. The local `.env` is empty until you configure it and is ignored by Git.
+
+## Run the full template
+
+Repeat the setup using `templates/nextjs-full`, the package filter `@hackkit/template-nextjs-full`, and `corepack pnpm dev:full`. Run one template at a time on port 3000.
+
+Root `db:*` commands target the full template. Use an explicit package filter when working with minimal. Each template stores its own SQLite database and uploads in its own `.data` directory.
+
+## Next steps
+
+Read [configuration](/docs/configuration), [database operations](/docs/database), and [owner access](/docs/administration). New accounts never become owners automatically.

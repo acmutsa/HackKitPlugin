@@ -1,6 +1,6 @@
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { dirname, resolve } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
 	defineHackkitConfig,
@@ -23,25 +23,13 @@ describe("HackKit config", () => {
 		expect(config.database).toBe(database);
 	});
 
-	it("loads the web HackKit config through the shared loader", async () => {
-		const repoRoot = resolve(
-			dirname(fileURLToPath(import.meta.url)),
-			"../../../..",
-		);
-		const config = await loadHackkitConfig("apps/web/hackkit.config.ts", {
-			cwd: repoRoot,
+	it("loads a config through the shared loader", async () => {
+		const cwd = dirname(fileURLToPath(import.meta.url));
+		const config = await loadHackkitConfig("fixtures/hackkit.config.ts", {
+			cwd,
 		});
-
-		expect(config.database).toBeDefined();
-		expect(config.plugins.map((plugin) => plugin.id)).toEqual([
-			"teams",
-			"discord",
-			"notificationsEmail",
-		]);
-		expect(config.seedRoles.map((role) => role.id)).toEqual([
-			"core.participant",
-			"core.owner",
-		]);
+		expect(config.database.dbName).toBe(":memory:");
+		expect(config.plugins).toEqual([]);
 	});
 });
 

@@ -94,7 +94,7 @@ export function TeamDashboard({
 
 			<section className="rounded-lg border bg-card p-6 shadow-sm">
 				<h2 className="text-lg font-semibold">Members</h2>
-				<ul className="mt-4 space-y-3">
+				<ul aria-label="Team members" className="mt-4 space-y-3">
 					{team.members.map((member) => (
 						<li
 							key={member.id}

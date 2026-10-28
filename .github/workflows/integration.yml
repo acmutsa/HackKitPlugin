@@ -1,0 +1,96 @@
+name: Templates and E2E
+
+on:
+    pull_request:
+        paths:
+            - "templates/**"
+            - "e2e/**"
+            - "packages/**"
+            - "tooling/**"
+            - "package.json"
+            - "pnpm-workspace.yaml"
+            - ".npmrc"
+            - "pnpm-lock.yaml"
+            - "turbo.json"
+            - ".github/workflows/integration.yml"
+
+jobs:
+    packages:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "22.17.0"
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm test
+            - run: pnpm exec turbo run typecheck --filter='./packages/*'
+
+    e2e:
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: hackkit
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U postgres -d hackkit"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+            mysql:
+                image: mysql:8.4
+                env:
+                    MYSQL_ROOT_PASSWORD: mysql
+                    MYSQL_DATABASE: hackkit
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd "mysqladmin ping -h 127.0.0.1 -pmysql"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+            libsql:
+                image: ghcr.io/tursodatabase/libsql-server:latest
+                env:
+                    SQLD_NODE: standalone
+                    SQLD_HTTP_LISTEN_ADDR: 0.0.0.0:8080
+                ports:
+                    - 8080:8080
+
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "22.17.0"
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm --filter @hackkit/e2e exec playwright install --with-deps chromium
+            - name: Wait for network libSQL
+              run: curl --fail --retry 20 --retry-connrefused --retry-delay 2 http://127.0.0.1:8080/health
+            - name: Validate templates and all integrations
+              env:
+                  HACKKIT_REQUIRE_DATABASE_MATRIX: "1"
+                  HACKKIT_TEST_POSTGRESQL_URL: postgresql://postgres:postgres@127.0.0.1:5432/hackkit
+                  HACKKIT_TEST_MYSQL_URL: mysql://root:mysql@127.0.0.1:3306/hackkit
+                  HACKKIT_TEST_LIBSQL_URL: http://127.0.0.1:8080
+              run: pnpm test:e2e
+            - name: Verify generated plugin files are committed
+              run: git diff --exit-code -- templates/*/app templates/*/hackkit.lock
+            - name: Upload failure diagnostics
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: e2e-diagnostics
+                  path: |
+                      e2e/test-results
+                      e2e/playwright-report
+                  if-no-files-found: ignore

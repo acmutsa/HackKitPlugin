@@ -1,0 +1,12 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "hackkit-docs",
+	"account_id": "cdc7630e53b468f56a4453af71a58ade",
+	"compatibility_date": "2026-10-20",
+	"workers_dev": true,
+	"assets": {
+		"directory": "./out",
+		"html_handling": "auto-trailing-slash",
+		"not_found_handling": "404-page",
+	},
+}

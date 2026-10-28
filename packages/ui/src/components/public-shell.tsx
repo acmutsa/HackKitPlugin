@@ -61,7 +61,8 @@ export type ParticipantDashboardProps = {
 	participantName: string;
 	eventName: string;
 	roleName?: string;
-	checkedIn: boolean;
+	checkedIn?: boolean;
+	description?: string;
 	requireApproval?: boolean;
 	approved?: boolean;
 	onboarding?: {
@@ -309,6 +310,7 @@ export function ParticipantDashboard({
 	eventName,
 	roleName,
 	checkedIn,
+	description = "Use this dashboard for your event pass, schedule, RSVP, team links, settings, and day-of help.",
 	requireApproval,
 	approved,
 	onboarding,
@@ -319,7 +321,14 @@ export function ParticipantDashboard({
 }: ParticipantDashboardProps) {
 	const resolvedStatusItems = [
 		{ label: "Role", value: roleName ?? "Participant" },
-		{ label: "Check-in", value: checkedIn ? "Complete" : "Not checked in" },
+		...(checkedIn === undefined
+			? []
+			: [
+					{
+						label: "Check-in",
+						value: checkedIn ? "Complete" : "Not checked in",
+					},
+				]),
 		...(requireApproval
 			? [{ label: "Approval", value: approved ? "Approved" : "Pending" }]
 			: []),
@@ -337,8 +346,7 @@ export function ParticipantDashboard({
 						Welcome, {participantName}
 					</h1>
 					<p className="mt-3 max-w-2xl text-muted-foreground">
-						Use this dashboard for your event pass, schedule, RSVP,
-						team links, settings, and day-of help.
+						{description}
 					</p>
 					<div className="mt-6 flex flex-wrap gap-3">
 						{primaryActions.map((action) =>

@@ -1,0 +1,27 @@
+---
+title: "Architecture"
+description: "Core owns rules. Applications own presentation and deployment."
+---
+
+The repository separates libraries, runnable examples, integration tests, and deployed applications.
+
+| Directory           | Responsibility                                                                  |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `packages/core`     | Domain rules, permissions, native entities, Better Auth mapping, HTTP contracts |
+| `packages/next`     | Next.js request context, handlers, guards, runtime integration                  |
+| `packages/ui`       | Reusable React forms and views                                                  |
+| `packages/plugin-*` | Optional domain features and their contracts                                    |
+| `templates`         | Runnable minimal and full workspace examples                                    |
+| `e2e`               | Real database, production HTTP, and browser checks                              |
+| `apps/demo`         | Public demonstration on Workers                                                 |
+| `apps/docs`         | This Fumadocs site                                                              |
+
+## Request lifecycle
+
+The application initializes shared database connections and authentication once. Each execution creates a scoped entity manager and HackKit instance. Authentication identifies the canonical Core user. Core APIs enforce permissions and policy. HTTP handlers derive the actor from the session, rather than accepting a privileged actor supplied by a browser.
+
+The Next integration binds this runtime to route handlers and server-rendered pages. Browser code uses the typed HackKit HTTP client. Do not import a database driver, server runtime, or secret-bearing config into a client component.
+
+## Data ownership
+
+A Better Auth user ID is the Core user ID. Roles grant explicit permissions. A team is owned by its plugin; Core does not require Teams to register a participant. Adding a plugin can change the application registry and therefore its migrations.

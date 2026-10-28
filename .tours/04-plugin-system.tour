@@ -1,0 +1,101 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "04. Plugin contracts and Teams",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Goal: understand how to build a plugin that participates in schema discovery, scoped domain APIs, HTTP transport, server pages, and client UI. Teams is the worked example.\n\nThere are two separate installation paths. Core composes runtime declarations and behavior. The CLI copies route reexports into a host application's filesystem. The next chapter explains that filesystem path."
+		},
+		{
+			"file": "packages/core/src/plugins.ts",
+			"pattern": "export type HackKitPlugin<",
+			"title": "Read the plugin contract",
+			"description": "A plugin has a literal `id` and optional `enabled`, `packageName`, `entities`, `permissions`, `settings`, `endpoints`, and `setup` fields. These declarations have different lifetimes.\n\nEntities/settings/permissions describe composition. `endpoints` builds transport definitions around a request runner. `setup` receives an execution context and returns the plugin API. `packageName` lets the CLI find package-owned pages. A plugin may provide only some of these capabilities, as email notifications demonstrates."
+		},
+		{
+			"file": "packages/core/src/plugins.ts",
+			"pattern": "export type HackKitPluginContext = \\{",
+			"title": "Use the execution context instead of global state",
+			"description": "The context supplies the scoped EntityManager, optional actor ID, user lookup, shared registry, setting reads, notifications, and groups. `setup` can close over these dependencies to create its API.\n\nThe registry is shared metadata; `em` and actor belong to this execution. Plugins should retain stable provider configuration separately from request-bound managed records. The actor is optional here because scripts and public server reads can create scopes without a session."
+		},
+		{
+			"file": "packages/core/src/plugins.ts",
+			"pattern": "export type PluginApiMap<",
+			"title": "Infer API names and return types from the tuple",
+			"description": "The mapped type iterates over the union `TPlugins[number]`, remaps each member's key to its literal plugin ID, and infers its API type from `HackKitPlugin<TId, TApi>`.\n\nA known Teams tuple therefore gives `hackkit.plugins.teams` the API returned by `createTeamsApi`. Widening the tuple to a generic plugin array loses that specificity. This typing does not perform runtime discovery or verify permissions. The registry and API setup functions still enforce runtime behavior."
+		},
+		{
+			"file": "packages/core/src/plugins.ts",
+			"pattern": "const prefix = `\\$\\{plugin\\.id\\.replaceAll\\(\"-\", \"_\"\\)\\}_`;",
+			"title": "Enforce plugin namespaces during registration",
+			"description": "Entity table names must begin with the plugin ID plus an underscore, with hyphens converted to underscores. Settings and permission values use the plugin ID followed by a dot.\n\nFor Teams this yields `teams_...` tables and `teams....` setting/permission values. The registry also checks duplicates. These checks make ownership visible and reject accidental overlap before initialization. They do not create a sandbox around arbitrary plugin code."
+		},
+		{
+			"file": "packages/core/src/plugins.ts",
+			"pattern": "export function setupPluginApis",
+			"title": "Create each plugin API inside the current scope",
+			"description": "`setupPluginApis` walks the configured plugins and calls each enabled plugin's `setup(context)`. The result becomes the value at `hackkit.plugins[plugin.id]`; a plugin without setup gets an empty object.\n\nA disabled plugin receives an enumerable property getter that throws `INVALID_OPERATION` on access. Its entities, settings, and permissions remain registered. Disabling runtime behavior therefore does not request dropping its tables. The handler also omits disabled plugin endpoints."
+		},
+		{
+			"file": "packages/plugin-teams/src/index.ts",
+			"pattern": "export function teamsPlugin\\(\\)",
+			"title": "Declare Teams' complete contribution",
+			"description": "`teamsPlugin` returns ID `teams`, its npm package name, models, a maximum-team-size setting, permission declarations, endpoint factory, and `setup: createTeamsApi`.\n\nThe return type preserves both the ID and `ReturnType<typeof createTeamsApi>`. Adding a domain method to that factory can update the plugin API type automatically. A browser-callable operation also needs an endpoint and client usage; adding a factory method alone does not expose an HTTP route."
+		},
+		{
+			"file": "packages/plugin-teams/src/models.ts",
+			"pattern": "tableName: \"teams_member\",",
+			"title": "Enforce membership in the schema too",
+			"description": "The member entity maps to `teams_member`. Inspect its auth-user reference and uniqueness constraint. They complement the API's rule that a hacker can belong to only one team.\n\nThe adjacent team and invitation entities persist ownership and invitation state. These tables enter Core through `teamsPlugin().entities`; they are not discovered by scanning arbitrary source files. The host's migration must include them before the runtime can use them."
+		},
+		{
+			"file": "packages/plugin-teams/src/api.ts",
+			"pattern": "export function createTeamsApi",
+			"title": "Bind the Teams API to the scoped context",
+			"description": "The factory closes over `context.em` and returns methods. Helpers above it perform registered-hacker checks, membership lookup, HackTag resolution, team-capacity checks, and hydration of members with user data.\n\nThe declared permissions in the plugin descriptor are available for policy and role configuration. Individual Teams methods here enforce their actual rules through hacker membership and owner comparisons. Do not assume that declaring a permission automatically guards every method."
+		},
+		{
+			"file": "packages/plugin-teams/src/api.ts",
+			"pattern": "async createTeam\\(input:",
+			"title": "Create the team and owner membership together",
+			"description": "`createTeam` uses `teams.membership` as the lock key. It requires a registered hacker who is not already a member, normalizes the tag, rejects a duplicate tag, creates the team, and inserts its owner as a member.\n\nBoth flushes occur within the same transaction. The result hydrates the team with members and users for rendering. If a concurrent request tries to create another team for this owner, the serialized membership decision prevents both from succeeding."
+		},
+		{
+			"file": "packages/plugin-teams/src/api.ts",
+			"pattern": "async inviteToTeam\\(input:",
+			"title": "Resolve an invitation without prematurely admitting the user",
+			"description": "Only the team owner can invite. The method resolves the target from an auth ID or normalized HackTag, rejects self-invitation, existing membership, and a duplicate pending invitation, then persists a pending invite.\n\nThe target can be invited before completing hacker registration. Acceptance is where registration and current team capacity are enforced. An invitation is not a reserved team place."
+		},
+		{
+			"file": "packages/plugin-teams/src/api.ts",
+			"pattern": "async respondToInvite\\(input:",
+			"title": "Accept only the intended pending invitation",
+			"description": "The method locks the same membership key, loads the invite, verifies its recipient and pending status, and branches on acceptance. Declining updates the status without adding membership.\n\nAcceptance requires hacker registration, no existing team, and available capacity from `TeamsSetting.MaximumTeamSize`. It inserts membership and marks the invite accepted in the same transaction. A failed join must leave the losing invite consistent. This is the database result that the browser refresh will read."
+		},
+		{
+			"file": "packages/plugin-teams/src/endpoints.ts",
+			"pattern": "export function createTeamsEndpoints",
+			"title": "Adapt the scoped API to browser endpoints",
+			"description": "The endpoint factory receives `run`, not a prebuilt Teams API. It creates strict schemas for `/teams/create`, `/teams/invite`, invitation response, leaving, and member removal.\n\nEach operation gets `{ api, actorAuthId }` from the authenticated scope. The browser supplies fields such as name and tag; the endpoint supplies the trusted actor. Schemas exclude an actor field and reject extra properties. Continue with the HTTP chapter for the runner's session and scope creation."
+		},
+		{
+			"file": "packages/plugin-teams/src/components/team-create-form.tsx",
+			"pattern": "async function handleSubmit",
+			"title": "Follow the user action to the refreshed team page",
+			"description": "The form prevents normal submission, sets pending state, and invokes `@post/teams/create` with name and tag. `useHackkitClient<TeamsEndpoints>` infers the legal path and body from endpoint types. Its type import does not load the endpoint implementation in the browser.\n\nFailure displays the structured error and stops. Success shows a toast and calls `router.refresh()`, causing the server page to read the committed team. The HTTP response does not install a global team store."
+		},
+		{
+			"file": "packages/plugin-teams/app/teams/page.tsx",
+			"pattern": "export default async function TeamsPage\\(\\)",
+			"title": "Render plugin-owned pages through the host runtime",
+			"description": "The page asks `getHackkitRuntime` for the host's current execution. It hides a disabled plugin, loads the current user, requires hacker registration, then reads team and owner-visible invites.\n\nThe result chooses a create form or team dashboard. This server read calls the domain API directly; it does not make an HTTP round trip to the host's own endpoint. The next chapter explains how Next discovers this package-owned page."
+		},
+		{
+			"file": "packages/plugin-teams/src/__tests__/teams.test.ts",
+			"pattern": "it\\(\"keeps the final team place and losing invite consistent across concurrent joins\"",
+			"title": "Check the last-place membership behavior",
+			"description": "Inspect the two competing invitation acceptances and assertions for membership and invite status. The nearby concurrent-creation test covers two creates by the same owner. Earlier tests cover ordinary creation and inviting before registration.\n\nTo add a Teams operation, update the API and its domain checks, schema/migration if needed, endpoint schema, and the relevant UI. Verify the user-visible result and failure behavior. Continue with [05. CLI and plugin page installation]."
+		}
+	],
+	"nextTour": "05. CLI and plugin page installation"
+}

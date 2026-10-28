@@ -50,9 +50,11 @@ const permissionValues = Object.values(CorePermission);
 export function AdminUserActions({
 	record,
 	roles,
+	showEventOperations = true,
 }: {
 	record: AdminUserRecord;
 	roles: Role[];
+	showEventOperations?: boolean;
 }) {
 	const { client, navigation } = useHackKitUI();
 	const [pendingAction, setPendingAction] =
@@ -215,97 +217,104 @@ export function AdminUserActions({
 					)}
 				</div>
 
-				<div className="space-y-2">
-					<Label>RSVP</Label>
-					<p className="text-sm text-muted-foreground">
-						Current status: {formatRsvpStatus(record.rsvp)}
-					</p>
-					<div className="flex flex-wrap gap-2">
-						<Button
-							type="button"
-							variant="outline"
-							disabled={pendingAction === "rsvpConfirm"}
-							onClick={() =>
-								run(
-									"rsvpConfirm",
-									() =>
-										client("@post/rsvp/set-status", {
-											body: {
-												targetAuthId: record.user.id,
-												status: "confirmed",
-											},
-										}),
-									"RSVP marked confirmed.",
-								)
-							}
-						>
-							Confirm
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							disabled={pendingAction === "rsvpWaitlist"}
-							onClick={() =>
-								run(
-									"rsvpWaitlist",
-									() =>
-										client("@post/rsvp/set-status", {
-											body: {
-												targetAuthId: record.user.id,
-												status: "waitlisted",
-											},
-										}),
-									"RSVP moved to waitlist.",
-								)
-							}
-						>
-							Waitlist
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							disabled={
-								pendingAction === "rsvpPromote" ||
-								record.rsvp?.status !== "waitlisted"
-							}
-							onClick={() =>
-								run(
-									"rsvpPromote",
-									() =>
-										client("@post/rsvp/promote", {
-											body: {
-												targetAuthId: record.user.id,
-											},
-										}),
-									"Waitlisted RSVP promoted.",
-								)
-							}
-						>
-							Promote
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							disabled={
-								pendingAction === "rsvpCancel" || !record.rsvp
-							}
-							onClick={() =>
-								run(
-									"rsvpCancel",
-									() =>
-										client("@post/rsvp/cancel", {
-											body: {
-												targetAuthId: record.user.id,
-											},
-										}),
-									"RSVP cancelled.",
-								)
-							}
-						>
-							Cancel
-						</Button>
+				{showEventOperations ? (
+					<div className="space-y-2">
+						<Label>RSVP</Label>
+						<p className="text-sm text-muted-foreground">
+							Current status: {formatRsvpStatus(record.rsvp)}
+						</p>
+						<div className="flex flex-wrap gap-2">
+							<Button
+								type="button"
+								variant="outline"
+								disabled={pendingAction === "rsvpConfirm"}
+								onClick={() =>
+									run(
+										"rsvpConfirm",
+										() =>
+											client("@post/rsvp/set-status", {
+												body: {
+													targetAuthId:
+														record.user.id,
+													status: "confirmed",
+												},
+											}),
+										"RSVP marked confirmed.",
+									)
+								}
+							>
+								Confirm
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={pendingAction === "rsvpWaitlist"}
+								onClick={() =>
+									run(
+										"rsvpWaitlist",
+										() =>
+											client("@post/rsvp/set-status", {
+												body: {
+													targetAuthId:
+														record.user.id,
+													status: "waitlisted",
+												},
+											}),
+										"RSVP moved to waitlist.",
+									)
+								}
+							>
+								Waitlist
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={
+									pendingAction === "rsvpPromote" ||
+									record.rsvp?.status !== "waitlisted"
+								}
+								onClick={() =>
+									run(
+										"rsvpPromote",
+										() =>
+											client("@post/rsvp/promote", {
+												body: {
+													targetAuthId:
+														record.user.id,
+												},
+											}),
+										"Waitlisted RSVP promoted.",
+									)
+								}
+							>
+								Promote
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={
+									pendingAction === "rsvpCancel" ||
+									!record.rsvp
+								}
+								onClick={() =>
+									run(
+										"rsvpCancel",
+										() =>
+											client("@post/rsvp/cancel", {
+												body: {
+													targetAuthId:
+														record.user.id,
+												},
+											}),
+										"RSVP cancelled.",
+									)
+								}
+							>
+								Cancel
+							</Button>
+						</div>
 					</div>
-				</div>
+				) : null}
 			</CardContent>
 		</Card>
 	);
