@@ -9,7 +9,6 @@ import type {
 	SeedRoleInput,
 	UserDataOptionsInput,
 } from "@hackkit/core";
-import { createJiti } from "jiti";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -94,12 +93,12 @@ export function resolveHackkitConfig<
 	};
 }
 
-const jiti = createJiti(fileURLToPath(import.meta.url));
-
 export async function loadHackkitConfig(
 	configFile = "hackkit.config.ts",
 	options: { cwd?: string } = {},
 ): Promise<NormalizedHackkitConfig> {
+	const { createJiti } = await import("jiti");
+	const jiti = createJiti(fileURLToPath(import.meta.url));
 	const configPath = resolve(options.cwd ?? process.cwd(), configFile);
 	const module = await jiti.import(configPath);
 	const config = ((module as { default?: HackkitConfig }).default ??

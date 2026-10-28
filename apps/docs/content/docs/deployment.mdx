@@ -1,0 +1,37 @@
+---
+title: "Deployment"
+description: "Deploy the documentation and interactive demo to Cloudflare."
+---
+
+## Account selection
+
+Run Wrangler's `whoami` command in the application directory and verify the intended ACM account before publishing. If you belong to several accounts, set `CLOUDFLARE_ACCOUNT_ID` explicitly. Do not deploy these applications into a personal account accidentally.
+
+## Documentation
+
+`apps/docs` uses Fumadocs MDX, local search, and Next.js static export. It needs no database, secrets, or Worker runtime adapter.
+
+```sh
+corepack pnpm deploy:docs
+```
+
+Wrangler uploads `apps/docs/out` as Worker static assets. `apps/docs/wrangler.jsonc` owns its Worker name and routing configuration. Custom domains can be added once their ACM zone is selected.
+
+## Demo
+
+The demo runs directly on Cloudflare Workers through Vinext. It uses Turso's HTTP client and a private R2 binding. MikroORM entity functions are compiled during the build because Workers prohibit runtime code generation.
+
+Put the Turso URL, Turso token, and authentication secret in the ignored `apps/demo/.dev.vars` file for local setup and database commands. See `apps/demo/.dev.vars.example` for required names. Migrate explicitly using `db:migrate`, then run `db:demo` to populate an empty demo database with fictional accounts. Existing users are retained.
+
+For deployment, configure `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, and `BETTER_AUTH_SECRET` as Worker secrets. Use Wrangler's interactive `secret put` commands or the Cloudflare dashboard. Set `vars.BETTER_AUTH_URL` in `apps/demo/wrangler.jsonc` to the public HTTPS origin. Keep the local URL out of deployed secrets.
+
+The `DEMO_UPLOADS` R2 binding targets `hackkit-demo-uploads`. It requires no S3 credentials or public bucket access. Create the bucket before the first deployment if deploying to another account.
+
+```sh
+corepack pnpm exec turbo run build --filter=@hackkit/demo^...
+corepack pnpm deploy:demo
+```
+
+The hosted demo shares persistent Turso data and R2 uploads. Its sample organizer credentials are public. Use fictional information only. Do not connect a real event database to this demonstration.
+
+Run the selected application's `deploy:check` script after building to inspect packaging without publishing. Verify the launcher, participant and organizer access, onboarding, and upload permissions on the hosted URL.

@@ -38,7 +38,7 @@ export type PublicUserProfile = {
 		User,
 		| "id"
 		| "name"
-		| "profilePhotoUrl"
+		| "image"
 		| "hackTag"
 		| "bio"
 		| "pronouns"

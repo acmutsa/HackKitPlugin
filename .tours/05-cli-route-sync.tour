@@ -1,0 +1,59 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "05. CLI and plugin page installation",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Goal: explain how package-owned Next pages become host routes and what `hackkit.lock` records. This is a filesystem generation process separate from Core's API registry and HTTP endpoint mounting.\n\nThese steps only inspect the sync implementation. Sync writes route files, so the tour does not run it automatically."
+		},
+		{
+			"file": "packages/cli/src/cli.ts",
+			"pattern": "#!/usr/bin/env node",
+			"title": "Find the CLI command boundary",
+			"description": "This executable is the CLI entry point. Follow its command declarations to configuration loading, plugin commands, and explicit database operations. The CLI operates relative to a selected project, which matters now that this repository has several templates and apps.\n\nCompare template package scripts before invoking a command from the repository root. A command's current directory controls which configuration and migration directory it loads."
+		},
+		{
+			"file": "packages/cli/src/plugin-manifest.ts",
+			"pattern": "export function resolvePluginPackage",
+			"title": "Resolve a plugin from the host application",
+			"description": "The resolver requires the plugin's `packageName`, creates a Node resolver rooted at the host's package.json, and finds the installed package root and version. It scans the package's `app` directory if present.\n\nEach discovered route becomes a host path and package import source. A plugin without pages can still resolve with an empty route list. This mechanism relies on package exports and installed dependencies, not the Core API map."
+		},
+		{
+			"file": "packages/cli/src/protected-paths.ts",
+			"pattern": "export function discoverPluginRouteFiles",
+			"title": "Discover only Next route files",
+			"description": "The recursive walker keeps filenames that match known Next route conventions such as page, layout, loading, and route. It normalizes separators and sorts results.\n\nComponent files beside a page are not copied into the host. Generated files import the original package, so implementation and relative dependencies stay with that package. Review the package's exports when adding a route so the generated import can resolve."
+		},
+		{
+			"file": "packages/cli/src/plugin-sync.ts",
+			"pattern": "function collectRouteClaims",
+			"title": "Reject protected-path and cross-plugin conflicts first",
+			"description": "Before writing, sync builds a map of claimed host paths. It rejects any route under a protected host path and rejects two different plugins claiming the same route.\n\nThe default protected list includes Core pages and `app/api`, keeping browser endpoints under the central handler rather than plugin route stubs. These are the explicit conflict checks here. Do not infer a general guarantee that all existing handwritten files are protected; the later write loop writes each allowed generated destination."
+		},
+		{
+			"file": "packages/cli/src/plugin-sync.ts",
+			"pattern": "function renderRouteStub",
+			"title": "Generate a reexport instead of copying page code",
+			"description": "The stub includes a generated marker, owner/version comment, and `export *` from the package route module. For route filenames with a default component export, it adds the default reexport too.\n\nThe host route is small because the plugin owns the implementation. A handler route would have named method exports, but the default path protection rejects plugin claims under host `app/api`. Runtime API endpoints use the endpoint factory path explained in the HTTP chapter."
+		},
+		{
+			"file": "packages/cli/src/plugin-sync.ts",
+			"pattern": "export async function runPluginSync",
+			"title": "Track current routes and remove stale generated stubs",
+			"description": "`runPluginSync` reads the previous lockfile, resolves configured plugins, validates claims, writes current stubs, and writes the new lockfile. It removes an old route only when it is no longer claimed and its contents still start with the generated marker.\n\nThe result reports routes written and stubs removed. The write loop is filesystem generation, not a database transaction. Inspect proposed route destinations before syncing a new third-party plugin. This implementation does not generate HTTP clients or per-endpoint route wrappers."
+		},
+		{
+			"file": "templates/nextjs-full/hackkit.lock",
+			"pattern": "\"version\": 1",
+			"title": "Read the generated ownership record",
+			"description": "The lockfile records each plugin's ID, package, version, and generated route mappings. Compare Teams' route entries with its package `app` directory and the full template's route reexports.\n\nThis file tracks generated route ownership. It is separate from pnpm-lock.yaml, which locks package resolution, and separate from database migration history. The E2E preparation checks that syncing these routes leaves committed output unchanged."
+		},
+		{
+			"file": "packages/cli/src/orm.ts",
+			"pattern": "export async function withOrm",
+			"title": "Keep CLI database connections bounded",
+			"description": "Database commands use the same `createOrmOptions` function as runtime startup. `withOrm` adds Jiti-based imports for native TypeScript migration files and closes the ORM in `finally` after the operation finishes or throws.\n\nMigration generation writes a reviewable migration. Applying migrations is a separate command. Continue with [06. HTTP, Next integration, and browser UI] to trace the runtime request path."
+		}
+	],
+	"nextTour": "06. HTTP, Next integration, and browser UI"
+}

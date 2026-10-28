@@ -1,6 +1,6 @@
 # Next.js integration
 
-HackKit uses package-owned better-call endpoints and its typed path client. `@hackkit/next` supplies Next request setup and page guards. See [its README](../../packages/next/README.md) for the interface and [the reference app](../../apps/web/README.md) for database commands.
+HackKit uses package-owned better-call endpoints and its typed path client. `@hackkit/next` supplies Next request setup and page guards. See [its README](../../packages/next/README.md) for the interface and [the reference app](../../templates/nextjs-full/README.md) for database commands.
 
 | Concern                                 | Owner               | App integration                                            |
 | --------------------------------------- | ------------------- | ---------------------------------------------------------- |
@@ -41,4 +41,4 @@ Core endpoint definitions are grouped by domain in `packages/core/src/http/endpo
 
 ## Verification
 
-Use the repository-pinned pnpm through `corepack pnpm`. Run package builds, typechecks, and tests, then the web production build and `corepack pnpm --filter web test:runtime`. HTTP checks use a fresh disposable SQLite database. `node tooling/check-client-bundle.mjs` bundles the provider entry and checks its inputs for recognized server implementations.
+Use the repository-pinned pnpm through `corepack pnpm`. Run package builds, typechecks, and tests, then the web production build and `corepack pnpm test:e2e:http`. HTTP checks use a fresh disposable SQLite database. `node tooling/check-client-bundle.mjs` bundles the provider entry and checks its inputs for recognized server implementations.

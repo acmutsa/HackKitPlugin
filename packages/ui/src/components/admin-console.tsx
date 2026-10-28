@@ -19,9 +19,13 @@ import { AdminUserActions, AdminRoleManager } from "./admin-console-controls";
 
 export type AdminOverviewPanelProps = {
 	overview: AdminOverview;
+	showEventOperations?: boolean;
 };
 
-export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
+export function AdminOverviewPanel({
+	overview,
+	showEventOperations = true,
+}: AdminOverviewPanelProps) {
 	const { Link, routes } = useHackKitNavigation();
 	const stats = [
 		["Registrations", overview.totalUsers],
@@ -29,9 +33,13 @@ export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
 		["Approved", overview.approvedUsers],
 		["Pending Approval", overview.pendingApprovalUsers],
 		["Suspended", overview.bannedUsers],
-		["Check-ins", overview.checkedInUsers],
-		["RSVPs", overview.confirmedRsvps],
-		["Waitlist", overview.waitlistedRsvps],
+		...(showEventOperations
+			? ([
+					["Check-ins", overview.checkedInUsers],
+					["RSVPs", overview.confirmedRsvps],
+					["Waitlist", overview.waitlistedRsvps],
+				] as const)
+			: []),
 	] as const;
 
 	return (
@@ -118,9 +126,14 @@ export function AdminOverviewPanel({ overview }: AdminOverviewPanelProps) {
 export type AdminUsersTableProps = {
 	users: AdminUserRecord[];
 	exportHref?: string;
+	showEventOperations?: boolean;
 };
 
-export function AdminUsersTable({ users, exportHref }: AdminUsersTableProps) {
+export function AdminUsersTable({
+	users,
+	exportHref,
+	showEventOperations = true,
+}: AdminUsersTableProps) {
 	const { Link, routes } = useHackKitNavigation();
 
 	return (
@@ -142,11 +155,17 @@ export function AdminUsersTable({ users, exportHref }: AdminUsersTableProps) {
 							<th className="px-4 py-3 font-medium">User</th>
 							<th className="px-4 py-3 font-medium">Role</th>
 							<th className="px-4 py-3 font-medium">Status</th>
-							<th className="px-4 py-3 font-medium">RSVP</th>
+							{showEventOperations ? (
+								<th className="px-4 py-3 font-medium">RSVP</th>
+							) : null}
 							<th className="px-4 py-3 font-medium">
 								Registered
 							</th>
-							<th className="px-4 py-3 font-medium">Check-in</th>
+							{showEventOperations ? (
+								<th className="px-4 py-3 font-medium">
+									Check-in
+								</th>
+							) : null}
 						</tr>
 					</thead>
 					<tbody>
@@ -198,19 +217,23 @@ export function AdminUsersTable({ users, exportHref }: AdminUsersTableProps) {
 										) : null}
 									</div>
 								</td>
-								<td className="px-4 py-3">
-									{formatRsvpStatus(record.rsvp)}
-								</td>
+								{showEventOperations ? (
+									<td className="px-4 py-3">
+										{formatRsvpStatus(record.rsvp)}
+									</td>
+								) : null}
 								<td className="px-4 py-3">
 									{formatDateTime(record.user.createdAt)}
 								</td>
-								<td className="px-4 py-3">
-									{record.user.checkedInAt
-										? formatDateTime(
-												record.user.checkedInAt,
-											)
-										: "Not checked in"}
-								</td>
+								{showEventOperations ? (
+									<td className="px-4 py-3">
+										{record.user.checkedInAt
+											? formatDateTime(
+													record.user.checkedInAt,
+												)
+											: "Not checked in"}
+									</td>
+								) : null}
 							</tr>
 						))}
 					</tbody>
@@ -223,9 +246,14 @@ export function AdminUsersTable({ users, exportHref }: AdminUsersTableProps) {
 export type AdminUserDetailProps = {
 	record: AdminUserRecord;
 	roles: Role[];
+	showEventOperations?: boolean;
 };
 
-export function AdminUserDetail({ record, roles }: AdminUserDetailProps) {
+export function AdminUserDetail({
+	record,
+	roles,
+	showEventOperations = true,
+}: AdminUserDetailProps) {
 	return (
 		<div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
 			<div className="space-y-6">
@@ -258,18 +286,24 @@ export function AdminUserDetail({ record, roles }: AdminUserDetailProps) {
 								record.user.isApproved ? "Approved" : "Pending"
 							}
 						/>
-						<Detail
-							label="RSVP"
-							value={formatRsvpStatus(record.rsvp)}
-						/>
-						<Detail
-							label="Check-in"
-							value={
-								record.user.checkedInAt
-									? formatDateTime(record.user.checkedInAt)
-									: "Not checked in"
-							}
-						/>
+						{showEventOperations ? (
+							<>
+								<Detail
+									label="RSVP"
+									value={formatRsvpStatus(record.rsvp)}
+								/>
+								<Detail
+									label="Check-in"
+									value={
+										record.user.checkedInAt
+											? formatDateTime(
+													record.user.checkedInAt,
+												)
+											: "Not checked in"
+									}
+								/>
+							</>
+						) : null}
 					</CardContent>
 				</Card>
 
@@ -366,7 +400,11 @@ export function AdminUserDetail({ record, roles }: AdminUserDetailProps) {
 				</Card>
 			</div>
 
-			<AdminUserActions record={record} roles={roles} />
+			<AdminUserActions
+				record={record}
+				roles={roles}
+				showEventOperations={showEventOperations}
+			/>
 		</div>
 	);
 }

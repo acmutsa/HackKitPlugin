@@ -38,6 +38,7 @@ type FormValues = z.input<typeof formSchema>;
 export type UserProfileSettingsFormProps = {
 	currentUser: User;
 	uploadProfilePhoto?: (file: File) => Promise<string>;
+	showDiscordHandle?: boolean;
 	className?: string;
 };
 
@@ -67,13 +68,14 @@ function userToFormValues(user: User | Wire<User>): FormValues {
 		skillsText: skillsToText(user.skills),
 		isProfileSearchable: user.isProfileSearchable ?? true,
 		discordDisplayHandle: user.discordDisplayHandle ?? "",
-		profilePhotoUrl: user.profilePhotoUrl ?? undefined,
+		image: user.image ?? undefined,
 	};
 }
 
 export function UserProfileSettingsForm({
 	currentUser,
 	uploadProfilePhoto,
+	showDiscordHandle = true,
 	className,
 }: UserProfileSettingsFormProps) {
 	const { client, navigation } = useHackKitUI();
@@ -90,7 +92,7 @@ export function UserProfileSettingsForm({
 	}, [currentUser, form]);
 	const previewPhoto = profilePhotoFile
 		? URL.createObjectURL(profilePhotoFile)
-		: currentUser.profilePhotoUrl;
+		: currentUser.image;
 
 	React.useEffect(() => {
 		if (!profilePhotoFile) return;
@@ -101,10 +103,10 @@ export function UserProfileSettingsForm({
 	}, [profilePhotoFile, previewPhoto]);
 
 	async function onSubmit(values: FormValues) {
-		let profilePhotoUrl = values.profilePhotoUrl;
+		let image = values.image;
 		if (profilePhotoFile && uploadProfilePhoto) {
 			try {
-				profilePhotoUrl = await uploadProfilePhoto(profilePhotoFile);
+				image = await uploadProfilePhoto(profilePhotoFile);
 			} catch (error) {
 				toast.error(
 					error instanceof Error
@@ -123,7 +125,7 @@ export function UserProfileSettingsForm({
 			skills: textToSkills(values.skillsText),
 			isProfileSearchable: values.isProfileSearchable ?? true,
 			discordDisplayHandle: values.discordDisplayHandle,
-			profilePhotoUrl,
+			image,
 		};
 		let result;
 		try {
@@ -150,8 +152,9 @@ export function UserProfileSettingsForm({
 			<CardHeader>
 				<CardTitle>Profile</CardTitle>
 				<CardDescription>
-					Update your public profile, HackTag, and Discord display
-					handle.
+					{showDiscordHandle
+						? "Update your public profile, HackTag, and Discord display handle."
+						: "Update your public profile and HackTag."}
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -222,21 +225,23 @@ export function UserProfileSettingsForm({
 								}
 							/>
 						</div>
-						<div className="space-y-2">
-							<Label htmlFor="discordDisplayHandle">
-								Discord display handle
-							</Label>
-							<Input
-								id="discordDisplayHandle"
-								{...form.register("discordDisplayHandle")}
-							/>
-							<FieldError
-								message={
-									form.formState.errors.discordDisplayHandle
-										?.message
-								}
-							/>
-						</div>
+						{showDiscordHandle ? (
+							<div className="space-y-2">
+								<Label htmlFor="discordDisplayHandle">
+									Discord display handle
+								</Label>
+								<Input
+									id="discordDisplayHandle"
+									{...form.register("discordDisplayHandle")}
+								/>
+								<FieldError
+									message={
+										form.formState.errors
+											.discordDisplayHandle?.message
+									}
+								/>
+							</div>
+						) : null}
 					</div>
 
 					<div className="space-y-2">

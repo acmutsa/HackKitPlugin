@@ -8,15 +8,15 @@ Store that guidance beside the package's release documentation. Keep the SQL rev
 
 Use this checklist for each schema-changing release:
 
--   **Versions:** exact supported source versions and target version. State whether intermediate versions must be installed first.
--   **Entities:** added/removed/changed tables, fields, constraints, and foreign-key relationships.
--   **Expansion:** schema changes needed before the transformation, including temporary nullable fields or defaults.
--   **Transformation:** static SQL with expected input/output values, handling of nulls, empty values, and invalid legacy data. State whether rerunning is safe.
--   **Contraction:** final constraints and removals. State when old code must stop running.
--   **Application integration:** tell developers where to insert each step in their own history. Describe dependencies on other Core/plugin/app tables. Include the `db:migrate --to` boundaries where applicable.
--   **Verification:** expected schema and data assertions. Record passed versions for PostgreSQL, MySQL, SQLite, and libSQL separately; explicitly list skipped or unvalidated targets.
--   **Recovery:** supported `down()` behavior, irreversible data loss, and partial-DDL handling. MySQL must have an explicit recovery plan for failed DDL.
--   **Disabled plugins:** state whether the release changes retained schema. `enabled: false` retains entities and still participates in package schema upgrades.
+- **Versions:** exact supported source versions and target version. State whether intermediate versions must be installed first.
+- **Entities:** added/removed/changed tables, fields, constraints, and foreign-key relationships.
+- **Expansion:** schema changes needed before the transformation, including temporary nullable fields or defaults.
+- **Transformation:** static SQL with expected input/output values, handling of nulls, empty values, and invalid legacy data. State whether rerunning is safe.
+- **Contraction:** final constraints and removals. State when old code must stop running.
+- **Application integration:** tell developers where to insert each step in their own history. Describe dependencies on other Core/plugin/app tables. Include the `db:migrate --to` boundaries where applicable.
+- **Verification:** expected schema and data assertions. Record passed versions for PostgreSQL, MySQL, SQLite, and libSQL separately; explicitly list skipped or unvalidated targets.
+- **Recovery:** supported `down()` behavior, irreversible data loss, and partial-DDL handling. MySQL must have an explicit recovery plan for failed DDL.
+- **Disabled plugins:** state whether the release changes retained schema. `enabled: false` retains entities and still participates in package schema upgrades.
 
 Use the package's frozen historical SQL in test fixtures. Apply the upgrade to the previous schema with existing Core users, plugin foreign keys, and application-owned references. Also replay the complete consuming application's history into an empty database using only current metadata.
 

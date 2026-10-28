@@ -1,0 +1,86 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "08. Verification and change guide",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Goal: choose the right evidence for a Core, plugin, template, or deployment change. This chapter explains what package tests, database checks, production HTTP tests, browser journeys, and deployment checks actually cover.\n\nTour validation checks source anchors and links. It does not imply the application suites pass. The suite commands below are read-only text in the tour, with no automatic terminal actions."
+		},
+		{
+			"file": "packages/core/src/testing.ts",
+			"pattern": "export async function createTestHackkit",
+			"title": "Use an isolated real database for focused domain tests",
+			"description": "The helper initializes Core against in-memory SQLite, injects a deterministic Core clock and ID generator, creates the schema, and returns a scoped API with access to the runtime and EntityManager. Vitest cleanup closes registered runtimes after each test.\n\n`createTestUser` can insert a known identity without password hashing when a test concerns domain behavior. This is useful focused evidence, but it bypasses auth signup and committed migrations. The auth lifecycle and application E2E tests cover those other boundaries."
+		},
+		{
+			"file": "e2e/support/templates.mjs",
+			"pattern": "export const templates = \\{",
+			"title": "Point integration tests at the real templates",
+			"description": "The manifest names the full and minimal workspace packages, absolute directories, fixed ports, origins, and database dialect lists. Full targets SQLite/libSQL/PostgreSQL/MySQL; minimal targets SQLite.\n\nHelpers use these absolute locations rather than assuming the repository root is an application. This is the main architectural effect of the testing split: tests orchestrate real consumers and generate migrations from each configured registry."
+		},
+		{
+			"file": "e2e/support/templates.mjs",
+			"pattern": "export function testEnvironment",
+			"title": "Build explicit disposable test configuration",
+			"description": "The helper constructs a limited environment with fresh database/upload paths, template-specific origins, and a test auth secret. Full-template external-service settings use disabled or non-service test values so Next's dotenv loading cannot silently select developer services.\n\nRead which variables are intentionally inherited and which are replaced. Test isolation depends on the actual environment passed to each subprocess, not just a temporary directory name.\n\nHACKKIT_MIGRATIONS_PATH points to a temporary history alongside the database. It overrides the template default without changing host source files or copying template migrations. This lets each test exercise the same first-generation setup that a new application uses."
+		},
+		{
+			"file": "e2e/support/run.mjs",
+			"pattern": "const suite = process\\.argv\\[2\\] \\?\\? \"all\";",
+			"title": "Prepare dependencies before choosing integration suites",
+			"description": "The runner accepts all, db, http, or browser. It builds dependency packages, snapshots generated route files and lockfiles, runs plugin sync, and asserts no generated drift. It then typechecks both templates and E2E and invokes the client-bundle guard.\n\nHTTP/browser runs generate initial migrations into temporary directories, apply them, check schema agreement, and seed disposable build databases and create real production template builds. Finally it runs the selected Vitest or Playwright suites. Running one E2E invocation at a time avoids collisions in fixed ports and template output directories."
+		},
+		{
+			"file": "e2e/support/server.mjs",
+			"pattern": "export async function startTemplate",
+			"title": "Start production Next with fresh storage",
+			"description": "The helper rejects an occupied port, creates a temporary runtime directory, and generates a fresh migration history, applies it, checks the schema, and seeds roles with the template as cwd. It starts `next start`, captures logs, and polls the auth session endpoint for readiness.\n\nIt never treats an arbitrary process on the same port as the test application. The returned close function stops the child and removes temporary storage. Startup failure also performs cleanup and includes captured output in its error."
+		},
+		{
+			"file": "e2e/playwright.config.ts",
+			"pattern": "projects: \\[\"full\", \"minimal\"\\]\\.flatMap",
+			"title": "Run transport and UI checks for each consumer",
+			"description": "Playwright creates full-http, full-browser, minimal-http, and minimal-browser projects. One worker and disabled full parallelism match the shared production output and fixed-port strategy.\n\nFailure traces, screenshots, HTML, and JUnit output support diagnosis. Retries are zero here, so intermittent behavior appears as a failure instead of silently passing a retry. Project selection determines coverage; a browser-only run does not execute the database matrix."
+		},
+		{
+			"file": "e2e/http/runtime.spec.ts",
+			"pattern": "test\\(\"production HTTP auth, request isolation, permissions, Core and plugin transport\"",
+			"title": "Exercise the complete HTTP boundary",
+			"description": "Read the requests and assertions for sessions, actor isolation, invalid input, permissions, and plugin transport. These tests use a production template server rather than calling a domain function in memory.\n\nThe local-upload test later in this file checks minimal-template file round trips and resume access. Compare these assertions with the handler and file-route implementation before claiming a transport or authorization change is covered."
+		},
+		{
+			"file": "e2e/browser/participant.spec.ts",
+			"pattern": "test\\(\"signup, onboarding, persisted registration, signout and signin\"",
+			"title": "Check the participant journey through rendered UI",
+			"description": "This browser journey signs up, completes onboarding, verifies persisted registration, signs out, and signs back in. Additional tests cover anonymous/incomplete-account redirects, approval waiting, participant denial from admin pages, and owner administration.\n\nThe browser assertions validate the integration among UI, Next routing, auth cookies, Core behavior, and storage. A package unit test alone cannot prove these rendered transitions work."
+		},
+		{
+			"file": "e2e/browser/teams.spec.ts",
+			"pattern": "test\\(\"team creation, invitation and acceptance across separate sessions\"",
+			"title": "Close the worked Teams scenario",
+			"description": "This journey exercises team creation, invitation, and acceptance across separate browser sessions. Compare each action with the endpoint/API methods from chapter 04.\n\nTeams belongs to the full configuration; inspect the template-selection condition in this test before interpreting a skip for minimal. A skip because an optional feature is absent is different from demonstrating that feature works in that consumer."
+		},
+		{
+			"file": "e2e/database/templates.test.ts",
+			"pattern": "it\\(\"minimal: generates and replays a Core/auth baseline without plugins\"",
+			"title": "Validate the minimal schema without feature plugins",
+			"description": "This test loads the real minimal config, generates a Core/auth baseline into a temporary history, applies it, and initializes Core/auth without feature plugins. It verifies signup and schema agreement, then replays the same history into another empty database without regenerating it.\n\nThe parameterized test above validates both templates' first-generation command flow. It inspects generated Core/plugin SQL and snapshot creation, confirms generation has not applied the tables, and checks that unchanged generation after setup produces no migration. Existing upgrade tests continue to exercise data transformations, rollback, and history replay."
+		},
+		{
+			"file": ".github/workflows/integration.yml",
+			"pattern": "HACKKIT_REQUIRE_DATABASE_MATRIX: \"1\"",
+			"title": "Require the database matrix in CI",
+			"description": "The integration workflow provisions PostgreSQL, MySQL, and libSQL services, supplies their test URLs, and requires the matrix for its complete E2E invocation. It also verifies generated template route files and lockfiles have no diff.\n\nThe separate package job runs library tests and package typechecks. These are workflow definitions, not evidence of a successful run on this working tree. Check the actual CI result for the branch before making a release claim."
+		},
+		{
+			"file": ".github/workflows/apps.yml",
+			"pattern": "name: Demo and documentation",
+			"title": "Check deployed-app packaging separately",
+			"description": "The app workflow builds/typechecks docs and the demo, checks deployment packaging, and uses disposable libSQL plus local Worker bindings for the demo's database and smoke checks.\n\nTemplate E2E does not replace these checks because Worker bindings and the demo dialect differ from Next template hosting. Likewise a local deploy check does not prove a hosted URL has the intended version. Verify hosted behavior separately when publishing is requested."
+		},
+		{
+			"title": "Choose the change location and finish the route",
+			"description": "You have now followed configuration into shared initialization, scoped Core/plugin APIs, HTTP transport, server pages, storage, deployed apps, and test orchestration.\n\nFor a Core rule, start in `packages/core/src/functions`, then check the domain schema and focused behavior tests. For a new plugin capability, add its scoped API and checks, endpoint schema if browser access is needed, and UI. Change entities plus a reviewed host migration when persistence changes. Use CLI sync only for package-owned page installation.\n\nFor template behavior, compare full and minimal configurations and choose the relevant E2E journey. For deployment behavior, inspect the app's own runtime/bindings and app workflow. The root commands are `corepack pnpm test` for package tests and `corepack pnpm test:e2e` for the complete template suite; E2E builds production output and writes disposable databases. Read e2e/README.md before running it.\n\nRevisit [01. Repository map and composition], [03. Core domain behavior], or [04. Plugin contracts and Teams] when choosing the layer to change. Tour playback and source-anchor validation do not execute these application checks."
+		}
+	]
+}

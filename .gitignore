@@ -47,7 +47,7 @@ yarn-error.log*
 sessions/
 
 # web local sqlite
-apps/web/.data/
+templates/*/.data/
 
 # cursor
 .cursor/plans/
@@ -57,5 +57,33 @@ HANDOFF.md
 # build
 **/dist/
 
+experiments/
+scripts/
+
 # Local research notes
 /docs/research/**/*.md
+
+# Template-owned database commands must be tracked.
+!templates/*/scripts/
+!templates/*/scripts/**
+
+# E2E artifacts
+e2e/playwright-report/
+e2e/test-results/
+
+# Deployable applications
+apps/*/.data/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!apps/demo/scripts/
+!apps/demo/scripts/**
+
+apps/demo/playwright-report/
+apps/demo/test-results/
+
+# A credential-free reference for the demo Worker.
+!apps/demo/.dev.vars.example
+
+.vinext/
+apps/demo/lib/generated/

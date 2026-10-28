@@ -44,7 +44,7 @@ export type UserProfileFormValues = {
 	skills: string[];
 	isProfileSearchable: boolean;
 	discordDisplayHandle?: string;
-	profilePhotoUrl?: string;
+	image?: string;
 };
 
 export type HackerRegistrationFormValues = {

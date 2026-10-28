@@ -94,11 +94,12 @@ function SelectField({
 	options: readonly { value: string; label: string }[];
 	error?: string;
 }) {
+	const id = React.useId();
 	return (
 		<div className="space-y-2">
-			<Label>{label}</Label>
+			<Label htmlFor={id}>{label}</Label>
 			<Select value={value} onValueChange={onValueChange}>
-				<SelectTrigger>
+				<SelectTrigger id={id}>
 					<SelectValue placeholder={placeholder} />
 				</SelectTrigger>
 				<SelectContent>

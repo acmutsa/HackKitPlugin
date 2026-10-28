@@ -1,0 +1,16 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "templates",
+    "configuration",
+    "database",
+    "architecture",
+    "plugins",
+    "administration",
+    "testing",
+    "demo",
+    "deployment"
+  ]
+}

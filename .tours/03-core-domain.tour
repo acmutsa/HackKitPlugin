@@ -1,0 +1,119 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "03. Core domain behavior",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Goal: trace the participant lifecycle through Core's actual functions. The scenario is a signed-in user who claims a HackTag, completes personal data, registers as a hacker, receives approval if required, and confirms attendance.\n\nServer callers must supply a trusted actor or target as each method requires. Authentication, authorization, validation, and transactions solve different problems. Watch where each one occurs."
+		},
+		{
+			"file": "packages/core/src/hackkit.ts",
+			"pattern": "const runtimeContext: HackkitRuntimeContext = \\{",
+			"title": "Pass only the dependencies each API needs",
+			"description": "The context collects persistence, time, IDs, logging, configuration, permission helpers, and notifications. API factories receive this context or a typed subset of it.\n\n`createUsersApi` also receives registration policy and group behavior. `createEventsApi`, `createRsvpApi`, and `createAdminApi` return domain methods. These closures keep shared rules available without making every operation import a global runtime."
+		},
+		{
+			"file": "packages/core/src/errors.ts",
+			"pattern": "export function parseInput",
+			"title": "Validate unknown domain inputs",
+			"description": "Core accepts `unknown` at many mutation boundaries. `parseInput` checks a Zod schema and turns validation failure into HackKit's domain error format. Successful parsing supplies the typed value used by the operation.\n\nHTTP endpoints also validate browser bodies, but Core methods remain usable from scripts and server code. Domain checks still need to run regardless of transport. Examine `schemas.ts` for field constraints and `user-data-options.ts` for configurable choices."
+		},
+		{
+			"file": "packages/core/src/domain-log.ts",
+			"pattern": "export async function withDomainLog",
+			"title": "Log domain outcomes without changing returned errors",
+			"description": "This wrapper runs a domain callback and logs success when it returns. A known HackKitError records the stable error code and message. Unexpected errors use the error log level. Every failure is rethrown for the caller or HTTP layer to handle.\n\nThe logger is injected through Core configuration. This helper observes a callback outcome, not the final commit of every possible surrounding transaction. It is not a durable transaction audit table."
+		},
+		{
+			"file": "packages/core/src/functions/users.ts",
+			"pattern": "async claimHackTag\\(input: unknown\\)",
+			"title": "Claim a public identifier",
+			"description": "`claimHackTag` parses the actor's request, uses an operation lock, and checks whether the requested HackTag is available before updating the canonical user. Follow normalization and conflict handling in the function.\n\nThis is the first participant-specific identity step after auth signup. The auth ID remains the persistence identity; the HackTag is a user-facing lookup value. The browser endpoint must supply the actor from its session."
+		},
+		{
+			"file": "packages/core/src/hackkit.ts",
+			"pattern": "async completeUserData\\(input: unknown\\)",
+			"title": "Persist personal data before hacker registration",
+			"description": "The configured complete-user-data schema validates the input. Core checks the user exists, then updates or creates the user's data record inside the `user-data` operation lock. It preserves the original completion timestamp on edits and updates the modification timestamp.\n\nA completed auth account alone does not imply this row exists. `registerHacker` checks it explicitly. This ordering is also visible in the page guards and onboarding UI."
+		},
+		{
+			"file": "packages/core/src/hackkit.ts",
+			"pattern": "async function registerHacker\\(input: unknown\\)",
+			"title": "Register atomically and preserve edit behavior",
+			"description": "`registerHacker` locks the registration decision, parses the input, and requires both an existing user and completed personal data. An existing hacker record is updated without re-running the policy for a new admission.\n\nFor a new record, the registration policy checks availability. Core creates the hacker, looks up the configured competitor role if present, and updates the user's role/approval fields before flushing. Failure must roll back the whole operation, including the hacker insert. The method returns a serialized Hacker value."
+		},
+		{
+			"file": "packages/core/src/functions/registration-policy.ts",
+			"pattern": "async assertCanRegisterNewHacker\\(\\)",
+			"title": "Separate registration count from approved capacity",
+			"description": "The policy checks whether registration is open and whether the maximum registration count has been reached. A positive limit bounds admission; zero means unlimited.\n\nWhen approval is required, a new registration can remain pending. When approval is automatic, it also checks approved-hacker capacity before admission. `assertCanApproveUser` applies that capacity check when an existing registered user is approved later. Registration capacity and RSVP capacity are separate settings."
+		},
+		{
+			"file": "packages/core/src/functions/users.ts",
+			"pattern": "async approveUser\\(input: unknown\\)",
+			"title": "Approve within capacity and assign a participant group",
+			"description": "`approveUser` shares the registration lock with admission. It requires `UsersApprove`, checks capacity when changing an unapproved user to approved, and applies role hierarchy to the target. It writes approval and then calls `groups.assignNextGroup` when approval is requested.\n\nThe group helper joins the surrounding transaction and keeps an existing assignment. This explicit approval path connects registration policy to group allocation. Automatic approval during new hacker registration does not call this function, so do not assume those paths perform identical group work."
+		},
+		{
+			"file": "packages/core/src/functions/groups.ts",
+			"pattern": "async assignNextGroup\\(authId: AuthId\\)",
+			"title": "Choose the least-populated enabled group",
+			"description": "The method locks group allocation, returns null for a missing hacker, and preserves any existing group. With enabled groups, it counts registered hackers assigned to each, sorts by count, and breaks ties using configuration order.\n\nIt writes the chosen group to the hacker record and updates its timestamp. The result is a Hacker DTO. This module chooses an application group; Discord later translates that group into its configured role plan."
+		},
+		{
+			"file": "packages/core/src/mikro/operation.ts",
+			"pattern": "export async function withOperationLock",
+			"title": "Protect read/check/write decisions across connections",
+			"description": "`withOperationLock` opens or joins a required transaction. It upserts a lock row with a fresh token and flushes before running the callback. The write obtains a database write/row lock before checks read capacity or membership.\n\nRelated operations use the same key, such as `registration` or `teams.membership`. A JavaScript mutex would protect only one process. This lock uses the database so separate connections coordinate. Unique constraint errors become `CONFLICT`. If this helper owns the transaction, it clears managed state after completion or failure. External network effects belong after commit."
+		},
+		{
+			"file": "packages/core/src/access-control.ts",
+			"pattern": "async requirePermission\\(",
+			"title": "Load the principal and enforce role permissions",
+			"description": "An access principal contains the current user and their role. `requirePermission` resolves both and rejects a missing role or permission. `hasPermission` returns a boolean for a user with no role rather than throwing for that case.\n\nRole hierarchy is another rule. Lower position numbers outrank higher numbers, while SuperAdmin bypasses hierarchy. `assertCanGrantPermissions` prevents a non-super-admin from granting the SuperAdmin permission. A signed-in session alone does not grant administration rights."
+		},
+		{
+			"file": "packages/core/src/hackkit.ts",
+			"pattern": "async assignRoleToUser\\(input: unknown\\)",
+			"title": "Check both current and replacement roles",
+			"description": "Role assignment requires `RolesAssign`. The actor must be allowed to manage the proposed role and, if the user has a current role, that current role too. The update occurs inside the roles operation lock.\n\nThis prevents an actor from bypassing hierarchy by demoting or replacing a role they cannot manage. Nearby create/update/delete methods apply their own permission, hierarchy, and assignment checks. Use these methods rather than writing `roleId` from a browser body."
+		},
+		{
+			"file": "packages/core/src/functions/settings.ts",
+			"pattern": "async function getValue\\(key: SettingKey\\)",
+			"title": "Resolve stored values against registered definitions",
+			"description": "Settings definitions come from Core and plugins. Reads resolve the registered definition and stored override; absent overrides use the definition's default. Mutation methods below require settings-management permission and validate values against each definition.\n\nThis is how a plugin reads a team-size limit without owning a separate settings subsystem. Changing an app config default and writing a persisted setting are different operations. Inspect the resolver above this function to see which value wins."
+		},
+		{
+			"file": "packages/core/src/functions/rsvp.ts",
+			"pattern": "async confirm\\(input: unknown\\)",
+			"title": "Confirm attendance or allocate a waitlist place",
+			"description": "`confirm` uses the `rsvp` lock, requires an approved registered hacker, and checks that RSVPs are open. An existing non-cancelled RSVP is returned unchanged. Otherwise it counts active confirmed records and chooses confirmed, waitlisted, or an error according to settings.\n\nThe function writes the RSVP and queues a notification intent before the transaction completes. Cancellation and administrative promotion have their own methods later in the file. Registration approval does not by itself reserve an RSVP place."
+		},
+		{
+			"file": "packages/core/src/functions/users.ts",
+			"pattern": "async checkIn\\(input: unknown\\)",
+			"title": "Record organizer check-in without duplicating arrival",
+			"description": "`checkIn` requires `UsersCheckIn`, loads the target, rejects a user who is already checked in, and writes `checkedInAt` inside the `check-in` operation lock. It returns the refreshed plain user value.\n\nThis function records arrival. Group assignment occurs in the explicit approval path, which calls the groups API. Page guards, approval, check-in, and group assignment are distinct transitions; one timestamp does not establish that all of them occurred."
+		},
+		{
+			"file": "packages/core/src/functions/events.ts",
+			"pattern": "async recordEventScan\\(input: unknown\\)",
+			"title": "Record event participation with prior-scan context",
+			"description": "The event scan operation parses its input, requires scanner permission, checks the event and target user, reads previous scans, and inserts another scan. Its result contains the new scan, prior scans, and a boolean indicating whether prior scans exist.\n\nA scan history can therefore support a repeated-scan warning without silently discarding the new record. Schedule visibility and event administration use separate methods earlier in this file. Inspect those permission checks when adding a new organizer workflow."
+		},
+		{
+			"file": "packages/core/src/functions/admin.ts",
+			"pattern": "async function getOverview\\(input:",
+			"title": "Build administration views from Core records",
+			"description": "The admin API composes permission-checked data into dashboard and user views. It also exposes role/user lookup and export-related behavior. These methods are the server-side aggregation layer used by admin UI, rather than a second source of persistence models.\n\nFor a new dashboard statistic, trace its source records and authorization here before adding the rendered card. This keeps the meaning of a statistic consistent between views."
+		},
+		{
+			"file": "packages/core/src/mikro/domain-transactions.test.ts",
+			"pattern": "it\\(\"admits only one concurrent registration into the final place\"",
+			"title": "Inspect the concurrency and rollback evidence",
+			"description": "This test competes for the last registration place. The earlier test in this file forces a role-assignment failure and checks rollback. Together they target observable domain outcomes, including behavior across transaction boundaries.\n\nFor related rules, read [RSVP tests](./packages/core/src/__tests__/rsvp.test.ts), [check-in tests](./packages/core/src/__tests__/check-in.test.ts), and [group tests](./packages/core/src/__tests__/groups.test.ts). Continue with [04. Plugin contracts and Teams]."
+		}
+	],
+	"nextTour": "04. Plugin contracts and Teams"
+}

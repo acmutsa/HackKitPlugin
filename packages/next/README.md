@@ -4,7 +4,7 @@ Next.js request setup and page guards for HackKit. Core owns the HTTP endpoints 
 
 ## Runtime setup
 
-`createHackkitRuntimeFromConfig({ config, afterCurrentUser? })` returns a shared `core` promise, a request-local `getRuntime` factory, and an HTTP `handler`. Register `host.getRuntime` with `setHackkitRuntime` for package-owned plugin pages. The reference implementation is [the app runtime](../../apps/web/lib/runtime.ts).
+`createHackkitRuntimeFromConfig({ config, afterCurrentUser? })` returns a shared `core` promise, a request-local `getRuntime` factory, and an HTTP `handler`. Register `host.getRuntime` with `setHackkitRuntime` for package-owned plugin pages. The reference implementation is [the app runtime](../../templates/nextjs-full/lib/runtime.ts).
 
 The host initializes one Core ORM and Better Auth instance. Each server render resolves its session from Next headers and creates a fresh domain scope. React caches this runtime within that render. HTTP calls resolve the session from their Web Request and run their operation inside Core's native MikroORM RequestContext. Shared endpoint definitions never retain a request's actor or EntityManager.
 

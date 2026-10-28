@@ -49,14 +49,14 @@ export async function createTestUser(
 		authId: string;
 		email: string;
 		name: string;
-		profilePhotoUrl?: string;
+		image?: string;
 	},
 ) {
 	context.em.create(HackKitUser, {
 		id: input.authId,
 		email: input.email,
 		name: input.name,
-		profilePhotoUrl: input.profilePhotoUrl,
+		image: input.image,
 		createdAt: new Date("2026-05-24T12:00:00.000Z"),
 		updatedAt: new Date("2026-05-24T12:00:00.000Z"),
 	});

@@ -10,13 +10,13 @@ Core and server plugins use native MikroORM `defineEntity` definitions and `Enti
 
 Core's `src/runtime.ts` owns HackKit initialization, shared authentication, logging, and execution scopes. `src/mikro/options.ts` owns native ORM options and driver types. Both remain available through the `@hackkit/core` package entrypoint.
 
-One ORM owns shared connections. Each request, action, job, or CLI operation gets a fresh EntityManager. `runtime.createScope(actorAuthId)` binds domain and plugin APIs; `runtime.run(callback, actorAuthId)` also provides MikroORM RequestContext. Transactions use a fresh identity map and clear the parent map on completion. Domain responses are plain DTOs; managed entities and authentication secrets stay on the server. Browser code imports `@hackkit/core/client`.
+One ORM owns shared connections. Runtime initialization prepares domain configuration, validation schemas, and the logger once. Scoped APIs reuse that preparation while binding an execution-specific EntityManager and actor ID. Each request, action, job, or CLI operation gets a fresh EntityManager. `runtime.createScope(actorAuthId)` binds domain and plugin APIs; `runtime.run(callback, actorAuthId)` also provides MikroORM RequestContext and binds APIs directly to its single fork. Transactions use a fresh identity map and clear the parent map on completion. Domain responses are plain DTOs; managed entities and authentication secrets stay on the server. Browser code imports `@hackkit/core/client`.
 
 ## Authentication
 
 Core constructs Better Auth with `@a77ay/better-auth-mikro-orm`. Better Auth still declares its own unused Drizzle adapter as an upstream dependency; HackKit does not import it, and `drizzle-orm` is absent from the resolved dependency graph. This community MikroORM adapter is pinned alongside Better Auth and MikroORM and covered by real database tests. Apps provide secrets, providers, trusted origins, email behavior, and optional auth plugins. Next owns request headers, cookies, redirects, and auth route handlers.
 
-`HackKitUser` is the canonical native entity in `core_user`. It stores the Better Auth identity fields and HackKit profile, role, approval, and check-in fields in one row. Better Auth maps its user model to `core_user` and its `image` field to `profilePhotoUrl`. The primary key is `id`; Core's inferred user DTO, public profiles, and admin exports expose this same property through native serialization. Sessions, accounts, and all domain/plugin user foreign keys reference this row.
+`HackKitUser` is the canonical native entity in `core_user`. It stores the Better Auth identity fields and HackKit profile, role, approval, and check-in fields in one row. Better Auth maps its user model to `core_user`. Its `image` field uses the same name in the native entity and Core APIs. The primary key is `id`; Core's inferred user DTO, public profiles, and admin exports expose this same property through native serialization. Sessions, accounts, and all domain/plugin user foreign keys reference this row.
 
 Consumers of the former user DTO must replace `user.authId` with `user.id`. The admin CSV identifier column is now `id`. Hacker records and the `registerHacker` input use `userId`, which references the same user primary key. The hacker entity retains its mapping to the committed `auth_id` database column. Other operation inputs such as `authId`, `actorAuthId`, and `targetAuthId` still accept the user ID. These contract changes require no database migration.
 
@@ -44,7 +44,7 @@ The [migration guide](../guides/database-migrations.md) specifies staged upgrade
 
 ## Validation
 
-The app database matrix applies committed migrations and tests real SQLite, local libSQL, PostgreSQL, MySQL, and HTTP libSQL. It checks schema agreement, signup/session/profile behavior, native JSON/date/boolean/null values, rollback, concurrent registration capacity, teams, uniqueness, and foreign-key cleanup. Package tests cover domain authorization, request isolation, notification claims, and membership conflicts. CI requires external service URLs so those cases cannot silently skip.
+The app database matrix generates a baseline from the configured entity registry, applies it, and tests real SQLite, local libSQL, PostgreSQL, MySQL, and HTTP libSQL. It checks schema agreement, signup/session/profile behavior, native JSON/date/boolean/null values, rollback, concurrent registration capacity, teams, uniqueness, and foreign-key cleanup. Package tests cover domain authorization, request isolation, notification claims, and membership conflicts. CI requires external service URLs so those cases cannot silently skip.
 
 Use Node.js 22.17 or newer and TypeScript 5.9.3. Production validation must also cover the deployment's credentials, TLS, OAuth providers, and external email/Discord services.
 

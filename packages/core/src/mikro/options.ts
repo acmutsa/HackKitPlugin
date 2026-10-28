@@ -1,5 +1,6 @@
 import type { Options, EntitySchema } from "@mikro-orm/core";
 import type { SqliteDriver } from "@mikro-orm/sqlite";
+import type { SqliteDriver as GenericSqliteDriver } from "@mikro-orm/sql";
 import type { LibSqlDriver } from "@mikro-orm/libsql";
 import type { MySqlDriver } from "@mikro-orm/mysql";
 import type { PostgreSqlDriver } from "@mikro-orm/postgresql";
@@ -9,6 +10,7 @@ import { assertAuthEntitySchema, type HackKitAuthOptions } from "./auth";
 
 export type HackKitDriver =
 	| SqliteDriver
+	| GenericSqliteDriver
 	| LibSqlDriver
 	| MySqlDriver
 	| PostgreSqlDriver;

@@ -1,0 +1,6 @@
+# Copy this file to .dev.vars in this directory. Never commit .dev.vars.
+TURSO_DATABASE_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=
+BETTER_AUTH_SECRET=
+# Local application origin. The deployed origin lives in wrangler.jsonc.
+BETTER_AUTH_URL=http://localhost:3001

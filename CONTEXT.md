@@ -231,100 +231,100 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 
 ## Relationships
 
--   **HackKit Web App** depends on **HackKit Core** for hackathon behavior.
--   **HackKit UI** consumes **HackKit Core** APIs.
--   **HackKit UI** ships default schedule, **Event Pass**, volunteer scanner, and event admin components that **HackKit Web Apps** may replace individually without forking Core.
--   **HackKit CLI** creates projects that include a working **HackKit Web App**.
--   **HackKit CLI** manages project files provided by plugins.
--   **HackKit CLI** merges plugin-owned Next.js routes into a **HackKit Web App** using generated re-export stubs and records ownership in **hackkit.lock**.
--   **HackKit CLI** runs from a **HackKit Web App** project directory (not a monorepo root) and reads that app’s `hackkit.config.ts` for plugins and database settings.
--   **HackKit CLI** uses the same **HackKit Logger** from `hackkit.config.ts` when run from a **HackKit Web App** directory, falling back to the environment-based default **Log Level** when `logger` is omitted.
--   **HackKit CLI** may explicitly seed configured roles into the app database, but it does not assign those roles to users.
--   **HackKit CLI** explicitly generates or applies app-owned MikroORM migrations from the same entity collection as runtime. Plugin sync and application startup never apply migrations.
--   A **HackKit Plugin** may add capabilities to a **HackKit Web App** without changing **HackKit Core** source.
--   **HackKit Core** accepts an optional **HackKit Logger** at creation time; when omitted, a default console **HackKit Logger** applies with a configurable **Log Level** defaulting to `info` in development and `warn` in production unless overridden.
--   **HackKit Web Apps** may replace the default **HackKit Logger** with a custom implementation (for example forwarding to a hosted logging service) without changing **HackKit Core** source.
--   **HackKit Core** emits operational messages for significant domain APIs (such as **Hacker Registration**, **Organiser Approval**, **Hackathon Check-in**) through the **HackKit Logger** at **Log Level**s such as `info` or `debug`; this is not a separate persisted **Audit Log** model in v1.
--   **Log Context** for those messages includes action name, outcome, **Auth ID**s, relevant record ids, and error codes on failure; it excludes PII and form payloads.
--   **Hackathon Setting** changes are emitted through the **HackKit Logger** with **Log Context** including the actor **Auth ID** and setting key, but v1 stores only the latest setting value rather than a persisted change history.
--   **HackKit Core** receives **HackKit Plugins** through `initializeHackkit`.
--   **HackKit Plugins** should be configured in one place so package-specific integration details stay contained inside plugin packages.
--   **HackKit Plugins** contribute native MikroORM entities with namespaced table names and real relations to Core entities.
--   **HackKit Core** owns **Notification Intents** and typed notification payloads; **Notification Channel Plugins** own channel-specific destination resolution, rendering, delivery, and **Notification Delivery Attempts**.
--   **Notification Intents** are persisted before delivery so channel plugins may process them asynchronously and retry failed **Notification Delivery Attempts**.
--   The **Email Notification Plugin** is configured as a **HackKit Plugin**; **HackKit Core** does not send email directly.
--   Core, auth, enabled plugin, and app entities are collected before initialization. Duplicate names and tables fail initialization.
--   Native entity metadata defines constraints, relations, defaults, and inferred DTO types. SQL column names use snake_case across dialects.
--   Core and server plugins query a scoped EntityManager directly. Domain operations retain authorization and validation.
--   Better Auth owns identity and email. The linked HackKit profile owns editable profile and domain state; signup creates both atomically, and session reads never overwrite the profile.
--   Each request, action, job, and CLI operation gets a fresh identity map. Public domain results are plain DTOs.
--   The **Better Auth** integration may forward **HackKit Logger** messages through Better Auth’s own `logger` configuration so a single custom `log` implementation in `hackkit.config.ts` covers auth and **HackKit Core** output.
--   A **User Data** onboarding flow may display the authenticated **User** while collecting **User Data**.
--   **HackKit UI** treats authenticated **User** information passed to forms as display context, not as authorization input.
--   **HackKit Web Apps** commit reviewed MikroORM migrations and snapshots for PostgreSQL, MySQL, and SQLite/libSQL. Generation, application, and seeding are explicit release steps.
--   This redesign targets fresh databases; deployed data and existing accounts require a separately designed migration.
--   A **Blob Storage Adapter** stores files outside **HackKit Core**; **HackKit Core** stores only **Stored File References** supplied by the **HackKit Web App**.
--   **HackKit Web Apps** choose a **Blob Storage Adapter** implementation via configuration; local filesystem adapters suit development, S3-compatible adapters suit production.
--   A **User** is identified by exactly one **Auth ID** in a HackKit application.
--   A **User** may have zero or one **Hacker** profile.
--   **Competitor Onboarding** is the product journey that produces a **Hacker**; each step uses separate **HackKit Core** operations and **HackKit Web App** routes rather than one combined registration transaction.
--   **Competitor Onboarding** step order is: authenticate → **User** → **HackTag** → **User Data** → **Hacker Registration** → **Organiser Approval**.
--   **Require Approval** is a **Hackathon Setting**, not static **HackKit Web App** configuration.
--   **Hackathon Settings** are owned by **HackKit Core** and surfaced by **HackKit Web Apps** through admin UI.
--   **HackKit Core** defines built-in **Hackathon Settings** and **HackKit Plugins** may contribute plugin-specific **Hackathon Settings** to the **Hackathon Settings Registry**.
--   A hackathon policy is either a **Hackathon Setting** or static **HackKit Web App** configuration, never both at the same time.
--   A **HackKit Web App** may ship the full multi-step **Competitor Onboarding** flow before enforcing **Organiser Approval** gates in routes and UI.
--   Early **HackKit Web App** implementations may use guided “next step” links without hard redirects between onboarding steps; strict step enforcement may come later.
--   **HackKit UI** may provide a **Competitor Onboarding Progress** component that displays step labels and completion state from props supplied by the **HackKit Web App** (no hard redirects).
--   **HackKit Web Apps** may expose each **Competitor Onboarding** step at its own route under a shared prefix (for example `/onboarding/...`).
--   **HackKit UI** ships default forms for **Competitor Onboarding** steps, including **HackTag** claim, **User Data**, and **Hacker Registration**; **HackKit Web Apps** wire routes, a typed browser path client, and adapters.
--   **Hacker Registration** resume uploads use a **Blob Storage Adapter** in the **HackKit Web App**; **HackKit Core** stores only the **Stored File Reference** on the **Hacker** record when provided; omitting a resume leaves `resumeUrl` unset (no sentinel placeholder).
--   A **Hacker** belongs to exactly one **User**.
--   A **Hacker** may have zero or one **Group**.
--   **Group** assignment happens when a **Hacker** receives **Organiser Approval** if no **Group** has been assigned yet.
--   Automatic **Group** assignment uses round-robin distribution across enabled **Groups**; **Groups** do not impose capacity limits.
--   **Hackathon Capacity**, not **Group** membership, controls how many **Hackers** may receive **Organiser Approval**.
--   Organizers and judges are **Users** with **Roles**, not **Hackers**, unless they are also competing.
--   A **User** has one **Role** in v1.
--   Completing **Hacker Registration** assigns the hackathon’s default competitor **Role** from `hackkit.config.ts`; auth sign-up do not assign a **Role** by themselves.
--   A **Role** grants zero or more **Permissions**.
--   **Permissions** use namespaced keys so plugins can add capabilities without collisions.
--   **Admin Permission** is represented by `core.admin`.
--   **Super Admin Permission** is represented by `core.super_admin`.
--   A **User** may have zero or one **HackTag**.
--   A **User** has exactly one **User Data** record for hackathon-required information such as dietary restrictions.
--   A **User Data Option** has a stable stored value and a display label.
--   **User Data Options** constrain selected **User Data** fields and are shared by HackKit Core validation and HackKit UI rendering.
--   **Dietary Restrictions** are stored as configured **User Data Option** values; freeform dietary or accessibility needs belong in the **User Data** accommodation note.
--   An **Event** has zero or more **Event Scans**.
--   An **Event Scan** belongs to exactly one **Event** and exactly one **User**.
--   A **User** may have many **Event Scans** for the same **Event**; each scan is stored as a separate row.
--   **Event Scan** history is append-only in v1; mistaken scans are not deleted through Core APIs.
--   When a **User** already has **Event Scans** for an **Event**, volunteers are warned before recording another scan but may still add one.
--   Each **Event Scan** records which volunteer **User** performed the scan.
--   **HackKit UI** (and the server mutation layer ahead of **HackKit Core**) validates **Event Pass QR** freshness using a configurable **Event Pass QR TTL** before calling **Hackathon Check-in** or **Event Scan** APIs with a resolved **Auth ID**.
--   **Hackathon Check-in** APIs live on the **User** module; **Event** CRUD and **Event Scan** APIs live on the **Events** module.
--   A **User** presents their **Event Pass** to be scanned at **Events**.
--   Any **User** may present an **Event Pass** and be recorded in an **Event Scan**; a **Hacker** profile is not required for attendance flows.
--   **Stored File References** use app-relative URLs (for example `/api/files/view?key=...`), not direct bucket URLs in **HackKit Core** records.
--   **Hackathon Check-in** is separate from **Event Scan**; arriving at the venue is not the same as attending a specific **Event**.
--   **Hackathon Check-in** is recorded on the **User** as an optional arrival timestamp set by a volunteer with check-in permission.
--   A **User** may be **Hackathon Check-in** checked in at most once; repeat check-in attempts are rejected.
--   A volunteer with check-in permission may clear an existing **Hackathon Check-in** to correct a mistake.
--   **Event Types** constrain the type field on **Event** records and are shared by HackKit Core validation and HackKit UI rendering.
--   Each **Event Type** has a stable stored value, display label, and color, using the same value/label pattern as **User Data Options**.
--   **Event** records use string identifiers in HackKit Core.
--   Public schedule listing of non-hidden **Events** does not require an authenticated **User**; actors with `core.events.view` or higher can list hidden **Events** as well.
--   An **RSVP** may be recorded only for an approved **Hacker**.
--   **RSVP** has hackathon settings separate from **Hackathon Capacity**, including whether RSVP is open, the RSVP limit, and whether the **RSVP Waitlist** is enabled.
--   **RSVP Waitlist** promotion is organizer-managed in v1; HackKit does not automatically promote **Hackers** from the **RSVP Waitlist**.
--   A **Hacker** cannot self-cancel an **RSVP** in v1; organizers may correct RSVP state.
--   A **Team** belongs to the teams plugin domain and is composed of **Team Members** who must be **Hackers**.
--   Each **Hacker** may belong to at most one **Team** in v1.
--   Each **Team** has exactly one **Team Owner**, who is always a **Team Member**.
--   **Team Invites** are sent by the **Team Owner** and responded to by the invited **Hacker**.
--   **Team Invites** use pending, accepted, and declined statuses in v1.
--   **Maximum Team Size** belongs to the teams plugin settings, defaults to four, and is enforced when a **Team Invite** is accepted or a member is otherwise added to a **Team**.
+- **HackKit Web App** depends on **HackKit Core** for hackathon behavior.
+- **HackKit UI** consumes **HackKit Core** APIs.
+- **HackKit UI** ships default schedule, **Event Pass**, volunteer scanner, and event admin components that **HackKit Web Apps** may replace individually without forking Core.
+- **HackKit CLI** creates projects that include a working **HackKit Web App**.
+- **HackKit CLI** manages project files provided by plugins.
+- **HackKit CLI** merges plugin-owned Next.js routes into a **HackKit Web App** using generated re-export stubs and records ownership in **hackkit.lock**.
+- **HackKit CLI** runs from a **HackKit Web App** project directory (not a monorepo root) and reads that app’s `hackkit.config.ts` for plugins and database settings.
+- **HackKit CLI** uses the same **HackKit Logger** from `hackkit.config.ts` when run from a **HackKit Web App** directory, falling back to the environment-based default **Log Level** when `logger` is omitted.
+- **HackKit CLI** may explicitly seed configured roles into the app database, but it does not assign those roles to users.
+- **HackKit CLI** explicitly generates or applies app-owned MikroORM migrations from the same entity collection as runtime. Plugin sync and application startup never apply migrations.
+- A **HackKit Plugin** may add capabilities to a **HackKit Web App** without changing **HackKit Core** source.
+- **HackKit Core** accepts an optional **HackKit Logger** at creation time; when omitted, a default console **HackKit Logger** applies with a configurable **Log Level** defaulting to `info` in development and `warn` in production unless overridden.
+- **HackKit Web Apps** may replace the default **HackKit Logger** with a custom implementation (for example forwarding to a hosted logging service) without changing **HackKit Core** source.
+- **HackKit Core** emits operational messages for significant domain APIs (such as **Hacker Registration**, **Organiser Approval**, **Hackathon Check-in**) through the **HackKit Logger** at **Log Level**s such as `info` or `debug`; this is not a separate persisted **Audit Log** model in v1.
+- **Log Context** for those messages includes action name, outcome, **Auth ID**s, relevant record ids, and error codes on failure; it excludes PII and form payloads.
+- **Hackathon Setting** changes are emitted through the **HackKit Logger** with **Log Context** including the actor **Auth ID** and setting key, but v1 stores only the latest setting value rather than a persisted change history.
+- **HackKit Core** receives **HackKit Plugins** through `initializeHackkit`.
+- **HackKit Plugins** should be configured in one place so package-specific integration details stay contained inside plugin packages.
+- **HackKit Plugins** contribute native MikroORM entities with namespaced table names and real relations to Core entities.
+- **HackKit Core** owns **Notification Intents** and typed notification payloads; **Notification Channel Plugins** own channel-specific destination resolution, rendering, delivery, and **Notification Delivery Attempts**.
+- **Notification Intents** are persisted before delivery so channel plugins may process them asynchronously and retry failed **Notification Delivery Attempts**.
+- The **Email Notification Plugin** is configured as a **HackKit Plugin**; **HackKit Core** does not send email directly.
+- Core, auth, enabled plugin, and app entities are collected before initialization. Duplicate names and tables fail initialization.
+- Native entity metadata defines constraints, relations, defaults, and inferred DTO types. SQL column names use snake_case across dialects.
+- Core and server plugins query a scoped EntityManager directly. Domain operations retain authorization and validation.
+- Better Auth owns identity and email. The linked HackKit profile owns editable profile and domain state; signup creates both atomically, and session reads never overwrite the profile.
+- Each request, action, job, and CLI operation gets a fresh identity map. Public domain results are plain DTOs.
+- The **Better Auth** integration may forward **HackKit Logger** messages through Better Auth’s own `logger` configuration so a single custom `log` implementation in `hackkit.config.ts` covers auth and **HackKit Core** output.
+- A **User Data** onboarding flow may display the authenticated **User** while collecting **User Data**.
+- **HackKit UI** treats authenticated **User** information passed to forms as display context, not as authorization input.
+- **HackKit Web Apps** commit reviewed MikroORM migrations and snapshots for PostgreSQL, MySQL, and SQLite/libSQL. Generation, application, and seeding are explicit release steps.
+- This redesign targets fresh databases; deployed data and existing accounts require a separately designed migration.
+- A **Blob Storage Adapter** stores files outside **HackKit Core**; **HackKit Core** stores only **Stored File References** supplied by the **HackKit Web App**.
+- **HackKit Web Apps** choose a **Blob Storage Adapter** implementation via configuration; local filesystem adapters suit development, S3-compatible adapters suit production.
+- A **User** is identified by exactly one **Auth ID** in a HackKit application.
+- A **User** may have zero or one **Hacker** profile.
+- **Competitor Onboarding** is the product journey that produces a **Hacker**; each step uses separate **HackKit Core** operations and **HackKit Web App** routes rather than one combined registration transaction.
+- **Competitor Onboarding** step order is: authenticate → **User** → **HackTag** → **User Data** → **Hacker Registration** → **Organiser Approval**.
+- **Require Approval** is a **Hackathon Setting**, not static **HackKit Web App** configuration.
+- **Hackathon Settings** are owned by **HackKit Core** and surfaced by **HackKit Web Apps** through admin UI.
+- **HackKit Core** defines built-in **Hackathon Settings** and **HackKit Plugins** may contribute plugin-specific **Hackathon Settings** to the **Hackathon Settings Registry**.
+- A hackathon policy is either a **Hackathon Setting** or static **HackKit Web App** configuration, never both at the same time.
+- A **HackKit Web App** may ship the full multi-step **Competitor Onboarding** flow before enforcing **Organiser Approval** gates in routes and UI.
+- Early **HackKit Web App** implementations may use guided “next step” links without hard redirects between onboarding steps; strict step enforcement may come later.
+- **HackKit UI** may provide a **Competitor Onboarding Progress** component that displays step labels and completion state from props supplied by the **HackKit Web App** (no hard redirects).
+- **HackKit Web Apps** may expose each **Competitor Onboarding** step at its own route under a shared prefix (for example `/onboarding/...`).
+- **HackKit UI** ships default forms for **Competitor Onboarding** steps, including **HackTag** claim, **User Data**, and **Hacker Registration**; **HackKit Web Apps** wire routes, a typed browser path client, and adapters.
+- **Hacker Registration** resume uploads use a **Blob Storage Adapter** in the **HackKit Web App**; **HackKit Core** stores only the **Stored File Reference** on the **Hacker** record when provided; omitting a resume leaves `resumeUrl` unset (no sentinel placeholder).
+- A **Hacker** belongs to exactly one **User**.
+- A **Hacker** may have zero or one **Group**.
+- **Group** assignment happens when a **Hacker** receives **Organiser Approval** if no **Group** has been assigned yet.
+- Automatic **Group** assignment uses round-robin distribution across enabled **Groups**; **Groups** do not impose capacity limits.
+- **Hackathon Capacity**, not **Group** membership, controls how many **Hackers** may receive **Organiser Approval**.
+- Organizers and judges are **Users** with **Roles**, not **Hackers**, unless they are also competing.
+- A **User** has one **Role** in v1.
+- Completing **Hacker Registration** assigns the hackathon’s default competitor **Role** from `hackkit.config.ts`; auth sign-up do not assign a **Role** by themselves.
+- A **Role** grants zero or more **Permissions**.
+- **Permissions** use namespaced keys so plugins can add capabilities without collisions.
+- **Admin Permission** is represented by `core.admin`.
+- **Super Admin Permission** is represented by `core.super_admin`.
+- A **User** may have zero or one **HackTag**.
+- A **User** has exactly one **User Data** record for hackathon-required information such as dietary restrictions.
+- A **User Data Option** has a stable stored value and a display label.
+- **User Data Options** constrain selected **User Data** fields and are shared by HackKit Core validation and HackKit UI rendering.
+- **Dietary Restrictions** are stored as configured **User Data Option** values; freeform dietary or accessibility needs belong in the **User Data** accommodation note.
+- An **Event** has zero or more **Event Scans**.
+- An **Event Scan** belongs to exactly one **Event** and exactly one **User**.
+- A **User** may have many **Event Scans** for the same **Event**; each scan is stored as a separate row.
+- **Event Scan** history is append-only in v1; mistaken scans are not deleted through Core APIs.
+- When a **User** already has **Event Scans** for an **Event**, volunteers are warned before recording another scan but may still add one.
+- Each **Event Scan** records which volunteer **User** performed the scan.
+- **HackKit UI** (and the server mutation layer ahead of **HackKit Core**) validates **Event Pass QR** freshness using a configurable **Event Pass QR TTL** before calling **Hackathon Check-in** or **Event Scan** APIs with a resolved **Auth ID**.
+- **Hackathon Check-in** APIs live on the **User** module; **Event** CRUD and **Event Scan** APIs live on the **Events** module.
+- A **User** presents their **Event Pass** to be scanned at **Events**.
+- Any **User** may present an **Event Pass** and be recorded in an **Event Scan**; a **Hacker** profile is not required for attendance flows.
+- **Stored File References** use app-relative URLs (for example `/api/files/view?key=...`), not direct bucket URLs in **HackKit Core** records.
+- **Hackathon Check-in** is separate from **Event Scan**; arriving at the venue is not the same as attending a specific **Event**.
+- **Hackathon Check-in** is recorded on the **User** as an optional arrival timestamp set by a volunteer with check-in permission.
+- A **User** may be **Hackathon Check-in** checked in at most once; repeat check-in attempts are rejected.
+- A volunteer with check-in permission may clear an existing **Hackathon Check-in** to correct a mistake.
+- **Event Types** constrain the type field on **Event** records and are shared by HackKit Core validation and HackKit UI rendering.
+- Each **Event Type** has a stable stored value, display label, and color, using the same value/label pattern as **User Data Options**.
+- **Event** records use string identifiers in HackKit Core.
+- Public schedule listing of non-hidden **Events** does not require an authenticated **User**; actors with `core.events.view` or higher can list hidden **Events** as well.
+- An **RSVP** may be recorded only for an approved **Hacker**.
+- **RSVP** has hackathon settings separate from **Hackathon Capacity**, including whether RSVP is open, the RSVP limit, and whether the **RSVP Waitlist** is enabled.
+- **RSVP Waitlist** promotion is organizer-managed in v1; HackKit does not automatically promote **Hackers** from the **RSVP Waitlist**.
+- A **Hacker** cannot self-cancel an **RSVP** in v1; organizers may correct RSVP state.
+- A **Team** belongs to the teams plugin domain and is composed of **Team Members** who must be **Hackers**.
+- Each **Hacker** may belong to at most one **Team** in v1.
+- Each **Team** has exactly one **Team Owner**, who is always a **Team Member**.
+- **Team Invites** are sent by the **Team Owner** and responded to by the invited **Hacker**.
+- **Team Invites** use pending, accepted, and declined statuses in v1.
+- **Maximum Team Size** belongs to the teams plugin settings, defaults to four, and is enforced when a **Team Invite** is accepted or a member is otherwise added to a **Team**.
 
 ## Example dialogue
 
@@ -342,31 +342,31 @@ _Avoid_: **Organiser Approval** queue, **Hackathon Capacity**, automatic accepta
 
 ## Flagged ambiguities
 
--   "core" could mean either a complete web framework or a domain/application kernel — resolved: **HackKit Core** is the framework-independent kernel.
--   "CLI" could mean runtime plugin loader or project file manager — resolved: **HackKit CLI** manages project creation and plugin-provided files, while **HackKit Core** remains the only current implementation target.
--   "Clerk ID" was used in the existing code as the user identifier — resolved: use **Auth ID** as the provider-neutral term.
--   "user" and "hacker" were used interchangeably in parts of the existing code — resolved: a **User** may exist without being a **Hacker**.
--   "hackerTag" in the existing code is being renamed — resolved: use **HackTag** because the handle can belong to any **User**, not only a **Hacker**.
--   Required MLH, demographic, and logistics fields were mixed into common user records — resolved: distinguish identity/profile fields on **User** from required **User Data**, while requiring **User Data** for every **User**.
--   "user registration form" could mean creating a **User** or collecting **User Data** — resolved: use **User Data form** for the form that collects required MLH, demographic, and logistics information.
--   "side event" describes agenda **Events** informally but must not appear in **HackKit UI** copy — resolved: user-facing language uses **Event** or schedule wording only.
--   Legacy `events.name` column stored the event title — resolved: HackKit Core uses domain property `title`.
--   Legacy `checkinTimestamp` on user records — resolved: **Hackathon Check-in** uses `checkedInAt` on **User** in HackKit Core.
--   Whether competitors are approved immediately or by organisers — resolved: **Require Approval** hackathon setting; when not required, final onboarding step sets `isApproved` true; when required, organisers approve via **Organiser Approval** workflow.
--   “Logging system” as persisted `error_log` rows vs framework logging — resolved: **HackKit Logger** pluggable boundary with **Log Level** and custom implementation; significant **HackKit Core** domain APIs, including **Hackathon Setting** changes, log through it without a separate audit table in v1.
--   Default **Log Level** when unset — resolved: `info` in development, `warn` in production (environment-based), overridable per **HackKit Web App**.
--   Runtime admin toggles (e.g. registration open/closed) — resolved: model them as typed **Hackathon Settings** owned by **HackKit Core**, not generic **HackKit Web App** preferences or an unstructured key/value store.
--   **Hackathon Setting** source of truth — resolved: a setting may have a built-in default, but its actual value must not be set from both static config and live admin-managed settings.
--   **Require Approval**, **Event Pass QR TTL**, **Maximum Registrations**, **Hackathon Capacity**, and whether new **Hacker Registration** is open are **Hackathon Settings**.
--   Default **Hackathon Settings** are: new **Hacker Registration** open, **Require Approval** off, existing **Event Pass QR TTL** default, **Maximum Registrations** unlimited, and **Hackathon Capacity** unlimited.
--   Changing **Hackathon Settings** requires the **Settings Management Permission**.
--   When new **Hacker Registration** is closed, **HackKit Core** rejects first-time **Hacker Registration** but does not reject **User Data** completion or updates to existing **Hacker Registration** records.
--   **Maximum Registrations** is enforced against first-time **Hacker Registration** by counting existing **Hackers**; volunteers and organisers who are not **Hackers** do not count toward this limit.
--   **Hackathon Capacity** is enforced against **Organiser Approval** by counting approved **Hackers**; volunteers and organisers who are not **Hackers** do not count toward this limit.
--   Lowering **Maximum Registrations** or **Hackathon Capacity** below the current count does not retroactively remove **Hackers** or revoke **Organiser Approval**; it blocks future registrations or approvals.
--   Admin experiences should surface when the current **Hacker** or approved **Hacker** count exceeds the configured **Maximum Registrations** or **Hackathon Capacity**.
--   Resume on **Hacker Registration** — resolved: optional `resumeUrl` only; no legacy “no resume provided” sentinel URL.
--   **Hacker** `group` assignment — resolved: **Group** is a HackKit participant cohort assigned at **Organiser Approval** time by round-robin distribution unless an organizer has already assigned one; it is separate from **Team** and may map to Discord roles through a plugin.
--   Default competitor **Role** on onboarding — resolved: applied when **Hacker Registration** completes, not at auth signup (legacy-aligned).
--   **Hacker** vs **User** for **Event Pass** could mean competitors only — resolved: attendance uses **Auth ID** for any **User**, matching the original HackKit convention that all participants share one identity record.
--   Legacy storage used one scan row per user and event with an incrementing count — resolved: HackKit Core stores each scan as a separate **Event Scan** row with its own identifier.
+- "core" could mean either a complete web framework or a domain/application kernel — resolved: **HackKit Core** is the framework-independent kernel.
+- "CLI" could mean runtime plugin loader or project file manager — resolved: **HackKit CLI** manages project creation and plugin-provided files, while **HackKit Core** remains the only current implementation target.
+- "Clerk ID" was used in the existing code as the user identifier — resolved: use **Auth ID** as the provider-neutral term.
+- "user" and "hacker" were used interchangeably in parts of the existing code — resolved: a **User** may exist without being a **Hacker**.
+- "hackerTag" in the existing code is being renamed — resolved: use **HackTag** because the handle can belong to any **User**, not only a **Hacker**.
+- Required MLH, demographic, and logistics fields were mixed into common user records — resolved: distinguish identity/profile fields on **User** from required **User Data**, while requiring **User Data** for every **User**.
+- "user registration form" could mean creating a **User** or collecting **User Data** — resolved: use **User Data form** for the form that collects required MLH, demographic, and logistics information.
+- "side event" describes agenda **Events** informally but must not appear in **HackKit UI** copy — resolved: user-facing language uses **Event** or schedule wording only.
+- Legacy `events.name` column stored the event title — resolved: HackKit Core uses domain property `title`.
+- Legacy `checkinTimestamp` on user records — resolved: **Hackathon Check-in** uses `checkedInAt` on **User** in HackKit Core.
+- Whether competitors are approved immediately or by organisers — resolved: **Require Approval** hackathon setting; when not required, final onboarding step sets `isApproved` true; when required, organisers approve via **Organiser Approval** workflow.
+- “Logging system” as persisted `error_log` rows vs framework logging — resolved: **HackKit Logger** pluggable boundary with **Log Level** and custom implementation; significant **HackKit Core** domain APIs, including **Hackathon Setting** changes, log through it without a separate audit table in v1.
+- Default **Log Level** when unset — resolved: `info` in development, `warn` in production (environment-based), overridable per **HackKit Web App**.
+- Runtime admin toggles (e.g. registration open/closed) — resolved: model them as typed **Hackathon Settings** owned by **HackKit Core**, not generic **HackKit Web App** preferences or an unstructured key/value store.
+- **Hackathon Setting** source of truth — resolved: a setting may have a built-in default, but its actual value must not be set from both static config and live admin-managed settings.
+- **Require Approval**, **Event Pass QR TTL**, **Maximum Registrations**, **Hackathon Capacity**, and whether new **Hacker Registration** is open are **Hackathon Settings**.
+- Default **Hackathon Settings** are: new **Hacker Registration** open, **Require Approval** off, existing **Event Pass QR TTL** default, **Maximum Registrations** unlimited, and **Hackathon Capacity** unlimited.
+- Changing **Hackathon Settings** requires the **Settings Management Permission**.
+- When new **Hacker Registration** is closed, **HackKit Core** rejects first-time **Hacker Registration** but does not reject **User Data** completion or updates to existing **Hacker Registration** records.
+- **Maximum Registrations** is enforced against first-time **Hacker Registration** by counting existing **Hackers**; volunteers and organisers who are not **Hackers** do not count toward this limit.
+- **Hackathon Capacity** is enforced against **Organiser Approval** by counting approved **Hackers**; volunteers and organisers who are not **Hackers** do not count toward this limit.
+- Lowering **Maximum Registrations** or **Hackathon Capacity** below the current count does not retroactively remove **Hackers** or revoke **Organiser Approval**; it blocks future registrations or approvals.
+- Admin experiences should surface when the current **Hacker** or approved **Hacker** count exceeds the configured **Maximum Registrations** or **Hackathon Capacity**.
+- Resume on **Hacker Registration** — resolved: optional `resumeUrl` only; no legacy “no resume provided” sentinel URL.
+- **Hacker** `group` assignment — resolved: **Group** is a HackKit participant cohort assigned at **Organiser Approval** time by round-robin distribution unless an organizer has already assigned one; it is separate from **Team** and may map to Discord roles through a plugin.
+- Default competitor **Role** on onboarding — resolved: applied when **Hacker Registration** completes, not at auth signup (legacy-aligned).
+- **Hacker** vs **User** for **Event Pass** could mean competitors only — resolved: attendance uses **Auth ID** for any **User**, matching the original HackKit convention that all participants share one identity record.
+- Legacy storage used one scan row per user and event with an incrementing count — resolved: HackKit Core stores each scan as a separate **Event Scan** row with its own identifier.

@@ -2,36 +2,50 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "start": "turbo run start",
-    "dev": "turbo run dev",
+    "start": "turbo run start --filter=@hackkit/template-nextjs-full",
+    "dev": "turbo run dev --filter=@hackkit/template-nextjs-full",
     "lint": "turbo run lint",
     "preinstall": "npx only-allow pnpm",
-    "db:generate": "pnpm --filter=web db:generate",
-    "db:migrate": "pnpm --filter=web db:migrate",
-    "db:seed": "pnpm --filter=web db:seed",
-    "db:reset": "pnpm --filter=web db:reset",
+    "db:generate": "pnpm --filter=@hackkit/template-nextjs-full db:generate",
+    "db:migrate": "pnpm --filter=@hackkit/template-nextjs-full db:migrate",
+    "db:seed": "pnpm --filter=@hackkit/template-nextjs-full db:seed",
+    "db:reset": "pnpm --filter=@hackkit/template-nextjs-full db:reset",
     "deploy-discord:dev": "pnpm --filter=bot deploy:dev",
     "deploy-discord:prod": "pnpm --filter=bot deploy:prod",
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "db:status": "pnpm --filter=web db:status",
-    "db:check": "pnpm --filter=web db:check",
-    "db:rollback": "pnpm --filter=web db:rollback"
+    "db:status": "pnpm --filter=@hackkit/template-nextjs-full db:status",
+    "db:check": "pnpm --filter=@hackkit/template-nextjs-full db:check",
+    "db:rollback": "pnpm --filter=@hackkit/template-nextjs-full db:rollback",
+    "dev:full": "turbo run dev --filter=@hackkit/template-nextjs-full",
+    "dev:minimal": "turbo run dev --filter=@hackkit/template-nextjs-minimal",
+    "test": "turbo run test --filter=./packages/*",
+    "typecheck": "turbo run typecheck",
+    "test:e2e": "pnpm --filter @hackkit/e2e test",
+    "test:e2e:db": "pnpm --filter @hackkit/e2e test:db",
+    "test:e2e:http": "pnpm --filter @hackkit/e2e test:http",
+    "test:e2e:browser": "pnpm --filter @hackkit/e2e test:browser",
+    "dev:demo": "turbo run dev --filter=@hackkit/demo",
+    "dev:docs": "pnpm --filter @hackkit/docs dev",
+    "build:demo": "turbo run build --filter=@hackkit/demo",
+    "build:docs": "pnpm --filter @hackkit/docs build",
+    "deploy:demo": "pnpm --filter @hackkit/demo run deploy",
+    "deploy:docs": "pnpm --filter @hackkit/docs run deploy"
   },
   "devDependencies": {
     "@turbo/gen": "^2.0.9",
     "@types/node": "20.14.11",
     "dotenv-cli": "^7.4.2",
-    "eslint": "^9.7.0",
+    "eslint": "^10.13.0",
     "prettier": "^3.3.3",
     "turbo": "^2.0.9"
   },
-  "packageManager": "pnpm@8.3.1+sha512.d264f6640bf4f09de7cfcc547568515bcf0613cf485a03e8ff16616fa69c4172b6f9a0a2925ee44fb060df565c9c9a8eaf061749e77af318cb77f6684a7051f3",
   "name": "hackkit",
   "dependencies": {
     "prettier-plugin-tailwindcss": "^0.6.5"
   },
   "engines": {
     "node": ">=22.17.0"
-  }
+  },
+  "packageManager": "pnpm@12.15.0"
 }

@@ -1,0 +1,23 @@
+---
+title: "Templates"
+description: "Choose a starting point without changing the shared libraries."
+---
+
+| Capability                                | Minimal | Full        |
+| ----------------------------------------- | ------- | ----------- |
+| Authentication and onboarding             | Yes     | Yes         |
+| Dashboard, profiles, registration editing | Yes     | Yes         |
+| Users, roles, settings, CSV export        | Yes     | Yes         |
+| Local SQLite and file storage             | Yes     | Development |
+| Teams and invitations                     | No      | Yes         |
+| Discord and email adapters                | No      | Yes         |
+| Schedule, RSVP, passes, scanners          | No      | Yes         |
+| Production S3 adapter                     | No      | Yes         |
+
+The examples live at `templates/nextjs-minimal` and `templates/nextjs-full`. Each provides pages, configuration, and database scripts. A new application generates its own initial migration and snapshot after selecting a database and plugins, then commits and maintains that history. Templates ship without pre-generated migrations. Neither imports the other or E2E support.
+
+Minimal registers no plugins. It seeds participant and owner roles with Core permissions. Full registers Teams, Discord, and email notifications, with provider choices in its configuration.
+
+Reuse `@hackkit/ui` components when adapting a template. Keep event-specific copy and navigation in the application. Plugins contribute their declared schemas and HTTP contracts through the registry.
+
+Both examples remain part of this workspace. Copying a folder outside the monorepo is not yet a supported installation flow.

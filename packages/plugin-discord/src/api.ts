@@ -73,7 +73,7 @@ function addMs(date: Date, ms: number): Date {
 function roleRefsEqual(left: DiscordRoleRef, right: DiscordRoleRef): boolean {
 	return Boolean(
 		(left.id && left.id === right.id) ||
-			(left.name && left.name === right.name),
+		(left.name && left.name === right.name),
 	);
 }
 

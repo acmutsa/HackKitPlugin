@@ -1,0 +1,22 @@
+---
+title: "Configuration"
+description: "Keep event configuration and credentials inside the application."
+---
+
+`hackkit.config.ts` declares the database driver, Better Auth options, seed roles, blob adapter, registration options, event types, and plugins. The application's `env.ts` validates environment variables before the runtime starts.
+
+## Minimal
+
+Local defaults use SQLite and local uploads. In production, set an explicit application URL and a random `BETTER_AUTH_SECRET` of at least 32 characters. SQLite and uploads require persistent disk storage. An ephemeral serverless filesystem will lose them.
+
+## Full
+
+The full example keeps stricter production requirements: an explicit application URL and authentication secret, S3 configuration, and the Discord bot integration settings. Its `.env.example` separates local defaults, required production variables, and optional integrations.
+
+Email defaults to no external delivery. Enable Resend or SMTP only when you have configured that provider. OAuth credentials must be provided as matching client ID and secret pairs.
+
+## Secrets
+
+Use each application's `.env.example` as the variable reference. Keep actual credentials in ignored local files or the hosting provider's secret storage. Never put secrets in `NEXT_PUBLIC_*` variables; those values can reach the browser.
+
+Restart or redeploy after changing configuration. Do not copy a developer database or uploads into a demo deployment.

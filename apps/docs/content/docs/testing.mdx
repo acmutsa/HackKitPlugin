@@ -1,0 +1,28 @@
+---
+title: "Testing"
+description: "Run package checks and integration suites against actual templates."
+---
+
+## Package checks
+
+```sh
+corepack pnpm test
+corepack pnpm typecheck
+```
+
+Focused tests live beside the libraries. Repository integration tests live in `e2e`, which runs the actual templates rather than maintaining a separate test application.
+
+## End-to-end checks
+
+```sh
+corepack pnpm --filter @hackkit/e2e exec playwright install chromium
+corepack pnpm test:e2e
+```
+
+The runner builds libraries, synchronizes plugins, checks generated-file drift, typechecks, generates temporary migration histories, prepares and checks disposable build databases, and builds both templates once. Runtime fixtures use fresh databases and uploads. They do not reuse developer `.env` values or databases.
+
+Use `test:e2e:db`, `test:e2e:http`, or `test:e2e:browser` for a selected suite. Browser and HTTP checks use one Playwright worker, no automatic retries, and ports 33017 and 33018. An occupied port fails instead of attaching to another server.
+
+Database checks cover SQLite, local libSQL, PostgreSQL, MySQL, and HTTP libSQL. Unavailable external targets may skip locally; CI requires the complete matrix. Browser journeys cover onboarding, persistent accounts, redirects, approval, permissions, and organizer access. Full also exercises team invitations across sessions.
+
+The public demo has a separate smoke test for its launcher, seeded roles, schedule, and onboarding. It is not a replacement for template integration tests.

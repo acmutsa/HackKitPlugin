@@ -1,0 +1,107 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "07. Notifications, Discord, storage, and deployed apps",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Goal: see how Core supports external services without requiring every application to configure them. Trace durable notification intents into email delivery, Discord linking into role synchronization, and host storage routes into adapters.\n\nThe final steps distinguish the deployed demo and documentation apps from reference templates. Reading this chapter does not contact providers or verify a hosted deployment."
+		},
+		{
+			"file": "packages/core/src/notifications.ts",
+			"pattern": "async queueIntent\\(",
+			"title": "Store delivery intent with the domain change",
+			"description": "`queueIntent` validates the notification kind/payload and optionally returns an existing intent by idempotency key. Otherwise it creates a pending row and flushes it through the current EntityManager.\n\nWhen a domain transaction calls this method, the intent is part of that database transaction. A committed RSVP can therefore leave durable work for a later delivery call. Queueing an intent does not send email or start a background worker."
+		},
+		{
+			"file": "packages/core/src/notifications.ts",
+			"pattern": "async deliverPending\\(",
+			"title": "Claim work and record delivery attempts",
+			"description": "The delivery loop reads pending intents and conditionally changes each to processing. A zero-row claim means another execution already claimed it. Each supplied channel runs, and success, skip, or failure becomes a delivery-attempt record. Intent status is then summarized.\n\nThe method is explicit: a host or job must call it. Do not assume a scheduler, automatic retry, or exactly-once provider delivery from this loop. A process crash between claiming and recording results needs operational consideration beyond the code shown here."
+		},
+		{
+			"file": "packages/plugin-notifications-email/src/index.ts",
+			"pattern": "export function emailNotificationsPlugin",
+			"title": "Keep provider configuration separate from scoped email APIs",
+			"description": "The email plugin has a setup API but no entity or endpoint declarations. It uses Core's notification tables and can accept options or a deferred options factory.\n\nThe resolved options are cached in the plugin closure, while `createEmailNotificationsApi` runs with each scope's context. Stable provider settings can therefore be reused without retaining a request's EntityManager. The plugin ID is `notificationsEmail`."
+		},
+		{
+			"file": "packages/plugin-notifications-email/src/api.ts",
+			"pattern": "export function createEmailNotificationsApi",
+			"title": "Render and deliver one email channel",
+			"description": "The channel checks for a provider and a template, resolves a recipient through scoped user lookup, renders the template, and calls the provider. Missing provider/template/recipient returns a skipped result. Successful sends include provider and external message metadata.\n\n`deliverPending` delegates to Core with this channel. `deliverIntent` delivers one selected intent and records an attempt. SMTP and Resend implementations live in providers.ts; domain registration and RSVP code do not import either provider."
+		},
+		{
+			"file": "packages/plugin-discord/src/index.ts",
+			"pattern": "export function discordPlugin",
+			"title": "Compose Discord persistence and API behavior",
+			"description": "Discord declares its own models, endpoint factory, package name, and scoped setup factory. Deferred configuration is resolved once and reused for new APIs, as in the email plugin.\n\nIts persisted verification/member/sync-attempt records are separate from the external Discord service. A local link can be committed even when a later provider call fails. Inspect the next steps for that ordering."
+		},
+		{
+			"file": "packages/plugin-discord/src/api.ts",
+			"pattern": "async createVerification\\(",
+			"title": "Issue a pending verification with a bounded lifetime",
+			"description": "The method requires the configured guild, persists the code and Discord identity with an expiration time, and returns a verification URL. The browser link is a way to associate that pending verification with a signed-in HackKit participant.\n\nCreating the pending row does not approve a hacker or grant roles. Confirmation must verify current status, time, and ownership constraints before creating the member link."
+		},
+		{
+			"file": "packages/plugin-discord/src/api.ts",
+			"pattern": "async confirmVerification\\(",
+			"title": "Commit the account link before contacting Discord",
+			"description": "Confirmation uses a verification lock and rejects missing/non-pending codes. It requires an approved registered hacker and prevents a Discord account from linking to a different user.\n\nExpiration and conflicting-link branches return an error value from the transaction so their expired/rejected status changes can commit, then throw afterward. Successful confirmation commits the member link and accepted code before `syncMemberRoles` contacts the provider. A network failure therefore does not roll back an already-consumed code."
+		},
+		{
+			"file": "packages/plugin-discord/src/api.ts",
+			"pattern": "async syncMemberRoles\\(input:",
+			"title": "Separate role planning from provider delivery",
+			"description": "The method builds a plan from linked member and participant/group information. Without a provider it records a skipped attempt. With a provider it sends role IDs/names and nickname, updates last-sync time after success, and records the result.\n\nProvider errors become failed attempts. They do not delete the local member link. The provider module handles HTTP communication; the plan remains inspectable through the plugin API."
+		},
+		{
+			"file": "templates/nextjs-full/lib/blob.ts",
+			"pattern": "export function createBlobStorageFromConfig",
+			"title": "Choose a storage adapter at the host boundary",
+			"description": "The full template chooses S3-compatible storage or local filesystem storage according to application config. The shared interface exposes upload targets and object reads. Additional capabilities let the host distinguish a local write path from a signed S3 view URL.\n\nStorage adapters do not know whether a user may view a resume. That decision stays in the host route. The Core profile stores a stable reference rather than depending on a temporary signed URL."
+		},
+		{
+			"file": "packages/blob-local/src/index.ts",
+			"pattern": "export function createLocalBlobStorage",
+			"title": "Turn a local upload request into a stable reference",
+			"description": "The adapter generates a location/UUID key and returns the host's upload URL plus `/api/files/view?key=...` as the stored reference. It exposes directory preparation and filesystem reads for host routes.\n\nRead the path normalization and base-directory checks before changing key handling. The host must still validate accepted locations and access. The adapter's methods are storage operations, not a complete upload authorization policy."
+		},
+		{
+			"file": "packages/blob-s3/src/index.ts",
+			"pattern": "export function createS3BlobStorage",
+			"title": "Use temporary S3 URLs with stable application references",
+			"description": "The S3 adapter creates signed PutObject URLs and returns a stable host view reference. It can read objects or create a signed GetObject URL. Signing expiry defaults to one hour unless overridden.\n\nThe browser can upload to the signed destination while application records keep the durable reference. Credentials stay in server configuration. A signed URL grants temporary object access, so the host checks permissions before returning one for private files."
+		},
+		{
+			"file": "templates/nextjs-full/app/api/files/view/route.ts",
+			"pattern": "async function canViewFile",
+			"title": "Apply file access policy before storage access",
+			"description": "Profile photos are public under this route's policy. Other files require a session. A participant can view their registered resume reference; a user with `HackersView` can view other resumes.\n\nGET also restricts accepted key prefixes. After permission checks, S3 redirects to a signed view URL and local storage returns bytes. File privacy therefore depends on this host route as well as bucket/filesystem configuration."
+		},
+		{
+			"file": "apps/demo/lib/runtime.ts",
+			"pattern": "function getHost\\(\\)",
+			"title": "Reuse packages in the demo with guarded lazy initialization",
+			"description": "The demo creates its host lazily after asserting demo environment configuration, then registers a provider for package-owned pages. Its convenience API mirrors the templates while using its own config and seeded fictional event data.\n\nThe demo is a deployed app with its own build, database scripts, and bindings. It is not the target for template E2E. Inspect apps/demo/README.md for local setup and deployment rather than inheriting the full template's database assumptions."
+		},
+		{
+			"file": "apps/demo/lib/database-config.ts",
+			"pattern": "export const databaseOptions = \\{",
+			"title": "Adapt MikroORM to HTTP libSQL for the Worker",
+			"description": "The demo uses the generic SQLite driver from `@mikro-orm/sql` with a custom Kysely HTTP libSQL dialect. This avoids depending on a native SQLite binary in the Worker.\n\nThe dialect gets its URL/token from demo environment configuration. Reference templates can choose other driver configurations. Similar domain APIs do not imply identical deployment transports or database drivers."
+		},
+		{
+			"file": "apps/demo/lib/http-libsql-dialect.ts",
+			"pattern": "override async acquireConnection\\(\\)",
+			"title": "Keep HTTP stream state within one connection checkout",
+			"description": "Each acquired connection gets a fresh web libSQL client. The driver tracks it in a WeakMap and closes it on release. A transaction retains its connection while unrelated requests acquire their own.\n\nThe same file implements savepoint, rollback-to-savepoint, and release-savepoint operations for nested transactions. Its adapter permits multiple connections. These details let Core's transaction behavior work through the demo's HTTP database transport."
+		},
+		{
+			"file": "apps/docs/lib/source.ts",
+			"pattern": "const docs = defineDocs\\(\\{",
+			"title": "Keep the documentation site separate from the domain runtime",
+			"description": "Fumadocs reads MDX from content/docs, applies page/meta schemas, and constructs the site source. The loader exposes routes and processed Markdown for the docs' text representation.\n\nThis app teaches and documents HackKit; it does not implement registration or plugin composition. The docs' package/build configuration differs from the reference templates. Continue with [08. Verification and change guide] for the repository's test boundaries."
+		}
+	],
+	"nextTour": "08. Verification and change guide"
+}

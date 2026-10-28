@@ -1,0 +1,32 @@
+---
+title: "Interactive demo"
+description: "Explore HackKit with fictional accounts and shared sample data."
+---
+
+[Open the live demo](https://hackkit-demo.acm-utsa.workers.dev).
+
+The application lives in `apps/demo`. It uses the same Core, Next integration, UI, and Teams packages as the full workspace example. Vinext runs it on Cloudflare Workers, with Turso for application data and private R2 storage for uploads.
+
+The launcher offers a registered participant and an organizer. **Try registration** creates a new fictional account for onboarding. The organizer can inspect users, roles, settings, and events. Seeded fictional people and schedule entries make these screens useful immediately.
+
+## Local demo
+
+Copy `apps/demo/.dev.vars.example` to `apps/demo/.dev.vars`. Supply your demo Turso URL, Turso token, and an authentication secret of at least 32 characters. Keep the local application URL as `http://localhost:3001`.
+
+Build workspace libraries, then run the demo's explicit database setup:
+
+```sh
+corepack pnpm exec turbo run build --filter=@hackkit/demo^...
+corepack pnpm --filter @hackkit/demo plugin:sync
+corepack pnpm --filter @hackkit/demo db:migrate
+corepack pnpm --filter @hackkit/demo db:demo
+corepack pnpm dev:demo
+```
+
+Open [localhost:3001](http://localhost:3001). Workerd uses the configured Turso database and local R2 emulation. Use a separate development database when you need isolated changes. Database setup never runs inside a request.
+
+## Hosted behavior
+
+The demo shares persistent data between visitors. Changes to sample accounts, teams, and settings are visible to other visitors. Use fictional information only. Demo account passwords are public by design. Email delivery, OAuth, and Discord synchronization are disabled.
+
+Uploads pass through authenticated application routes to a private R2 bucket. Resume access retains HackKit's owner and organizer permission checks. Profile photos can be viewed publicly.

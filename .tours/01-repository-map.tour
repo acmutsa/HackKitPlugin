@@ -1,0 +1,72 @@
+{
+	"$schema": "https://aka.ms/codetour-schema",
+	"title": "01. Repository map and composition",
+	"steps": [
+		{
+			"title": "What you will learn",
+			"description": "Start here with the repository root open in VS Code. These linked chapters explain the `templates-and-testing` working tree, including the template/E2E split. They use current files rather than a pinned commit. Recheck the relevant descriptions after changing schema or runtime behavior.\n\nFollow a participant who signs up, completes registration, creates a team, and receives event access. You will trace configuration into Core, then follow browser requests back to domain operations and persistence. Later chapters cover route generation, integrations, deployed apps, and verification.\n\nPrerequisites: TypeScript and basic React knowledge. An EntityManager is MikroORM's object for querying and tracking database records. A scope is one execution's EntityManager plus APIs that use it. Reading these tours does not start services, run migrations, or send external requests."
+		},
+		{
+			"file": "pnpm-workspace.yaml",
+			"pattern": "packages:",
+			"title": "Locate each kind of workspace",
+			"description": "The workspace includes `packages/*`, `templates/*`, `apps/*`, and `e2e`. Packages contain reusable behavior. Templates are runnable reference applications. Apps contain the demo and documentation sites. E2E owns integration checks that exercise the real templates.\n\nThe full and minimal templates are application consumers of the packages. E2E does not keep a third copy of the application. Read this map before searching for the former `apps/web` path."
+		},
+		{
+			"file": "package.json",
+			"pattern": "\"dev\": \"turbo run dev --filter=@hackkit/template-nextjs-full\"",
+			"title": "Choose the application explicitly",
+			"description": "Root `dev`, `start`, and `db:*` commands target the full template. `dev:minimal` selects the Core-only starter. `test` selects package tests, while `test:e2e` selects the integration workspace. Demo and docs have their own commands.\n\nUse the pinned pnpm through Corepack as described in the root README. These are command definitions to inspect, not instructions to reset or migrate a developer database. The database chapter explains their effects."
+		},
+		{
+			"file": "turbo.json",
+			"pattern": "\"tasks\": \\{",
+			"title": "Read the task graph",
+			"description": "The `build` task depends on `^build`, which means the build task of dependency packages. A template can therefore import a library's `dist` output after Turbo builds that library. This is different from asking a package to depend on its own build.\n\nDevelopment and start tasks are persistent and uncached. Typechecking also builds dependencies first. The demo has a separate build override, and E2E tests disable caching. Outputs describe which generated files Turbo can restore; they do not replace runtime validation."
+		},
+		{
+			"file": "packages/tsconfig/base.json",
+			"pattern": "\"strict\": true",
+			"title": "Share compiler defaults without hiding package boundaries",
+			"description": "The tsconfig workspace provides shared base, React-library, and Next configurations. Strict checking is a shared baseline. Individual packages still choose their own includes, outputs, and appropriate compiler configuration.\n\nCore's tsup.config.ts declares separate server, browser, testing, HTTP, and event-pass build entries and produces declarations. Package exports determine which entry a consumer imports. A source-level separation must also survive the build and published export map."
+		},
+		{
+			"file": ".npmrc",
+			"pattern": "resolve-peers-from-workspace-root = false",
+			"title": "Keep the React dependency contexts separate",
+			"description": "The reference templates use React 18, while the Worker/demo and docs applications use React 19. These pnpm settings keep peer resolution from automatically using the workspace root and disable deduplication across peer contexts.\n\nA workspace install can therefore include different React contexts for separate applications. Inspect each package's actual dependencies before changing this setting or assuming all consumers run one framework version. The lockfile records the resolved contexts."
+		},
+		{
+			"file": "packages/core/package.json",
+			"pattern": "\"\\./client\": \\{",
+			"title": "Find the browser and server entry points",
+			"description": "Core publishes several entry points. The main entry contains server/domain behavior. `/client` exports browser-safe schemas, constants, and DTO types. `/http` contains server endpoint construction. `/http/client` contains the browser transport.\n\nA DTO is a plain data object returned across a boundary. Importing its TypeScript type does not require importing the server implementation at runtime. This separation lets shared UI use validation and inferred endpoint types without bundling MikroORM or database drivers."
+		},
+		{
+			"file": "templates/nextjs-full/hackkit.config.ts",
+			"pattern": "export default defineHackkitConfig\\(\\{",
+			"title": "Compose the full application",
+			"description": "The application chooses database options, Better Auth options, seed roles, file storage, registration choices, groups, event types, and plugin instances. Teams, Discord, and email notifications are declared in the `plugins` array below.\n\nThis file is the composition point. Core supplies behavior, but the host chooses which services and plugins exist. The plugin objects will feed both ORM discovery and scope creation. Provider factories defer optional service configuration until a plugin API is set up."
+		},
+		{
+			"file": "templates/nextjs-minimal/hackkit.config.ts",
+			"pattern": "export default defineHackkitConfig\\(\\{",
+			"title": "Compare the minimal consumer",
+			"description": "The minimal template demonstrates Core registration, profiles, and administration without the full template's plugin set. Read its actual plugins, database, blob, and role configuration beside the full template.\n\nCore and Better Auth still need tables when no feature plugins are enabled. Templates ship without migration history or snapshots. After selecting the database and plugins, a new application generates its own initial migration, reviews and applies it, and commits that history. Later clones apply the committed migrations. Removing optional plugins does not remove the Core/auth lifecycle."
+		},
+		{
+			"file": "packages/config/src/index.ts",
+			"pattern": "export function defineHackkitConfig",
+			"title": "Preserve the caller's inferred config type",
+			"description": "`defineHackkitConfig` returns its input unchanged. The const generic preserves specific configuration information in the inferred return type. This matters for literal plugin IDs and the API types associated with those plugins.\n\nIt does not validate environment credentials or initialize resources. `resolveHackkitConfig` below verifies that database driver and auth options exist, then supplies empty plugin and role lists when omitted. `loadHackkitConfig` uses Jiti to import a TypeScript config for CLI callers."
+		},
+		{
+			"file": "templates/nextjs-full/lib/runtime.ts",
+			"pattern": "const host = createHackkitRuntimeFromConfig\\(\\{",
+			"title": "Connect application configuration to execution",
+			"description": "This server-only module creates the Next integration host from normalized app configuration. `setHackkitRuntime(host.getRuntime)` registers a factory for plugin-owned server pages. Convenience functions expose the current user's runtime and domain APIs.\n\nThe host keeps shared initialization, while `getRuntime` supplies request/render-specific state. The exported handler serves the catch-all HTTP route. Continue with [02. Core startup and persistence] to see what the host initializes."
+		}
+	],
+	"isPrimary": true,
+	"nextTour": "02. Core startup and persistence"
+}

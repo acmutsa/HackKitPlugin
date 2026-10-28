@@ -1,0 +1,15 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "hackkit-demo",
+	"account_id": "cdc7630e53b468f56a4453af71a58ade",
+	"main": "vinext/server/app-router-entry",
+	"compatibility_date": "2026-10-19",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"observability": { "enabled": true },
+	"vars": { "BETTER_AUTH_URL": "https://hackkit-demo.acm-utsa.workers.dev" },
+	"assets": { "not_found_handling": "none" },
+	"r2_buckets": [
+		{ "binding": "DEMO_UPLOADS", "bucket_name": "hackkit-demo-uploads" },
+	],
+}

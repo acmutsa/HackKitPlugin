@@ -1,0 +1,30 @@
+---
+title: "Plugins"
+description: "Enable optional features through the application registry."
+---
+
+Full demonstrates the Teams, Discord, and email notification plugins. Minimal has an empty plugin registry.
+
+## Synchronize after configuration changes
+
+```sh
+corepack pnpm --filter @hackkit/template-nextjs-full plugin:sync
+```
+
+Synchronization updates the application-owned generated plugin files and lock information. Review those changes. Schema changes also require reviewed migrations; synchronization does not replace migration generation or execution.
+
+## Teams
+
+Participants can create teams, invite another registered participant by HackTag, and accept invitations. The plugin enforces membership rules through its APIs and typed HTTP endpoints.
+
+## Discord
+
+The Discord plugin supports verification and role synchronization. The full production example requires its bot configuration. A local or demo application can omit the provider, but must describe that limitation in its UI.
+
+## Email notifications
+
+The notification plugin queues local domain notifications and can deliver through configured providers. A missing provider must not be described as successful external delivery. Tests keep provider operations local and never send real email.
+
+## Client boundaries
+
+Import a plugin's client contract for browser calls. Keep providers, entities, and runtime setup in server code. Integration checks verify that browser bundles exclude MikroORM and other server-only dependencies.

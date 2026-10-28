@@ -29,7 +29,7 @@ export const HackKitUser = defineEntity({
 		name: p.string(),
 		email: p.string().unique(),
 		emailVerified: p.boolean().default(false),
-		profilePhotoUrl: p.text().nullable(),
+		image: p.text().nullable(),
 		hackTag: p.string().nullable().unique(),
 		bio: p.text().nullable(),
 		pronouns: p.string().nullable(),

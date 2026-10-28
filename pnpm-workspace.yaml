@@ -1,3 +1,23 @@
 packages:
   - "apps/*"
+  - "templates/*"
   - "packages/*"
+  - "e2e"
+allowBuilds:
+  esbuild: true
+  workerd: true
+overrides:
+  "@libsql/kysely-libsql>@libsql/client": "0.17.4"
+packageExtensions:
+  "next@14.2.35":
+    peerDependencies:
+      "@types/react": "*"
+  "qrcode.react@4.2.0":
+    peerDependencies:
+      "@types/react": "*"
+  "@yudiel/react-qr-scanner@2.6.0":
+    peerDependencies:
+      "@types/react": "*"
+  "sonner@1.7.4":
+    peerDependencies:
+      "@types/react": "*"
