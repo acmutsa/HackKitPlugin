@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 export const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
 export const e2eDirectory = join(repositoryRoot, "e2e");
@@ -27,8 +28,10 @@ export function testEnvironment(template, directory) {
 	const common = {
 		PATH: process.env.PATH,
 		HOME: process.env.HOME,
-		TMPDIR: process.env.TMPDIR,
-		SystemRoot: process.env.SystemRoot,
+		TMPDIR: tmpdir(),
+		...(process.env.SystemRoot === undefined
+			? {}
+			: { SystemRoot: process.env.SystemRoot }),
 		NODE_ENV: "production",
 		NEXT_TELEMETRY_DISABLED: "1",
 		DATABASE_URL: `file:${join(directory, "web.db")}`,
