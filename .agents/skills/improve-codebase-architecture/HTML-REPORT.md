@@ -53,14 +53,14 @@ The diagrams carry the weight. Prose is sparse, plain, and uses the glossary ter
 
 Each candidate is one `<article>`:
 
--   **Title** — short, names the deepening (e.g. "Collapse the Order intake pipeline").
--   **Badge row** — recommendation strength (`Strong` = emerald, `Worth exploring` = amber, `Speculative` = slate), plus a tag for the dependency category (`in-process`, `local-substitutable`, `ports & adapters`, `mock`).
--   **Files** — monospaced list, `font-mono text-sm`.
--   **Before / After diagram** — the centrepiece. Two columns, side by side. See patterns below.
--   **Problem** — one sentence. What hurts.
--   **Solution** — one sentence. What changes.
--   **Wins** — bullets, ≤6 words each. e.g. "Tests hit one interface", "Pricing logic stops leaking", "Delete 4 shallow wrappers".
--   **ADR callout** (if applicable) — one line in an amber-tinted box.
+- **Title** — short, names the deepening (e.g. "Collapse the Order intake pipeline").
+- **Badge row** — recommendation strength (`Strong` = emerald, `Worth exploring` = amber, `Speculative` = slate), plus a tag for the dependency category (`in-process`, `local-substitutable`, `ports & adapters`, `mock`).
+- **Files** — monospaced list, `font-mono text-sm`.
+- **Before / After diagram** — the centrepiece. Two columns, side by side. See patterns below.
+- **Problem** — one sentence. What hurts.
+- **Solution** — one sentence. What changes.
+- **Wins** — bullets, ≤6 words each. e.g. "Tests hit one interface", "Pricing logic stops leaking", "Delete 4 shallow wrappers".
+- **ADR callout** (if applicable) — one line in an amber-tinted box.
 
 No paragraphs of explanation. If the diagram needs a paragraph to be understood, redraw the diagram.
 
@@ -81,8 +81,7 @@ Use a Mermaid `flowchart` or `graph` when the point is "X calls Y calls Z, and l
       C -.leak.-> D[PricingClient]
       classDef leak stroke:#dc2626,stroke-width:2px;
       class C,D leak
-  </pre
-	>
+  </pre>
 </div>
 ```
 
@@ -104,11 +103,11 @@ Before: a tree of function calls rendered as nested boxes. After: the same tree 
 
 ## Style guidance
 
--   Lean editorial, not corporate-dashboard. Generous whitespace. Serif optional for headings (`font-serif` works well with stone/slate).
--   Colour sparingly: one accent (emerald or indigo) plus red for leakage and amber for warnings.
--   Keep diagrams ~320px tall so before/after sits comfortably side by side without scrolling.
--   Use `text-xs uppercase tracking-wider` for module labels inside diagrams — they should read as schematic, not as UI.
--   The only scripts are the Tailwind CDN and the Mermaid ESM import. The report is otherwise static — no app code, no interactivity beyond Mermaid's own rendering.
+- Lean editorial, not corporate-dashboard. Generous whitespace. Serif optional for headings (`font-serif` works well with stone/slate).
+- Colour sparingly: one accent (emerald or indigo) plus red for leakage and amber for warnings.
+- Keep diagrams ~320px tall so before/after sits comfortably side by side without scrolling.
+- Use `text-xs uppercase tracking-wider` for module labels inside diagrams — they should read as schematic, not as UI.
+- The only scripts are the Tailwind CDN and the Mermaid ESM import. The report is otherwise static — no app code, no interactivity beyond Mermaid's own rendering.
 
 ## Top recommendation section
 
@@ -124,10 +123,10 @@ Plain English, concise — but the architectural nouns and verbs come straight f
 
 **Phrasings that fit the style:**
 
--   "Order intake module is shallow — interface nearly matches the implementation."
--   "Pricing leaks across the seam."
--   "Deepen: one interface, one place to test."
--   "Two adapters justify the seam: HTTP in prod, in-memory in tests."
+- "Order intake module is shallow — interface nearly matches the implementation."
+- "Pricing leaks across the seam."
+- "Deepen: one interface, one place to test."
+- "Two adapters justify the seam: HTTP in prod, in-memory in tests."
 
 **Wins bullets** name the gain in glossary terms: _"locality: bugs concentrate in one module"_, _"leverage: one interface, N call sites"_, _"interface shrinks; implementation absorbs the wrappers"_. Don't write _"easier to maintain"_ or _"cleaner code"_ — those terms aren't in the glossary and don't earn their place.
 

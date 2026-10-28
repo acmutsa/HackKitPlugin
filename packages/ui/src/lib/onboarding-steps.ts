@@ -7,10 +7,7 @@ import {
 } from "../navigation";
 
 export type CompetitorOnboardingStepId =
-	| "hacktag"
-	| "user-data"
-	| "hacker"
-	| "approval";
+	"hacktag" | "user-data" | "hacker" | "approval";
 
 export type CompetitorOnboardingStep = {
 	id: CompetitorOnboardingStepId;

@@ -18,23 +18,23 @@ Every comment or issue posted to the issue tracker during triage **must** start 
 
 ## Reference docs
 
--   [AGENT-BRIEF.md](AGENT-BRIEF.md) — how to write durable agent briefs
--   [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md) — how the `.out-of-scope/` knowledge base works
+- [AGENT-BRIEF.md](AGENT-BRIEF.md) — how to write durable agent briefs
+- [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md) — how the `.out-of-scope/` knowledge base works
 
 ## Roles
 
 Two **category** roles:
 
--   `bug` — something is broken
--   `enhancement` — new feature or improvement
+- `bug` — something is broken
+- `enhancement` — new feature or improvement
 
 Five **state** roles:
 
--   `needs-triage` — maintainer needs to evaluate
--   `needs-info` — waiting on reporter for more information
--   `ready-for-agent` — fully specified, ready for an AFK agent
--   `ready-for-human` — needs human implementation
--   `wontfix` — will not be actioned
+- `needs-triage` — maintainer needs to evaluate
+- `needs-info` — waiting on reporter for more information
+- `ready-for-agent` — fully specified, ready for an AFK agent
+- `ready-for-human` — needs human implementation
+- `wontfix` — will not be actioned
 
 For a PR, the same states read against the attached code: `ready-for-agent` means a brief is attached and an agent should take the next step on the diff; `ready-for-human` means it's ready for a human to merge.
 
@@ -48,10 +48,10 @@ State transitions: an unlabeled issue normally goes to `needs-triage` first; fro
 
 The maintainer invokes `/triage` and describes what they want in natural language. Interpret the request and act. Examples:
 
--   "Show me anything that needs my attention"
--   "Let's look at #42" (issue or PR)
--   "Move #42 to ready-for-agent"
--   "What's ready for agents to pick up?"
+- "Show me anything that needs my attention"
+- "Let's look at #42" (issue or PR)
+- "Move #42 to ready-for-agent"
+- "What's ready for agents to pick up?"
 
 ## Show what needs attention
 
@@ -96,13 +96,13 @@ If the maintainer says "move #42 to ready-for-agent", trust them and apply the r
 
 **What we've established so far:**
 
--   point 1
--   point 2
+- point 1
+- point 2
 
 **What we still need from you (@reporter):**
 
--   question 1
--   question 2
+- question 1
+- question 2
 ```
 
 Capture everything resolved during grilling under "established so far" so the work isn't lost. Questions must be specific and actionable, not "please provide more info".

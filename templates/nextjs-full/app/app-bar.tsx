@@ -42,10 +42,7 @@ export async function AppBar() {
 						<ProfileMenu
 							name={session.user.name}
 							email={session.user.email}
-							image={
-								currentUser?.image ??
-								session.user.image
-							}
+							image={currentUser?.image ?? session.user.image}
 							isAdmin={isAdmin}
 						/>
 					</nav>

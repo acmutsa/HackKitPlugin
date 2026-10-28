@@ -29,9 +29,9 @@ The committed configuration targets **ACM UTSA**, account `cdc7630e53b468f56a445
 
 Set `vars.BETTER_AUTH_URL` in `wrangler.jsonc` to the exact public origin. Default: [hackkit-demo.acm-utsa.workers.dev](https://hackkit-demo.acm-utsa.workers.dev). Set these Worker secrets through Wrangler's interactive `secret put` command or the Cloudflare dashboard:
 
--   `TURSO_DATABASE_URL`
--   `TURSO_AUTH_TOKEN`
--   `BETTER_AUTH_SECRET`
+- `TURSO_DATABASE_URL`
+- `TURSO_AUTH_TOKEN`
+- `BETTER_AUTH_SECRET`
 
 For example, `corepack pnpm --filter @hackkit/demo exec wrangler secret put TURSO_AUTH_TOKEN` prompts for the token without putting it in command history. Do not upload the local `BETTER_AUTH_URL` as a secret; the deployed origin belongs in Wrangler configuration. R2 uses the `DEMO_UPLOADS` binding and requires no access keys or public bucket URL.
 

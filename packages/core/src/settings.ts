@@ -28,8 +28,7 @@ export type NumberSettingDefinition<TKey extends SettingKey = SettingKey> = {
 };
 
 export type HackathonSettingDefinition<TKey extends SettingKey = SettingKey> =
-	| BooleanSettingDefinition<TKey>
-	| NumberSettingDefinition<TKey>;
+	BooleanSettingDefinition<TKey> | NumberSettingDefinition<TKey>;
 
 export type SettingValueForDefinition<TDefinition> =
 	TDefinition extends BooleanSettingDefinition
@@ -148,7 +147,9 @@ export const coreSettings = [
 
 export type CoreSettingDefinition = (typeof coreSettings)[number];
 export type CoreSettingValueMap = {
-	[Definition in CoreSettingDefinition as Definition["key"]]: SettingValueForDefinition<Definition>;
+	[
+		Definition in CoreSettingDefinition as Definition["key"]
+	]: SettingValueForDefinition<Definition>;
 };
 
 export function defineSetting<

@@ -59,8 +59,7 @@ export type CoreNotificationPayloadMap = {
 };
 
 export type NotificationPayload =
-	| CoreNotificationPayloadMap[CoreNotificationKind]
-	| Record<string, unknown>;
+	CoreNotificationPayloadMap[CoreNotificationKind] | Record<string, unknown>;
 
 export type QueueNotificationIntentInput<
 	TKind extends NotificationKind = NotificationKind,

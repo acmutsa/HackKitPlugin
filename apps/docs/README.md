@@ -4,10 +4,10 @@ Fumadocs MDX with local search, a documentation sidebar, dark mode, and static e
 
 From the repository root:
 
--   `corepack pnpm dev:docs`: develop at http://localhost:3002.
--   `corepack pnpm build:docs`: export the complete site to `apps/docs/out`.
--   `corepack pnpm --filter @hackkit/docs typecheck`: generate route types and check TypeScript.
--   `corepack pnpm deploy:docs`: build and publish static assets to ACM UTSA's `hackkit-docs` Worker.
+- `corepack pnpm dev:docs`: develop at http://localhost:3002.
+- `corepack pnpm build:docs`: export the complete site to `apps/docs/out`.
+- `corepack pnpm --filter @hackkit/docs typecheck`: generate route types and check TypeScript.
+- `corepack pnpm deploy:docs`: build and publish static assets to ACM UTSA's `hackkit-docs` Worker.
 
 No environment variables, database, or runtime secrets are required. Wrangler pins the ACM UTSA account. Verify the signed-in identity before deployment. The Worker is independent of ACM's existing `docs` Worker.
 
