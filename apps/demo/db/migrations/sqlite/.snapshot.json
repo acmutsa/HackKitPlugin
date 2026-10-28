@@ -2405,8 +2405,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "profile_photo_url": {
-          "name": "profile_photo_url",
+        "image": {
+          "name": "image",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,

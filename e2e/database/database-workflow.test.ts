@@ -1,4 +1,4 @@
-import { templates } from "../support/templates.mjs";
+import { prepareMigrationDirectory } from "../support/migrations.mjs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -8,7 +8,7 @@ import { SqliteDriver } from "@mikro-orm/sqlite";
 import { expect, it } from "vitest";
 import appConfig from "../../templates/nextjs-full/hackkit.config";
 
-it("runs Core, plugins, and Better Auth against committed app migrations", async () => {
+it("generates an application baseline and runs Core, plugins, and Better Auth", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "hackkit-web-db-"));
 	const config = {
 		...appConfig,
@@ -18,7 +18,9 @@ it("runs Core, plugins, and Better Auth against committed app migrations", async
 			dbName: join(directory, "web.db"),
 			clientUrl: undefined,
 			migrations: {
-				path: join(templates.full.directory, "db/migrations/sqlite"),
+				path: await prepareMigrationDirectory(directory),
+				emit: "ts" as const,
+				snapshotName: ".snapshot",
 				snapshotOnMigrate: false,
 			},
 		},
@@ -30,6 +32,10 @@ it("runs Core, plugins, and Better Auth against committed app migrations", async
 		logger: { disabled: true },
 	};
 	try {
+		await runDatabaseCommand(config, {
+			command: "generate",
+			name: "initial",
+		});
 		await runDatabaseCommand(config, { command: "migrate" });
 		await runDatabaseCommand(config, { command: "seed" });
 		const core = await initializeHackkit(config);

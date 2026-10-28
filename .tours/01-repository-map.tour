@@ -4,7 +4,7 @@
 	"steps": [
 		{
 			"title": "What you will learn",
-			"description": "Start here with the repository root open in VS Code. These linked chapters explain the `templates-and-testing` working tree, including the template/E2E split. They use current files rather than a pinned commit, because the split includes uncommitted changes.\n\nFollow a participant who signs up, completes registration, creates a team, and receives event access. You will trace configuration into Core, then follow browser requests back to domain operations and persistence. Later chapters cover route generation, integrations, deployed apps, and verification.\n\nPrerequisites: TypeScript and basic React knowledge. An EntityManager is MikroORM's object for querying and tracking database records. A scope is one execution's EntityManager plus APIs that use it. Reading these tours does not start services, run migrations, or send external requests."
+			"description": "Start here with the repository root open in VS Code. These linked chapters explain the `templates-and-testing` working tree, including the template/E2E split. They use current files rather than a pinned commit. Recheck the relevant descriptions after changing schema or runtime behavior.\n\nFollow a participant who signs up, completes registration, creates a team, and receives event access. You will trace configuration into Core, then follow browser requests back to domain operations and persistence. Later chapters cover route generation, integrations, deployed apps, and verification.\n\nPrerequisites: TypeScript and basic React knowledge. An EntityManager is MikroORM's object for querying and tracking database records. A scope is one execution's EntityManager plus APIs that use it. Reading these tours does not start services, run migrations, or send external requests."
 		},
 		{
 			"file": "pnpm-workspace.yaml",
@@ -52,7 +52,7 @@
 			"file": "templates/nextjs-minimal/hackkit.config.ts",
 			"pattern": "export default defineHackkitConfig\\(\\{",
 			"title": "Compare the minimal consumer",
-			"description": "The minimal template demonstrates Core registration, profiles, and administration without the full template's plugin set. Read its actual `plugins`, database, blob, and role configuration beside the full template.\n\nCore and Better Auth still need tables and migrations even when no feature plugins are enabled. The minimal template therefore has its own committed SQLite migration. Removing optional plugins does not remove the Core/auth lifecycle."
+			"description": "The minimal template demonstrates Core registration, profiles, and administration without the full template's plugin set. Read its actual plugins, database, blob, and role configuration beside the full template.\n\nCore and Better Auth still need tables when no feature plugins are enabled. Templates ship without migration history or snapshots. After selecting the database and plugins, a new application generates its own initial migration, reviews and applies it, and commits that history. Later clones apply the committed migrations. Removing optional plugins does not remove the Core/auth lifecycle."
 		},
 		{
 			"file": "packages/config/src/index.ts",

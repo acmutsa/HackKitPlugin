@@ -11,8 +11,8 @@ const appDirectory = process.cwd();
 const migrations = {
 	path: resolve(
 		appDirectory,
-		"db/migrations",
-		env.databaseDialect === "libsql" ? "sqlite" : env.databaseDialect,
+		env.migrationsPath ??
+			`db/migrations/${env.databaseDialect === "libsql" ? "sqlite" : env.databaseDialect}`,
 	),
 	emit: "ts" as const,
 	snapshot: true,

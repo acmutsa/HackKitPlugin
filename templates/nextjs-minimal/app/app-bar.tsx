@@ -42,7 +42,7 @@ export async function AppBar() {
 							name={session.user.name}
 							email={session.user.email}
 							image={
-								currentUser?.profilePhotoUrl ??
+								currentUser?.image ??
 								session.user.image
 							}
 							isAdmin={isAdmin}

@@ -5,6 +5,12 @@ description: "Use reviewed migrations and explicit administrative commands."
 
 Core uses MikroORM's native entity registry. Migration files and snapshots belong to the application because its plugin registry determines its schema.
 
+## First setup
+
+Templates ship without migrations or snapshots. Configure an empty development database and select the plugins before running the selected application's `db:generate --name initial`. Review and apply the generated migration, seed roles, then commit the migration and snapshot to your application repository.
+
+Run initial generation once for a new project. Later clones and deployments apply its committed history. Existing applications, including the demo, keep their history. Initial generation does not replace an upgrade or data migration.
+
 ## Routine commands
 
 From the repository root, `corepack pnpm db:migrate` and `corepack pnpm db:seed` target full. Seed creates configured roles and does not assign an owner.
@@ -28,4 +34,4 @@ After changing registered entities, run `db:generate` in the selected applicatio
 
 ## Drivers
 
-Full supports SQLite, libSQL, PostgreSQL, and MySQL. Integration coverage includes both local and HTTP libSQL. Minimal intentionally uses SQLite. Each template has its own migrations. Do not copy full's plugin tables into minimal.
+Full supports SQLite, libSQL, PostgreSQL, and MySQL. Integration coverage includes both local and HTTP libSQL. Minimal intentionally uses SQLite. Each application generates and maintains the history for its own selected database and plugins. `HACKKIT_MIGRATIONS_PATH` optionally overrides the default directory. Do not copy full's plugin tables into minimal.

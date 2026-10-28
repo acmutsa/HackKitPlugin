@@ -6,11 +6,11 @@ The next distribution milestone will add `hackkit init <directory> --template mi
 
 Required work:
 
--   Establish public package metadata, dependency versions, release versioning, and npm scope access before publication.
--   Include distributable template assets with the CLI and substitute released package versions for workspace references.
--   Make application scripts and Tailwind content discovery work without monorepo source paths.
--   Keep each template's configuration, database commands, reviewed migrations, and setup documentation inside the generated project.
--   Validate packed packages and both generated projects outside the monorepo. Verify initialization, dependency installation, plugin synchronization, migrations, seeding, typechecking, and production builds without workspace symlinks.
--   Review the release artifacts before publishing. Define the first release version, registry ownership, authentication, and publishing workflow as part of that milestone.
+- Establish public package metadata, dependency versions, release versioning, and npm scope access before publication.
+- Include distributable template assets with the CLI and substitute released package versions for workspace references.
+- Make application scripts and Tailwind content discovery work without monorepo source paths.
+- Include each template's configuration, database commands, and setup documentation. After database/plugin selection, generate the new application's initial migration and snapshot against an empty development database. Do not distribute a pre-generated template migration history. The application commits its generated history and maintains future migrations.
+- Validate packed packages and both generated projects outside the monorepo. Verify initialization, dependency installation, plugin synchronization, migrations, seeding, typechecking, and production builds without workspace symlinks.
+- Review the release artifacts before publishing. Define the first release version, registry ownership, authentication, and publishing workflow as part of that milestone.
 
 Acceptance requires a working fresh project from the distributed CLI for each template. An in-workspace build alone does not establish standalone readiness.

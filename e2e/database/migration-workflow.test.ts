@@ -1,4 +1,4 @@
-import { templates } from "../support/templates.mjs";
+import { prepareMigrationDirectory } from "../support/migrations.mjs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,14 +22,17 @@ for (const driver of [SqliteDriver, LibSqlDriver]) {
 					driver,
 					dbName: join(directory, "upgrade.db"),
 					migrations: {
-						path: join(
-							templates.full.directory,
-							"db/migrations/sqlite",
-						),
+						path: await prepareMigrationDirectory(directory),
+						emit: "ts" as const,
+						snapshotName: ".snapshot",
 						snapshotOnMigrate: false,
 					},
 				},
 			};
+			await runDatabaseCommand(config, {
+				command: "generate",
+				name: "initial",
+			});
 			await runDatabaseCommand(config, { command: "migrate" });
 			await runDatabaseCommand(config, { command: "seed" });
 			const upgrade = await verifyMigrationUpgrade(config, directory);
@@ -71,7 +74,9 @@ it("limits reset to development SQLite and seeds missing roles without changing 
 			driver: SqliteDriver,
 			dbName: join(directory, "reset.db"),
 			migrations: {
-				path: join(templates.full.directory, "db/migrations/sqlite"),
+				path: await prepareMigrationDirectory(directory),
+				emit: "ts" as const,
+				snapshotName: ".snapshot",
 				snapshotOnMigrate: false,
 			},
 		},
@@ -95,6 +100,10 @@ it("limits reset to development SQLite and seeds missing roles without changing 
 				{ command: "reset" },
 			),
 		).rejects.toThrow("local SQLite");
+		await runDatabaseCommand(config, {
+			command: "generate",
+			name: "initial",
+		});
 		await runDatabaseCommand(config, { command: "reset" });
 		expect(
 			await runDatabaseCommand(config, { command: "check" }),

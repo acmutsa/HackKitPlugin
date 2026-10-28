@@ -15,7 +15,7 @@ const authUserProperties = new Set([
 	"name",
 	"email",
 	"emailVerified",
-	"profilePhotoUrl",
+	"image",
 	"createdAt",
 	"updatedAt",
 ]);
@@ -34,7 +34,6 @@ export function resolveHackKitAuthOptions<
 		user: {
 			...options.user,
 			modelName: "core_user",
-			fields: { image: "profilePhotoUrl" },
 		},
 	};
 }

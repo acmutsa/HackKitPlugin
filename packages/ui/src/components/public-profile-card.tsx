@@ -35,10 +35,10 @@ export function PublicProfileCard({
 	return (
 		<Card className={cn("w-full max-w-4xl", className)}>
 			<CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center">
-				{user.profilePhotoUrl ? (
+				{user.image ? (
 					// eslint-disable-next-line @next/next/no-img-element
 					<img
-						src={user.profilePhotoUrl}
+						src={user.image}
 						alt=""
 						className="h-24 w-24 rounded-full object-cover"
 					/>

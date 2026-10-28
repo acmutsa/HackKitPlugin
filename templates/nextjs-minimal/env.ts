@@ -42,6 +42,7 @@ export function resolveTemplateEnv() {
 				.map((value) => value.trim())
 				.filter(Boolean) ?? [],
 		databaseUrl,
+		migrationsPath: read("HACKKIT_MIGRATIONS_PATH"),
 		localBlobBaseDir:
 			read("HACKKIT_LOCAL_BLOB_BASE_DIR") ?? ".data/uploads",
 	};

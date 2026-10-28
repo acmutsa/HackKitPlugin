@@ -11,6 +11,7 @@ type TestWebEnv = {
 	betterAuthTrustedOrigins: string[];
 	databaseUrl: string;
 	databaseDialect: DatabaseDialect;
+	migrationsPath?: string;
 	tursoAuthToken?: string;
 	blobAdapter: BlobAdapter;
 	localBlobBaseDir: string;
@@ -185,6 +186,7 @@ export function resolveTestWebEnv(): TestWebEnv {
 		betterAuthTrustedOrigins: readList("BETTER_AUTH_TRUSTED_ORIGINS"),
 		databaseUrl,
 		databaseDialect: resolveDatabaseDialect(databaseUrl),
+		migrationsPath: read("HACKKIT_MIGRATIONS_PATH"),
 		tursoAuthToken: read("TURSO_AUTH_TOKEN"),
 		blobAdapter,
 		localBlobBaseDir:

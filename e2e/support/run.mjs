@@ -10,6 +10,7 @@ import {
 	testEnvironment,
 } from "./templates.mjs";
 import { runCommand } from "./processes.mjs";
+import { prepareMigrationDirectory } from "./migrations.mjs";
 
 const suite = process.argv[2] ?? "all";
 assert.ok(
@@ -77,8 +78,11 @@ try {
 		cwd: repositoryRoot,
 	});
 	if (suite !== "db") {
-		for (const { options } of targets) {
+		for (const { template, options } of targets) {
+			await prepareMigrationDirectory(join(buildDirectory, template.id));
+			await pnpm(["db:generate", "--name", "initial"], options);
 			await pnpm(["db:migrate"], options);
+			await pnpm(["db:check"], options);
 			await pnpm(["db:seed"], options);
 			await pnpm(["build"], options);
 		}

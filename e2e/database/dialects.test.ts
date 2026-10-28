@@ -1,4 +1,4 @@
-import { templates } from "../support/templates.mjs";
+import { prepareMigrationDirectory } from "../support/migrations.mjs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -81,11 +81,9 @@ for (const target of targets) {
 							? { dbName: target.url! }
 							: { clientUrl: target.url! }),
 					migrations: {
-						path: join(
-							templates.full.directory,
-							"db/migrations",
-							target.dialect,
-						),
+						path: await prepareMigrationDirectory(directory),
+						emit: "ts" as const,
+						snapshotName: ".snapshot",
 						snapshotOnMigrate: false,
 						...(target.driver === MySqlDriver
 							? { transactional: false, allOrNothing: false }
@@ -104,6 +102,10 @@ for (const target of targets) {
 					logger: { disabled: true },
 				};
 				try {
+					await runDatabaseCommand(config, {
+						command: "generate",
+						name: "initial",
+					});
 					await runDatabaseCommand(config, { command: "migrate" });
 					await runDatabaseCommand(config, { command: "seed" });
 					const core = await initializeHackkit(config);
@@ -263,7 +265,7 @@ for (const target of targets) {
 						await participant.hackkit.users.updateProfile({
 							authId: hacker.userId,
 							name: "Edited Name",
-							profilePhotoUrl: "/api/files/view/photo.png",
+							image: "/api/files/view/photo.png",
 						});
 						expect(
 							(await core.auth.api.getSession({ headers }))?.user,
@@ -285,7 +287,7 @@ for (const target of targets) {
 								.hackkit.users.getUser(hacker.userId),
 						).toMatchObject({
 							name: "Auth Edit",
-							profilePhotoUrl: "https://example.com/photo.png",
+							image: "https://example.com/photo.png",
 							roleId: "core.participant",
 							isApproved: true,
 						});

@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { runCommand, stopServer } from "./processes.mjs";
 import { testEnvironment } from "./templates.mjs";
+import { prepareMigrationDirectory } from "./migrations.mjs";
 
 async function assertPortAvailable(port) {
 	const probe = createServer();
@@ -32,7 +33,8 @@ export async function startTemplate(template) {
 	let server;
 	let output = "";
 	try {
-		for (const command of ["migrate", "seed"])
+		await prepareMigrationDirectory(directory);
+		for (const command of ["generate", "migrate", "check", "seed"])
 			await runCommand(process.execPath, ["scripts/db.mjs", command], {
 				cwd: template.directory,
 				env,

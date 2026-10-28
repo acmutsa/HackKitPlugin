@@ -68,7 +68,7 @@ function userToFormValues(user: User | Wire<User>): FormValues {
 		skillsText: skillsToText(user.skills),
 		isProfileSearchable: user.isProfileSearchable ?? true,
 		discordDisplayHandle: user.discordDisplayHandle ?? "",
-		profilePhotoUrl: user.profilePhotoUrl ?? undefined,
+		image: user.image ?? undefined,
 	};
 }
 
@@ -92,7 +92,7 @@ export function UserProfileSettingsForm({
 	}, [currentUser, form]);
 	const previewPhoto = profilePhotoFile
 		? URL.createObjectURL(profilePhotoFile)
-		: currentUser.profilePhotoUrl;
+		: currentUser.image;
 
 	React.useEffect(() => {
 		if (!profilePhotoFile) return;
@@ -103,10 +103,10 @@ export function UserProfileSettingsForm({
 	}, [profilePhotoFile, previewPhoto]);
 
 	async function onSubmit(values: FormValues) {
-		let profilePhotoUrl = values.profilePhotoUrl;
+		let image = values.image;
 		if (profilePhotoFile && uploadProfilePhoto) {
 			try {
-				profilePhotoUrl = await uploadProfilePhoto(profilePhotoFile);
+				image = await uploadProfilePhoto(profilePhotoFile);
 			} catch (error) {
 				toast.error(
 					error instanceof Error
@@ -125,7 +125,7 @@ export function UserProfileSettingsForm({
 			skills: textToSkills(values.skillsText),
 			isProfileSearchable: values.isProfileSearchable ?? true,
 			discordDisplayHandle: values.discordDisplayHandle,
-			profilePhotoUrl,
+			image,
 		};
 		let result;
 		try {

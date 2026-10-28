@@ -14,7 +14,7 @@ description: "Choose a starting point without changing the shared libraries."
 | Schedule, RSVP, passes, scanners          | No      | Yes         |
 | Production S3 adapter                     | No      | Yes         |
 
-The examples live at `templates/nextjs-minimal` and `templates/nextjs-full`. Each owns its pages, configuration, database scripts, and migrations. Neither imports the other or E2E support.
+The examples live at `templates/nextjs-minimal` and `templates/nextjs-full`. Each provides pages, configuration, and database scripts. A new application generates its own initial migration and snapshot after selecting a database and plugins, then commits and maintains that history. Templates ship without pre-generated migrations. Neither imports the other or E2E support.
 
 Minimal registers no plugins. It seeds participant and owner roles with Core permissions. Full registers Teams, Discord, and email notifications, with provider choices in its configuration.
 

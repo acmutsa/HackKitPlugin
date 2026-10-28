@@ -33,6 +33,7 @@ export function testEnvironment(template, directory) {
 		NEXT_TELEMETRY_DISABLED: "1",
 		DATABASE_URL: `file:${join(directory, "web.db")}`,
 		HACKKIT_DATABASE_DIALECT: "sqlite",
+		HACKKIT_MIGRATIONS_PATH: join(directory, "migrations"),
 		HACKKIT_LOCAL_BLOB_BASE_DIR: join(directory, "uploads"),
 		NEXT_PUBLIC_APP_URL: template.origin,
 		BETTER_AUTH_URL: template.origin,

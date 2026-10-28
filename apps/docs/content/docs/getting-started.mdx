@@ -18,10 +18,13 @@ corepack pnpm exec turbo run build --filter='./packages/*'
 ```sh
 cp templates/nextjs-minimal/.env.example templates/nextjs-minimal/.env
 corepack pnpm --filter @hackkit/template-nextjs-minimal plugin:sync
+corepack pnpm --filter @hackkit/template-nextjs-minimal db:generate --name initial
 corepack pnpm --filter @hackkit/template-nextjs-minimal db:migrate
 corepack pnpm --filter @hackkit/template-nextjs-minimal db:seed
 corepack pnpm dev:minimal
 ```
+
+Review the generated migration before applying it. Commit the migration and snapshot to your application repository. Templates ship without migration history. Generate the initial baseline only for a new project; later clones apply the existing history.
 
 Open [localhost:3000](http://localhost:3000). Create an account and complete HackTag, user data, and hacker registration. No cloud credentials are needed for local development.
 

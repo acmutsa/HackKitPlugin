@@ -34,7 +34,7 @@
 			"file": "packages/core/src/mikro/auth.ts",
 			"pattern": "export function resolveHackKitAuthOptions",
 			"title": "Map Better Auth onto Core's user table",
-			"description": "The application provides auth settings, but Core forces the user model to `core_user` and maps Better Auth's `image` field to `profilePhotoUrl`. Core creates the MikroORM database adapter in `createHackKitAuth`.\n\nThis avoids a second application profile row that would need synchronization with the auth user. Credentials, session policy, and providers still come from host options. Domain privileges stay behind Core APIs."
+			"description": "The application provides auth settings, but Core forces the user model to `core_user`. Better Auth and Core both use `image` for the profile photo. Core creates the MikroORM database adapter in `createHackKitAuth`.\n\nThis avoids a second application profile row that would need synchronization with the auth user. Credentials, session policy, and providers still come from host options. Domain privileges stay behind Core APIs."
 		},
 		{
 			"file": "packages/core/src/mikro/auth.ts",
@@ -46,25 +46,25 @@
 			"file": "packages/core/src/runtime.ts",
 			"pattern": "function createScope\\(actorAuthId\\?: string\\)",
 			"title": "Fork the EntityManager and construct scoped APIs",
-			"description": "Each call forks `orm.em` with context support and calls `createHackkit` using the fork, the shared registry, and the optional actor ID. A fork has its own identity map, the set of managed entity instances used by that execution.\n\nThe resulting scope contains `em` and `hackkit`. Plugin setup receives this same EntityManager. Do not retain this scoped API object as a global singleton. A later request must create its own scope."
+			"description": "Runtime initialization prepares configuration, validation schemas, and the registry once. Each call forks `orm.em` with context support and binds scoped APIs to the fork and optional actor ID. A fork has its own identity map, the set of managed entity instances used by that execution.\n\nThe resulting scope contains `em` and `hackkit`. Plugin setup receives this same EntityManager. Do not retain this scoped API object as a global singleton. A later request must create its own scope."
 		},
 		{
 			"file": "packages/core/src/runtime.ts",
-			"pattern": "return RequestContext\\.create\\(scope\\.em, \\(\\) => operation\\(scope\\)\\);",
+			"pattern": "return RequestContext\\.create\\(orm\\.em,",
 			"title": "Run a non-render operation in an ORM context",
-			"description": "`run` creates a scope, then executes the callback inside MikroORM's RequestContext. The callback receives the scope and returns a promise whose result becomes the result of `run`.\n\nThe HTTP handler uses this path after resolving a session. Context-aware ORM operations can resolve the correct manager during async work. Creating a request context is not a transaction around the whole request; domain operations create transactions where required."
+			"description": "`run` lets MikroORM's RequestContext create one fork, then binds the scoped APIs to that active EntityManager before executing the callback. The callback receives the scope and returns a promise whose result becomes the result of `run`.\n\nThe HTTP handler uses this path after resolving a session. Context-aware ORM operations can resolve the correct manager during async work. Creating a request context is not a transaction around the whole request; domain operations create transactions where required."
 		},
 		{
 			"file": "packages/core/src/hackkit.ts",
 			"pattern": "export function createHackkit",
 			"title": "Assemble Core around explicit dependencies",
-			"description": "`createHackkit` accepts an existing EntityManager. It resolves clock, ID generator, registration choices, event types, groups, and logger. It creates access control, settings, notifications, plugin APIs, and the domain API groups.\n\nThe function returns methods, not a listening server. Tests can inject time and ID functions. HTTP and Next integrations decide how to obtain the actor and invoke these methods. Keep transport details out of this composition function."
+			"description": "`createHackkit` accepts an existing EntityManager. It prepares configuration through `createHackkitFactory`, then binds access control, settings, notifications, plugin APIs, and the domain API groups to that EntityManager. Runtime initialization reuses the factory across executions so configuration and validation schemas are prepared only once.\n\nThe function returns methods, not a listening server. Tests can inject time and ID functions. HTTP and Next integrations decide how to obtain the actor and invoke these methods. Keep transport details out of this composition function."
 		},
 		{
 			"file": "templates/nextjs-full/scripts/database.ts",
 			"pattern": "export async function runDatabaseCommand",
 			"title": "Keep schema changes explicit and application-owned",
-			"description": "The template's database command runner owns generate, migrate, rollback, status, check, seed, and reset operations. It uses `createOrmOptions`, so it sees Core/auth/plugin/app entities, and always closes the ORM in `finally`.\n\n`check` examines pending migration history, entity-versus-snapshot differences, and live schema SQL. `reset` is destructive and restricted to a local SQLite database in development or tests. Reading this tour does not invoke it. Migration directories remain in the template that owns the deployed database."
+			"description": "The template database runner owns generate, migrate, rollback, status, check, seed, and reset. It uses createOrmOptions so discovery includes Core/auth/plugin/app entities, and closes the ORM in finally.\n\nA new project first runs db:generate --name initial against an empty development database. It reviews, applies, and commits the generated migration and snapshot. Templates contain no baseline history. Existing application clones apply their committed history without regenerating it.\n\nThe check operation compares pending history, entities against the snapshot, and live schema SQL. Reset drops local SQLite tables in development or tests and replays the existing application history. Startup does not generate or apply migrations."
 		},
 		{
 			"file": "packages/core/src/seed.ts",

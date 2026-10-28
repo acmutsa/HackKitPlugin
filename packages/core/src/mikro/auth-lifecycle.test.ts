@@ -92,7 +92,7 @@ describe("Core auth lifecycle", () => {
 			await hackkit.users.updateProfile({
 				authId: id,
 				name: "Joshua Silva",
-				profilePhotoUrl: "/api/files/view/avatar.png",
+				image: "/api/files/view/avatar.png",
 				bio: "Hello",
 			});
 			expect(
@@ -114,7 +114,7 @@ describe("Core auth lifecycle", () => {
 			).toMatchObject({
 				id,
 				name: "Josh",
-				profilePhotoUrl: "https://example.com/avatar.png",
+				image: "https://example.com/avatar.png",
 				bio: "Hello",
 			});
 			const signin = await auth.api.signInEmail({

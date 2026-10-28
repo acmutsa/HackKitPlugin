@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { expect, it } from "vitest";
 import { templates, testEnvironment } from "../support/templates.mjs";
+import { prepareMigrationDirectory } from "../support/migrations.mjs";
 import { loadHackkitConfig } from "@hackkit/config";
 import { initializeHackkit } from "@hackkit/core";
 import { SqliteDriver } from "@mikro-orm/sqlite";
@@ -29,6 +30,7 @@ for (const template of Object.values(templates)) {
 		const command = (name: string, overrides: NodeJS.ProcessEnv = {}) =>
 			run(["scripts/db.mjs", name], overrides);
 		try {
+			await prepareMigrationDirectory(directory);
 			const syncDatabase = join(directory, "sync-must-not-connect.db");
 			await run(
 				["node_modules/@hackkit/cli/bin/hackkit.mjs", "plugin", "sync"],
@@ -37,6 +39,22 @@ for (const template of Object.values(templates)) {
 			await expect(access(syncDatabase)).rejects.toMatchObject({
 				code: "ENOENT",
 			});
+			const generated: unknown = JSON.parse(
+				(await command("generate")).stdout,
+			);
+			expect(generated).toMatchObject({
+				command: "generate",
+				migration: { code: expect.stringContaining("core_user") },
+			});
+			expect(generated).toMatchObject({
+				migration: {
+					code:
+						template.id === "full"
+							? expect.stringContaining("teams_team")
+							: expect.not.stringContaining("teams_team"),
+				},
+			});
+			await access(join(directory, "migrations/.snapshot.json"));
 			const status = await command("status");
 			expect(JSON.parse(status.stdout)).toMatchObject({
 				executed: [],
@@ -64,6 +82,11 @@ for (const template of Object.values(templates)) {
 			const untouched = join(directory, "untouched.db");
 			await writeFile(untouched, "leave me alone\n");
 			await command("reset");
+			expect(
+				JSON.parse((await command("generate")).stdout),
+			).toMatchObject({
+				migration: { fileName: "", diff: { up: [] } },
+			});
 			expect(JSON.parse((await command("check")).stdout)).toMatchObject({
 				ok: true,
 			});
@@ -80,7 +103,7 @@ for (const template of Object.values(templates)) {
 	});
 }
 
-it("minimal: real config and committed migrations initialize Core/auth without plugins", async () => {
+it("minimal: generates and replays a Core/auth baseline without plugins", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "hackkit-minimal-db-"));
 	try {
 		const input = await loadHackkitConfig("hackkit.config.ts", {
@@ -97,10 +120,9 @@ it("minimal: real config and committed migrations initialize Core/auth without p
 				driver: SqliteDriver,
 				dbName: join(directory, "web.db"),
 				migrations: {
-					path: join(
-						templates.minimal.directory,
-						"db/migrations/sqlite",
-					),
+					path: await prepareMigrationDirectory(directory),
+					emit: "ts" as const,
+					snapshotName: ".snapshot",
 					snapshotOnMigrate: false,
 				},
 			},
@@ -111,6 +133,10 @@ it("minimal: real config and committed migrations initialize Core/auth without p
 			},
 			logger: { disabled: true },
 		};
+		await runDatabaseCommand(config, {
+			command: "generate",
+			name: "initial",
+		});
 		await runDatabaseCommand(config, { command: "migrate" });
 		await runDatabaseCommand(config, { command: "seed" });
 		expect(
@@ -132,6 +158,18 @@ it("minimal: real config and committed migrations initialize Core/auth without p
 		} finally {
 			await core.orm.close();
 		}
+		// Replaying the application's history initializes another clone without regenerating it.
+		const fresh = {
+			...config,
+			database: {
+				...config.database,
+				dbName: join(directory, "fresh.db"),
+			},
+		};
+		await runDatabaseCommand(fresh, { command: "migrate" });
+		expect(
+			await runDatabaseCommand(fresh, { command: "check" }),
+		).toMatchObject({ ok: true });
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

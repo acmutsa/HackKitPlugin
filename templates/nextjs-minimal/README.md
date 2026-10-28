@@ -9,9 +9,11 @@ Use Node.js 22.17 or newer and the repository-pinned pnpm 12.15.0. From the repo
 1. Run `corepack pnpm install`.
 2. Build dependencies with `corepack pnpm exec turbo run build --filter=@hackkit/template-nextjs-minimal^...`.
 3. Run `corepack pnpm --filter @hackkit/template-nextjs-minimal sync`.
-4. Run `corepack pnpm --filter @hackkit/template-nextjs-minimal db:migrate`.
-5. Run `corepack pnpm --filter @hackkit/template-nextjs-minimal db:seed`.
-6. Run `corepack pnpm dev:minimal` and open `http://localhost:3000`.
+4. Configure this template using `.env.example` and `hackkit.config.ts`. Use an empty SQLite development database.
+5. Run `corepack pnpm --filter @hackkit/template-nextjs-minimal db:generate --name initial`.
+6. Review the generated migration and snapshot, then run `corepack pnpm --filter @hackkit/template-nextjs-minimal db:migrate`.
+7. Run `corepack pnpm --filter @hackkit/template-nextjs-minimal db:seed`.
+8. Commit the migration and snapshot in your application repository. Run `corepack pnpm dev:minimal` and open `http://localhost:3000`.
 
 The local `.env` starts empty and is ignored by Git. On a fresh checkout, copy [`.env.example`](.env.example) to `.env` to configure this template. The example lists production requirements and comments out optional integrations. An empty `.env` uses local development defaults. Never commit populated environment files.
 
@@ -23,7 +25,9 @@ Sign up and complete HackTag, user data, and hacker registration. Organizers can
 
 Run `corepack pnpm --filter @hackkit/template-nextjs-minimal db:<command>` from the repository root. Commands are `generate`, `migrate`, `seed`, `status`, `check`, `rollback`, and `reset`. Arguments are forwarded, for example `db:generate --name add_field` or `db:rollback --to MigrationName`.
 
-Reviewed SQLite migrations and snapshots belong to this app. `db:check` fails on pending migrations or schema drift. `db:reset` drops the selected database's registered tables and migration history, then migrates and seeds; it is restricted to local SQLite in development/tests. Use only disposable data for reset.
+The template ships without migration history or snapshots. Generate a baseline once during new-project setup, after choosing your configuration. Commit the reviewed SQLite migration and snapshot under `db/migrations/sqlite` in your application repository. Later clones apply this history without generating another baseline. Future entity changes produce additional migrations. Existing databases must retain the history that created them.
+
+`HACKKIT_MIGRATIONS_PATH` optionally overrides the migration directory, relative to this application or absolute. `db:check` fails on pending migrations or schema drift. `db:reset` drops the selected database's registered tables and migration history, then migrates and seeds; it is restricted to local SQLite in development/tests. Use only disposable data for reset.
 
 ## Production
 

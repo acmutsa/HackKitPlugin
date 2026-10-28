@@ -10,16 +10,16 @@
 
 ## Technologies Used
 
--   TypeScript
--   Next.js
--   MikroORM
--   Better Auth
--   Tailwind CSS
+- TypeScript
+- Next.js
+- MikroORM
+- Better Auth
+- Tailwind CSS
 
 ## Demo and documentation
 
--   [Interactive demo](https://hackkit-demo.acm-utsa.workers.dev): explore a shared fictional event as a participant or organizer. [Deployment and local setup](apps/demo/README.md).
--   [Documentation](https://hackkit-docs.acm-utsa.workers.dev): setup, templates, architecture, plugins, operations, and testing. [Contributing to the docs](apps/docs/README.md).
+- [Interactive demo](https://hackkit-demo.acm-utsa.workers.dev): explore a shared fictional event as a participant or organizer. [Deployment and local setup](apps/demo/README.md).
+- [Documentation](https://hackkit-docs.acm-utsa.workers.dev): setup, templates, architecture, plugins, operations, and testing. [Contributing to the docs](apps/docs/README.md).
 
 Configure the demo’s Turso credentials in `apps/demo/.dev.vars` and run its explicit database setup first; see [demo setup](apps/demo/README.md). `corepack pnpm dev:demo` then starts the demo on port 3001. `corepack pnpm dev:docs` starts Fumadocs on port 3002. The deployed apps live under `apps`; runnable workspace examples remain under `templates`.
 
@@ -27,11 +27,11 @@ Configure the demo’s Turso credentials in `apps/demo/.dev.vars` and run its ex
 
 Use Node.js 22.17+ and the repository-pinned pnpm 12.15.0 through Corepack. Run `corepack pnpm install` from this directory.
 
--   [Full Next.js template](templates/nextjs-full/README.md): the existing app with Teams, Discord, email notifications, and configurable storage.
--   [Minimal Next.js template](templates/nextjs-minimal/README.md): Core registration, participant profiles, and basic administration with local SQLite and uploads.
--   [E2E validation](e2e/README.md): database, production HTTP, and browser integration checks against these templates.
+- [Full Next.js template](templates/nextjs-full/README.md): the existing app with Teams, Discord, email notifications, and configurable storage.
+- [Minimal Next.js template](templates/nextjs-minimal/README.md): Core registration, participant profiles, and basic administration with local SQLite and uploads.
+- [E2E validation](e2e/README.md): database, production HTTP, and browser integration checks against these templates.
 
-`corepack pnpm dev` and `corepack pnpm dev:full` start the full template. `corepack pnpm dev:minimal` starts the minimal template. Root `db:*` commands target the full template. Select the minimal package explicitly for its database commands. Each template's README covers migrations, seeding, owner bootstrap, and production configuration.
+`corepack pnpm dev` and `corepack pnpm dev:full` start the full template. `corepack pnpm dev:minimal` starts the minimal template. Root `db:*` commands target the full template. Select the minimal package explicitly for its database commands. For a new project, configure the database and plugins, generate an initial migration with `db:generate --name initial`, review and apply it, then seed roles. Commit the generated migration and snapshot to your application repository. Templates ship without baseline migrations; later clones of an initialized application apply its committed history. Each template's README covers setup, owner bootstrap, and production configuration.
 
 `corepack pnpm build` builds libraries, templates, demo, and docs; configure each template for production first. `corepack pnpm test` runs package tests. `corepack pnpm test:e2e` prepares isolated configurations and runs all integration suites. Run one E2E invocation at a time because tests use fixed ports and each template's production output.
 

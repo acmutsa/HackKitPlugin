@@ -10,7 +10,7 @@ export const databaseOptions = {
 			? ":memory:"
 			: resolve(env.databaseUrl.replace(/^file:/, "")),
 	migrations: {
-		path: resolve("db/migrations/sqlite"),
+		path: resolve(env.migrationsPath ?? "db/migrations/sqlite"),
 		emit: "ts" as const,
 		snapshot: true,
 		snapshotName: ".snapshot",

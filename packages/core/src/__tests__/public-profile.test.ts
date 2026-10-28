@@ -46,7 +46,7 @@ describe("public profiles", () => {
 			pronouns: "they/them",
 			skills: ["TypeScript", "Design"],
 			discordDisplayHandle: "hacker",
-			profilePhotoUrl: "/api/files/view?key=profile-photos%2Favatar.png",
+			image: "/api/files/view?key=profile-photos%2Favatar.png",
 			isProfileSearchable: true,
 		});
 

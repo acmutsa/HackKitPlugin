@@ -73,7 +73,7 @@ export function createUsersApi(context: UsersApiContext) {
 				user: {
 					id: user.id,
 					name: user.name,
-					profilePhotoUrl: user.profilePhotoUrl,
+					image: user.image,
 					hackTag: user.hackTag,
 					bio: user.bio,
 					pronouns: user.pronouns,
@@ -186,7 +186,7 @@ export function createUsersApi(context: UsersApiContext) {
 								updated,
 								{
 									name: parsed.name,
-									profilePhotoUrl: parsed.profilePhotoUrl,
+									image: parsed.image,
 									hackTag: parsed.hackTag,
 									bio: parsed.bio,
 									pronouns: parsed.pronouns,

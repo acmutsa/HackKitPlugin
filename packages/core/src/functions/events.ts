@@ -1,6 +1,6 @@
 import { serialize } from "@mikro-orm/core";
 import type { HackkitRuntimeContext } from "../hackkit-context";
-import { eventTypeValueSchema } from "../event-types";
+import { eventTypeValueSchema, type EventTypes } from "../event-types";
 import { HackKitError, parseInput } from "../errors";
 import { withDomainLog } from "../domain-log";
 import { coreModels } from "../models";
@@ -45,13 +45,20 @@ function filterVisibleEvents(events: Event[], includeHidden: boolean): Event[] {
 	return events.filter((event) => !event.hidden);
 }
 
-export function createEventsApi(context: EventsApiContext) {
-	const createEventSchema = createEventSchemaFactory(
-		eventTypeValueSchema(context.eventTypes),
-	);
-	const updateEventSchema = updateEventSchemaFactory(
-		eventTypeValueSchema(context.eventTypes),
-	);
+/** Compile event validation once for a runtime's configured event types. */
+export function createEventSchemas(eventTypes: EventTypes) {
+	const typeSchema = eventTypeValueSchema(eventTypes);
+	return {
+		createEventSchema: createEventSchemaFactory(typeSchema),
+		updateEventSchema: updateEventSchemaFactory(typeSchema),
+	};
+}
+
+export function createEventsApi(
+	context: EventsApiContext,
+	schemas = createEventSchemas(context.eventTypes),
+) {
+	const { createEventSchema, updateEventSchema } = schemas;
 
 	const { em, now, id, logger, getUserOrThrow, requirePermission } = context;
 

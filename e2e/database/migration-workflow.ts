@@ -36,7 +36,7 @@ import { promisify } from "node:util";
 
 const runProcess = promisify(execFile);
 
-/** Runs on the caller's disposable database after its committed initial migration. */
+/** Runs on the caller's disposable database after generating and applying its baseline. */
 export async function verifyMigrationUpgrade(
 	input: HackkitConfig,
 	directory: string,
@@ -78,13 +78,11 @@ export async function verifyMigrationUpgrade(
 			join(directory, "node_modules"),
 			"dir",
 		).catch((error: unknown) => {
-			if (
-				!(
-					error instanceof Error &&
-					"code" in error &&
-					error.code === "EEXIST"
-				)
-			)
+			if (!(
+				error instanceof Error &&
+				"code" in error &&
+				error.code === "EEXIST"
+			))
 				throw error;
 		});
 		await writeFile(

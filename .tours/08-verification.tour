@@ -16,25 +16,25 @@
 			"file": "e2e/support/templates.mjs",
 			"pattern": "export const templates = \\{",
 			"title": "Point integration tests at the real templates",
-			"description": "The manifest names the full and minimal workspace packages, absolute directories, fixed ports, origins, and database dialect lists. Full targets SQLite/libSQL/PostgreSQL/MySQL; minimal targets SQLite.\n\nHelpers use these absolute locations rather than assuming the repository root is an application. This is the main architectural effect of the testing split: tests orchestrate real consumers and their committed migrations."
+			"description": "The manifest names the full and minimal workspace packages, absolute directories, fixed ports, origins, and database dialect lists. Full targets SQLite/libSQL/PostgreSQL/MySQL; minimal targets SQLite.\n\nHelpers use these absolute locations rather than assuming the repository root is an application. This is the main architectural effect of the testing split: tests orchestrate real consumers and generate migrations from each configured registry."
 		},
 		{
 			"file": "e2e/support/templates.mjs",
 			"pattern": "export function testEnvironment",
 			"title": "Build explicit disposable test configuration",
-			"description": "The helper constructs a limited environment with fresh database/upload paths, template-specific origins, and a test auth secret. Full-template external-service settings use disabled or non-service test values so Next's dotenv loading cannot silently select developer services.\n\nRead which variables are intentionally inherited and which are replaced. Test isolation depends on the actual environment passed to each subprocess, not just a temporary directory name."
+			"description": "The helper constructs a limited environment with fresh database/upload paths, template-specific origins, and a test auth secret. Full-template external-service settings use disabled or non-service test values so Next's dotenv loading cannot silently select developer services.\n\nRead which variables are intentionally inherited and which are replaced. Test isolation depends on the actual environment passed to each subprocess, not just a temporary directory name.\n\nHACKKIT_MIGRATIONS_PATH points to a temporary history alongside the database. It overrides the template default without changing host source files or copying template migrations. This lets each test exercise the same first-generation setup that a new application uses."
 		},
 		{
 			"file": "e2e/support/run.mjs",
 			"pattern": "const suite = process\\.argv\\[2\\] \\?\\? \"all\";",
 			"title": "Prepare dependencies before choosing integration suites",
-			"description": "The runner accepts all, db, http, or browser. It builds dependency packages, snapshots generated route files and lockfiles, runs plugin sync, and asserts no generated drift. It then typechecks both templates and E2E and invokes the client-bundle guard.\n\nHTTP/browser runs also migrate and seed disposable build databases and create real production template builds. Finally it runs the selected Vitest or Playwright suites. Running one E2E invocation at a time avoids collisions in fixed ports and template output directories."
+			"description": "The runner accepts all, db, http, or browser. It builds dependency packages, snapshots generated route files and lockfiles, runs plugin sync, and asserts no generated drift. It then typechecks both templates and E2E and invokes the client-bundle guard.\n\nHTTP/browser runs generate initial migrations into temporary directories, apply them, check schema agreement, and seed disposable build databases and create real production template builds. Finally it runs the selected Vitest or Playwright suites. Running one E2E invocation at a time avoids collisions in fixed ports and template output directories."
 		},
 		{
 			"file": "e2e/support/server.mjs",
 			"pattern": "export async function startTemplate",
 			"title": "Start production Next with fresh storage",
-			"description": "The helper rejects an occupied port, creates a temporary runtime directory, and runs migrations and seeding with the template as cwd. It starts `next start`, captures logs, and polls the auth session endpoint for readiness.\n\nIt never treats an arbitrary process on the same port as the test application. The returned close function stops the child and removes temporary storage. Startup failure also performs cleanup and includes captured output in its error."
+			"description": "The helper rejects an occupied port, creates a temporary runtime directory, and generates a fresh migration history, applies it, checks the schema, and seeds roles with the template as cwd. It starts `next start`, captures logs, and polls the auth session endpoint for readiness.\n\nIt never treats an arbitrary process on the same port as the test application. The returned close function stops the child and removes temporary storage. Startup failure also performs cleanup and includes captured output in its error."
 		},
 		{
 			"file": "e2e/playwright.config.ts",
@@ -62,9 +62,9 @@
 		},
 		{
 			"file": "e2e/database/templates.test.ts",
-			"pattern": "it\\(\"minimal: real config and committed migrations initialize Core/auth without plugins\"",
+			"pattern": "it\\(\"minimal: generates and replays a Core/auth baseline without plugins\"",
 			"title": "Validate the minimal schema without feature plugins",
-			"description": "This test loads the real minimal config and committed migrations, then initializes Core/auth without feature plugins. It checks the split at the application/configuration boundary.\n\nThe parameterized test above covers storage isolation, sync without connecting, and reset restrictions. Other files in e2e/database cover dialect and migration workflows. Inspect matrix environment requirements before treating skipped network dialect tests as verified coverage."
+			"description": "This test loads the real minimal config, generates a Core/auth baseline into a temporary history, applies it, and initializes Core/auth without feature plugins. It verifies signup and schema agreement, then replays the same history into another empty database without regenerating it.\n\nThe parameterized test above validates both templates' first-generation command flow. It inspects generated Core/plugin SQL and snapshot creation, confirms generation has not applied the tables, and checks that unchanged generation after setup produces no migration. Existing upgrade tests continue to exercise data transformations, rollback, and history replay."
 		},
 		{
 			"file": ".github/workflows/integration.yml",

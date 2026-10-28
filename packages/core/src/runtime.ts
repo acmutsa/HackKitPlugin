@@ -1,6 +1,10 @@
 import { MikroORM, RequestContext, type EntityManager } from "@mikro-orm/core";
 import { createLogger } from "./adapters/logger";
-import { createHackkit, type CreateHackkitOptions } from "./hackkit";
+import {
+	createHackkitFactory,
+	type createHackkit,
+	type CreateHackkitOptions,
+} from "./hackkit";
 import {
 	createPluginRegistry,
 	type HackKitPlugin,
@@ -45,6 +49,10 @@ export async function initializeHackkit<
 	options: InitializeHackkitOptions<TPlugins>,
 ): Promise<HackKitRuntime<TPlugins>> {
 	const registry = createPluginRegistry(options.plugins, options.entities);
+	const createScopedHackkit = createHackkitFactory<TPlugins>({
+		...options,
+		registry,
+	});
 	const orm = await MikroORM.init(createOrmOptions(options));
 	let auth: ReturnType<typeof createHackKitAuth>;
 	try {
@@ -66,15 +74,20 @@ export async function initializeHackkit<
 		const em = orm.em.fork({ useContext: true });
 		return {
 			em,
-			hackkit: createHackkit({ ...options, em, registry, actorAuthId }),
+			hackkit: createScopedHackkit(em, actorAuthId),
 		};
 	}
 	function run<T>(
 		operation: (scope: ReturnType<typeof createScope>) => Promise<T>,
 		actorAuthId?: string,
 	) {
-		const scope = createScope(actorAuthId);
-		return RequestContext.create(scope.em, () => operation(scope));
+		return RequestContext.create(orm.em, () => {
+			const em = orm.em.getContext();
+			return operation({
+				em,
+				hackkit: createScopedHackkit(em, actorAuthId),
+			});
+		});
 	}
 	return { orm, auth, registry, createScope, run };
 }

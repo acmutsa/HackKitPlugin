@@ -19,7 +19,7 @@ corepack pnpm --filter @hackkit/e2e exec playwright install chromium
 corepack pnpm test:e2e
 ```
 
-The runner builds libraries, synchronizes plugins, checks generated-file drift, typechecks, prepares disposable build databases, and builds both templates once. Runtime fixtures use fresh databases and uploads. They do not reuse developer `.env` values or databases.
+The runner builds libraries, synchronizes plugins, checks generated-file drift, typechecks, generates temporary migration histories, prepares and checks disposable build databases, and builds both templates once. Runtime fixtures use fresh databases and uploads. They do not reuse developer `.env` values or databases.
 
 Use `test:e2e:db`, `test:e2e:http`, or `test:e2e:browser` for a selected suite. Browser and HTTP checks use one Playwright worker, no automatic retries, and ports 33017 and 33018. An occupied port fails instead of attaching to another server.
 
