@@ -18,7 +18,7 @@ assert.ok(
 	"Choose all, db, http, or browser.",
 );
 const pnpm = (args, options = {}) =>
-	runCommand("corepack", ["pnpm", ...args], {
+	runCommand("pnpm", args, {
 		cwd: repositoryRoot,
 		...options,
 	});

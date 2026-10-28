@@ -4,11 +4,11 @@ Tests run the actual [full](../templates/nextjs-full/README.md) and [minimal](..
 
 ## Commands
 
-From the repository root, use Node.js 22.17+ and pinned pnpm 12.15.0:
+From the repository root, use Node.js 22.17+ and pinned pnpm 12.15.0 available on `PATH`. CI installs pnpm through `pnpm/action-setup`; the E2E runner invokes pnpm directly.
 
-1. Run `corepack pnpm install`.
-2. Install Chromium with `corepack pnpm --filter @hackkit/e2e exec playwright install chromium`. On Linux CI, add `--with-deps`.
-3. Run `corepack pnpm test:e2e`.
+1. Run `pnpm install`.
+2. Install Chromium with `pnpm --filter @hackkit/e2e exec playwright install chromium`. On Linux CI, add `--with-deps`.
+3. Run `pnpm test:e2e`.
 
 Choose `test:e2e:db`, `test:e2e:http`, or `test:e2e:browser` to run a focused suite. The runner builds library dependencies, checks plugin sync for changes, typechecks templates and E2E, and checks both browser bundles. HTTP/browser suites also generate initial migrations, migrate and check the schema, seed temporary build databases and build both production apps once. Runtime databases are separate from build databases.
 
